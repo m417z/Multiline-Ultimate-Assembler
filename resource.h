@@ -9,9 +9,9 @@
 #define IDD_OPTIONS                     112
 #define IDC_TABS                        1001
 #define IDC_ASSEMBLER                   1002
-#define IDC_DISASM_LABEL_JMP            1003
-#define IDC_DISASM_LABEL_ADR            1004
-#define IDC_DISASM_LABEL_IMM            1005
+#define IDC_DISASM_RVA                  1003
+#define IDC_DISASM_RVA_RELOCONLY        1004
+#define IDC_DISASM_LABEL                1005
 #define IDC_DISASM_EXTJMP               1006
 #define IDC_DISASM_HEX                  1007
 #define IDC_DISASM_LABELGEN             1008

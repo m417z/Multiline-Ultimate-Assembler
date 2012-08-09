@@ -275,7 +275,6 @@
     <ClInclude Include="plugin_immdbg.h" />
     <ClInclude Include="plugin_ollydbg.h" />
     <ClInclude Include="raedit.h" />
-    <ClInclude Include="raeditlib\resource.h" />
     <ClInclude Include="read_asm.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="tabctrl_ex.h" />

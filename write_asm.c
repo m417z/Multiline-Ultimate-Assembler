@@ -16,7 +16,7 @@ int WriteAsm(char *lpText, char *lpError)
 
 	// Replace labels in commands with addresses
 	if(!lpErrorSpot)
-		lpErrorSpot = ReplaceLabelsInCommands(&label_head, &cmd_block_head, lpText, lpError);
+		lpErrorSpot = ReplaceLabelsInCommands(&label_head, &cmd_block_head, lpError);
 
 	// Patch!
 	if(!lpErrorSpot)
@@ -48,6 +48,7 @@ static char *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_b
 	CMD_NODE *cmd_node;
 	char *p, *lpNextLine;
 	DWORD dwAddress;
+	t_module *module;
 	int result;
 
 	for(p = lpText; p != NULL; p = lpNextLine)
@@ -75,7 +76,7 @@ static char *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_b
 			switch(*p)
 			{
 			case '<': // address
-				result = ParseAddress(p, &dwAddress, lpError);
+				result = ParseAddress(p, &dwAddress, &module, lpError);
 				if(result <= 0)
 					return p+(-result);
 
@@ -99,7 +100,7 @@ static char *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_b
 				if(*p == '\"' || (*p == 'L' && p[1] == '\"'))
 					result = ParseString(p, &cmd_block_node->cmd_head, lpError);
 				else
-					result = ParseCommand(p, dwAddress, &cmd_block_node->cmd_head, lpError);
+					result = ParseCommand(p, dwAddress, module, &cmd_block_node->cmd_head, lpError);
 
 				if(result <= 0)
 					return p+(-result);
@@ -119,11 +120,11 @@ static char *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_b
 	return NULL;
 }
 
-static int ParseAddress(char *lpText, DWORD *pdwAddress, char *lpError)
+static int ParseAddress(char *lpText, DWORD *pdwAddress, t_module **p_module, char *lpError)
 {
 	char *p;
 	DWORD dwAddress;
-	BOOL bZeroX;
+	int result;
 
 	p = lpText;
 
@@ -136,58 +137,20 @@ static int ParseAddress(char *lpText, DWORD *pdwAddress, char *lpError)
 	p++;
 	p = SkipSpaces(p);
 
-	if(*p == '0' && (p[1] == 'x' || p[1] == 'X'))
+	if(*p == '$')
 	{
-		bZeroX = TRUE;
-		p += 2;
+		result = ParseRVAAddress(p, &dwAddress, NULL, p_module, lpError);
 	}
 	else
-		bZeroX = FALSE;
-
-	if((*p < '0' || *p > '9') && (*p < 'A' || *p > 'F') && (*p < 'a' || *p > 'f'))
 	{
-		lstrcpy(lpError, "Could not parse address");
-		return -(p-lpText);
+		*p_module = NULL;
+		result = ParseDWORD(p, &dwAddress, lpError);
 	}
 
-	dwAddress = 0;
+	if(result <= 0)
+		return -(p-lpText)+result;
 
-	while(!(dwAddress & 0xF0000000))
-	{
-		dwAddress <<= 4;
-
-		if(*p >= '0' && *p <= '9')
-			dwAddress |= *p-'0';
-		else if(*p >= 'A' && *p <= 'F')
-			dwAddress |= *p-'A'+10;
-		else if(*p >= 'a' && *p <= 'f')
-			dwAddress |= *p-'a'+10;
-		else
-		{
-			dwAddress >>= 4;
-			break;
-		}
-
-		p++;
-	}
-
-	if((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f'))
-	{
-		lstrcpy(lpError, "Could not parse address");
-		return -(p-lpText);
-	}
-
-	if(*p == 'h' || *p == 'H')
-	{
-		if(bZeroX)
-		{
-			lstrcpy(lpError, "Please don't mix 0xXXXX and XXXXh forms");
-			return -(p-lpText);
-		}
-
-		p++;
-	}
-
+	p += result;
 	p = SkipSpaces(p);
 
 	if(*p != '>')
@@ -444,7 +407,7 @@ static int ParseString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError)
 	}
 
 	// Check for comment
-	if(*p == ';')
+	if(p[0] == ';' && p[1] != ';')
 	{
 		lpComment = SkipSpaces(p+1);
 		if(*lpComment == '\0')
@@ -557,7 +520,7 @@ static int ParseString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError)
 	cmd_node->dwCodeSize = dwStringLength;
 	cmd_node->lpCommand = lpText;
 	cmd_node->lpComment = lpComment;
-	cmd_node->bUsesLabels = FALSE;
+	cmd_node->lpResolvedCommandWithLabels = NULL;
 
 	cmd_node->next = NULL;
 
@@ -567,51 +530,76 @@ static int ParseString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError)
 	return p-lpText;
 }
 
-static int ParseCommand(char *lpText, DWORD dwAddress, CMD_HEAD *p_cmd_head, char *lpError)
+static int ParseCommand(char *lpText, DWORD dwAddress, t_module *module, CMD_HEAD *p_cmd_head, char *lpError)
 {
 	CMD_NODE *cmd_node;
 	char *p;
+	char *lpResolvedCommand;
 	char *lpCommandWithoutLabels;
-	t_asmmodel model;
+	t_asmmodel model, model2;
 	int result;
 	char *lpComment;
 
-	// Assemble command (with a foo address instead of labels)
-	result = ReplaceLabelsWithAddress(lpText, dwAddress, &lpCommandWithoutLabels, lpError);
+	// Resolve RVA addresses
+	result = ResolveRVAAddresses(lpText, module, &lpResolvedCommand, lpError);
 	if(result <= 0)
 		return result;
 
-	if(lpCommandWithoutLabels)
-	{
-		result = AssembleShortest(lpCommandWithoutLabels, dwAddress, &model, lpError);
-		HeapFree(GetProcessHeap(), 0, lpCommandWithoutLabels);
+	if(!lpResolvedCommand)
+		lpResolvedCommand = lpText;
 
-		if(result > 0 && model.jmpsize)
+	// Assemble command (with a foo address instead of labels)
+	result = ReplaceLabelsWithAddress(lpResolvedCommand, dwAddress, &lpCommandWithoutLabels, lpError);
+	if(result > 0)
+	{
+		if(lpCommandWithoutLabels)
 		{
-			result = ReplaceLabelsWithAddress(lpText, dwAddress^0x80001337, &lpCommandWithoutLabels, lpError);
-			if(result > 0)
+			result = AssembleShortest(lpCommandWithoutLabels, dwAddress, &model, lpError);
+			result = ReplacedTextCorrectErrorSpot(lpText, lpCommandWithoutLabels, result);
+			HeapFree(GetProcessHeap(), 0, lpCommandWithoutLabels);
+
+			if(result > 0 && model.jmpsize)
 			{
-				// The magic:
-				// if AssembleShortest successes, we get the new model
-				// otherwise, the old one is left
-				AssembleShortest(lpCommandWithoutLabels, dwAddress, &model, lpError);
-				HeapFree(GetProcessHeap(), 0, lpCommandWithoutLabels);
+				result = ReplaceLabelsWithAddress(lpResolvedCommand, (DWORD)(dwAddress+INT_MAX), 
+					&lpCommandWithoutLabels, lpError);
+				if(result > 0 && lpCommandWithoutLabels)
+				{
+					if(AssembleShortest(lpCommandWithoutLabels, dwAddress, &model2, lpError) > 0)
+						model = model2;
+
+					HeapFree(GetProcessHeap(), 0, lpCommandWithoutLabels);
+				}
 			}
 		}
+		else
+		{
+			result = AssembleShortest(lpResolvedCommand, dwAddress, &model, lpError);
+			result = ReplacedTextCorrectErrorSpot(lpText, lpResolvedCommand, result);
+		}
 	}
-	else
-		result = AssembleShortest(lpText, dwAddress, &model, lpError);
 
 	if(result <= 0)
+	{
+		if(lpResolvedCommand != lpText)
+			HeapFree(GetProcessHeap(), 0, lpResolvedCommand);
+
 		return result;
+	}
 
 	// Find comment
 	p = lpText;
 
 	while(*p != '\0' && *p != ';')
-		p++;
+	{
+		if(*p == '@')
+			p = SkipLabel(p);
+		else if(*p == '$')
+			p = SkipRVAAddress(p);
+		else
+			p++;
+	}
 
-	if(*p == ';')
+	if(p[0] == ';' && p[1] != ';')
 	{
 		lpComment = SkipSpaces(p+1);
 		if(*lpComment == '\0')
@@ -624,6 +612,9 @@ static int ParseCommand(char *lpText, DWORD dwAddress, CMD_HEAD *p_cmd_head, cha
 	cmd_node = (CMD_NODE *)HeapAlloc(GetProcessHeap(), 0, sizeof(CMD_NODE));
 	if(!cmd_node)
 	{
+		if(lpResolvedCommand != lpText)
+			HeapFree(GetProcessHeap(), 0, lpResolvedCommand);
+
 		lstrcpy(lpError, "Allocation failed");
 		return 0;
 	}
@@ -631,6 +622,9 @@ static int ParseCommand(char *lpText, DWORD dwAddress, CMD_HEAD *p_cmd_head, cha
 	cmd_node->bCode = (BYTE *)HeapAlloc(GetProcessHeap(), 0, model.length);
 	if(!cmd_node->bCode)
 	{
+		if(lpResolvedCommand != lpText)
+			HeapFree(GetProcessHeap(), 0, lpResolvedCommand);
+
 		HeapFree(GetProcessHeap(), 0, cmd_node);
 
 		lstrcpy(lpError, "Allocation failed");
@@ -643,9 +637,9 @@ static int ParseCommand(char *lpText, DWORD dwAddress, CMD_HEAD *p_cmd_head, cha
 	cmd_node->lpComment = lpComment;
 
 	if(lpCommandWithoutLabels)
-		cmd_node->bUsesLabels = TRUE;
+		cmd_node->lpResolvedCommandWithLabels = lpResolvedCommand;
 	else
-		cmd_node->bUsesLabels = FALSE;
+		cmd_node->lpResolvedCommandWithLabels = NULL;
 
 	cmd_node->next = NULL;
 
@@ -655,16 +649,64 @@ static int ParseCommand(char *lpText, DWORD dwAddress, CMD_HEAD *p_cmd_head, cha
 	return p-lpText;
 }
 
-static int ReplaceLabelsWithAddress(char *lpCommand, DWORD dwAddress, char **ppNewCommand, char *lpError)
+static int ResolveRVAAddresses(char *lpCommand, t_module *module, char **ppNewCommand, char *lpError)
 {
 	char *p;
-	int label_count, label_start[4], label_end[4];
-	char szTextAddress[10];
-	int text_address_len;
-	char *lpNewCommand;
-	int new_command_len;
-	char *dest, *src;
-	int i;
+	int text_start[4];
+	int text_end[4];
+	DWORD dwAddress[4];
+	int address_count;
+	int result;
+
+	// Find and parse addresses
+	p = lpCommand;
+	address_count = 0;
+
+	while(*p != '\0' && *p != ';')
+	{
+		if(*p == '$')
+		{
+			if(address_count == 4)
+			{
+				lstrcpy(lpError, "No more than 4 RVA addresses allowed for one command");
+				return -(p-lpCommand);
+			}
+
+			text_start[address_count] = p-lpCommand;
+
+			result = ParseRVAAddress(p, &dwAddress[address_count], module, NULL, lpError);
+			if(result <= 0)
+				return -(p-lpCommand)+result;
+
+			p += result;
+			text_end[address_count] = p-lpCommand;
+
+			address_count++;
+		}
+		else
+			p++;
+	}
+
+	if(address_count == 0)
+	{
+		*ppNewCommand = NULL;
+		return 1;
+	}
+
+	// Replace
+	if(!ReplaceTextsWithAddresses(lpCommand, ppNewCommand, address_count, text_start, text_end, dwAddress, lpError))
+		return 0;
+
+	return 1;
+}
+
+static int ReplaceLabelsWithAddress(char *lpCommand, DWORD dwReplaceAddress, char **ppNewCommand, char *lpError)
+{
+	char *p;
+	int text_start[4];
+	int text_end[4];
+	DWORD dwAddress[4];
+	int label_count;
 
 	// Find labels
 	p = lpCommand;
@@ -680,7 +722,7 @@ static int ReplaceLabelsWithAddress(char *lpCommand, DWORD dwAddress, char **ppN
 				return -(p-lpCommand);
 			}
 
-			label_start[label_count] = p-lpCommand;
+			text_start[label_count] = p-lpCommand;
 			p++;
 
 			while(
@@ -691,13 +733,15 @@ static int ReplaceLabelsWithAddress(char *lpCommand, DWORD dwAddress, char **ppN
 			)
 				p++;
 
-			label_end[label_count] = p-lpCommand;
+			text_end[label_count] = p-lpCommand;
 
-			if(label_end[label_count]-label_start[label_count] == 1)
+			if(text_end[label_count]-text_start[label_count] == 1)
 			{
 				lstrcpy(lpError, "Could not parse label");
-				return -label_start[label_count];
+				return -text_start[label_count];
 			}
+
+			dwAddress[label_count] = dwReplaceAddress;
 
 			label_count++;
 		}
@@ -705,119 +749,196 @@ static int ReplaceLabelsWithAddress(char *lpCommand, DWORD dwAddress, char **ppN
 			p++;
 	}
 
-	if(!label_count)
+	if(label_count == 0)
 	{
 		*ppNewCommand = NULL;
 		return 1;
 	}
 
-	// Replace labels with the given address
-	text_address_len = wsprintf(szTextAddress, "0%X", dwAddress);
-
-	// Allocate memory for new command
-	new_command_len = lstrlen(lpCommand);
-	for(i=0; i<label_count; i++)
-		new_command_len += text_address_len-(label_end[i]-label_start[i]);
-
-	lpNewCommand = (char *)HeapAlloc(GetProcessHeap(), 0, new_command_len+1);
-	if(!lpNewCommand)
-	{
-		lstrcpy(lpError, "Allocation failed");
-		return 0;
-	}
-
 	// Replace
-	dest = lpNewCommand;
-	src = lpCommand;
+	if(!ReplaceTextsWithAddresses(lpCommand, ppNewCommand, label_count, text_start, text_end, dwAddress, lpError))
+		return 0;
 
-	CopyMemory(dest, src, label_start[0]);
-	CopyMemory(dest+label_start[0], szTextAddress, text_address_len);
-	dest += label_start[0]+text_address_len;
-	src += label_end[0];
-
-	for(i=1; i<label_count; i++)
-	{
-		CopyMemory(dest, src, label_start[i]-label_end[i-1]);
-		CopyMemory(dest+label_start[i]-label_end[i-1], szTextAddress, text_address_len);
-		dest += label_start[i]-label_end[i-1]+text_address_len;
-		src += label_end[i]-label_end[i-1];
-	}
-
-	lstrcpy(dest, src);
-
-	*ppNewCommand = lpNewCommand;
 	return 1;
 }
 
-static int AssembleShortest(char *lpCommand, DWORD dwAddress, t_asmmodel *model_ptr, char *lpError)
+static int ParseRVAAddress(char *lpText, DWORD *pdwAddress, t_module *parent_module, t_module **p_parsed_module, char *lpError)
 {
-	char *lpFixedCommand, *lpCommandToAssemble;
-	t_asmmodel model1, model2;
-	t_asmmodel *pm, *pm_shortest, *temp;
-	BOOL bHadResults;
-	int attempt;
+	char *p;
+	char *pModuleName;
+	t_module *module;
+	DWORD dwAddress;
 	int result;
-	int i;
+	char c;
 
-	result = FixAsmCommand(lpCommand, &lpFixedCommand, lpError);
-	if(result <= 0)
-		return result;
+	p = lpText;
 
-	if(lpFixedCommand)
-		lpCommandToAssemble = lpFixedCommand;
-	else
-		lpCommandToAssemble = lpCommand;
-
-	pm = &model1;
-	pm_shortest = &model2;
-
-	pm_shortest->length = MAXCMDSIZE+1;
-	attempt = 0;
-
-	do
+	if(*p != '$')
 	{
-		bHadResults = FALSE;
+		lstrcpy(lpError, "Could not parse RVA address, '$' expected");
+		return -(p-lpText);
+	}
 
-		for(i=0; i<4; i++)
+	p++;
+
+	if(*p == '$')
+	{
+		if(!parent_module)
 		{
-			result = Assemble(lpCommandToAssemble, dwAddress, pm, attempt, i, lpError);
-			if(result > 0)
-			{
-				bHadResults = TRUE;
+			lstrcpy(lpError, "Could not parse RVA address, there is no parent module");
+			return 0;
+		}
 
-				if(pm->length < pm_shortest->length)
+		module = parent_module;
+
+		p++;
+	}
+	else
+	{
+		if(*p == '"')
+		{
+			p++;
+			pModuleName = p;
+
+			while(*p != '"')
+			{
+				if(*p == '\0')
 				{
-					temp = pm_shortest;
-					pm_shortest = pm;
-					pm = temp;
+					lstrcpy(lpError, "Could not parse RVA address, '\"' expected");
+					return -(p-lpText);
 				}
+
+				p++;
+			}
+		}
+		else
+		{
+			pModuleName = p;
+
+			while(*p != '.')
+			{
+				if(*p == ' ' || *p == '\t' || *p == '"' || *p == ';' || *p == '\0')
+				{
+					lstrcpy(lpError, "Could not parse RVA address, '.' expected");
+					return -(p-lpText);
+				}
+
+				p++;
 			}
 		}
 
-		attempt++;
-	}
-	while(bHadResults);
+		c = *p;
+		*p = '\0';
 
-	if(lpFixedCommand)
-		HeapFree(GetProcessHeap(), 0, lpFixedCommand);
-
-	if(pm_shortest->length == MAXCMDSIZE+1)
-		return result;
-
-	for(i=0; i<pm_shortest->length; i++)
-	{
-		if(pm_shortest->mask[i] != 0xFF)
+		module = FindModuleByName(pModuleName);
+		if(!module)
 		{
-			lstrcpy(lpError, "Undefined operands allowed only for search");
-			return 0;
+			wsprintf(lpError, "There is no module \"%s\"", pModuleName);
+			*p = c;
+			return -(pModuleName-lpText);
 		}
+
+		*p = c;
+		p++;
+
+		if(c == '"')
+		{
+			if(*p != '.')
+			{
+				lstrcpy(lpError, "Could not parse RVA address, '.' expected");
+				return -(p-lpText);
+			}
+
+			p++;
+		}
+
+		if(p_parsed_module)
+			*p_parsed_module = module;
 	}
 
-	*model_ptr = *pm_shortest;
-	return pm_shortest->length;
+	result = ParseDWORD(p, &dwAddress, lpError);
+	if(result <= 0)
+		return -(p-lpText)+result;
+
+	if(dwAddress > module->size-1)
+	{
+		lstrcpy(lpError, "The RVA address exceeds the module size");
+		return -(p-lpText);
+	}
+
+	p += result;
+
+	*pdwAddress = module->base + dwAddress;
+
+	return p-lpText;
 }
 
-static char *ReplaceLabelsInCommands(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, char *lpText, char *lpError)
+static int ParseDWORD(char *lpText, DWORD *pdw, char *lpError)
+{
+	char *p;
+	DWORD dw;
+	BOOL bZeroX;
+
+	p = lpText;
+
+	if(*p == '0' && (p[1] == 'x' || p[1] == 'X'))
+	{
+		bZeroX = TRUE;
+		p += 2;
+	}
+	else
+		bZeroX = FALSE;
+
+	if((*p < '0' || *p > '9') && (*p < 'A' || *p > 'F') && (*p < 'a' || *p > 'f'))
+	{
+		lstrcpy(lpError, "Could not parse DWORD");
+		return -(p-lpText);
+	}
+
+	dw = 0;
+
+	while(!(dw & 0xF0000000))
+	{
+		dw <<= 4;
+
+		if(*p >= '0' && *p <= '9')
+			dw |= *p-'0';
+		else if(*p >= 'A' && *p <= 'F')
+			dw |= *p-'A'+10;
+		else if(*p >= 'a' && *p <= 'f')
+			dw |= *p-'a'+10;
+		else
+		{
+			dw >>= 4;
+			break;
+		}
+
+		p++;
+	}
+
+	if((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f'))
+	{
+		lstrcpy(lpError, "Could not parse DWORD");
+		return -(p-lpText);
+	}
+
+	if(*p == 'h' || *p == 'H')
+	{
+		if(bZeroX)
+		{
+			lstrcpy(lpError, "Please don't mix 0xXXXX and XXXXh forms");
+			return -(p-lpText);
+		}
+
+		p++;
+	}
+
+	*pdw = dw;
+
+	return p-lpText;
+}
+
+static char *ReplaceLabelsInCommands(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, char *lpError)
 {
 	CMD_BLOCK_NODE *cmd_block_node;
 	CMD_NODE *cmd_node;
@@ -853,18 +974,30 @@ static char *ReplaceLabelsInCommands(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p
 					dwNextAnonAddr = 0;
 			}
 
-			if(cmd_node->bUsesLabels)
+			if(cmd_node->lpResolvedCommandWithLabels)
 			{
-				result = ReplaceLabelsFromList(cmd_node->lpCommand, dwPrevAnonAddr, dwNextAnonAddr, 
+				result = ReplaceLabelsFromList(cmd_node->lpResolvedCommandWithLabels, dwPrevAnonAddr, dwNextAnonAddr, 
 					p_label_head, &lpCommandWithoutLabels, lpError);
+
+				if(cmd_node->lpResolvedCommandWithLabels != cmd_node->lpCommand)
+					HeapFree(GetProcessHeap(), 0, cmd_node->lpResolvedCommandWithLabels);
+				cmd_node->lpResolvedCommandWithLabels = NULL;
+
 				if(result <= 0)
 					return cmd_node->lpCommand+(-result);
 
+				if(!lpCommandWithoutLabels)
+				{
+					lstrcpy(lpError, "Where are the labels?");
+					return cmd_node->lpCommand;
+				}
+
 				result = AssembleWithGivenSize(lpCommandWithoutLabels, dwAddress, cmd_node->dwCodeSize, &model, lpError);
+				result = ReplacedTextCorrectErrorSpot(cmd_node->lpCommand, lpCommandWithoutLabels, result);
 				HeapFree(GetProcessHeap(), 0, lpCommandWithoutLabels);
 
 				if(result <= 0)
-					return cmd_node->lpCommand;
+					return cmd_node->lpCommand+(-result);
 
 				CopyMemory(cmd_node->bCode, model.code, model.length);
 			}
@@ -881,14 +1014,11 @@ static int ReplaceLabelsFromList(char *lpCommand, DWORD dwPrevAnonAddr, DWORD dw
 {
 	LABEL_NODE *label_node;
 	char *p;
-	int label_count, label_start[4], label_end[4];
+	int text_start[4];
+	int text_end[4];
+	DWORD dwAddress[4];
+	int label_count;
 	char temp_char;
-	DWORD dwAddresses[4];
-	char dwTextAddresses[4][10];
-	int text_addresses_size[4];
-	char *lpNewCommand;
-	int new_command_len;
-	char *dest, *src;
 	int i;
 
 	// Find labels
@@ -905,7 +1035,7 @@ static int ReplaceLabelsFromList(char *lpCommand, DWORD dwPrevAnonAddr, DWORD dw
 				return -(p-lpCommand);
 			}
 
-			label_start[label_count] = p-lpCommand;
+			text_start[label_count] = p-lpCommand;
 			p++;
 
 			while(
@@ -916,12 +1046,12 @@ static int ReplaceLabelsFromList(char *lpCommand, DWORD dwPrevAnonAddr, DWORD dw
 			)
 				p++;
 
-			label_end[label_count] = p-lpCommand;
+			text_end[label_count] = p-lpCommand;
 
-			if(label_end[label_count]-label_start[label_count] == 1)
+			if(text_end[label_count]-text_start[label_count] == 1)
 			{
 				lstrcpy(lpError, "Could not parse label");
-				return -label_start[label_count];
+				return -text_start[label_count];
 			}
 
 			label_count++;
@@ -932,157 +1062,63 @@ static int ReplaceLabelsFromList(char *lpCommand, DWORD dwPrevAnonAddr, DWORD dw
 
 	if(label_count == 0)
 	{
-		lstrcpy(lpError, "An error that should have never occurred has just occurred");
-		return 0;
+		*ppNewCommand = NULL;
+		return 1;
 	}
 
 	// Find these labels in our list
 	for(i=0; i<label_count; i++)
 	{
-		p = lpCommand+label_start[i]+1;
+		p = lpCommand+text_start[i]+1;
 
-		if(label_end[i]-(label_start[i]+1) == 1)
+		if(text_end[i]-(text_start[i]+1) == 1)
 		{
 			temp_char = *p;
 			if(temp_char >= 'A' && temp_char <= 'Z')
 				temp_char += -'A'+'a';
 
 			if(temp_char == 'b' || temp_char == 'r')
-				dwAddresses[i] = dwPrevAnonAddr;
+				dwAddress[i] = dwPrevAnonAddr;
 			else if(temp_char == 'f')
-				dwAddresses[i] = dwNextAnonAddr;
+				dwAddress[i] = dwNextAnonAddr;
 			else
 				temp_char = '\0';
 
 			if(temp_char != '\0')
 			{
-				if(!dwAddresses[i])
+				if(!dwAddress[i])
 				{
 					lstrcpy(lpError, "The anonymous label was not defined");
-					return -label_start[i];
+					return -text_start[i];
 				}
 
 				continue;
 			}
 		}
 
-		temp_char = lpCommand[label_end[i]];
-		lpCommand[label_end[i]] = '\0';
+		temp_char = lpCommand[text_end[i]];
+		lpCommand[text_end[i]] = '\0';
 
 		for(label_node = p_label_head->next; label_node != NULL; label_node = label_node->next)
 			if(lstrcmp(p, label_node->lpLabel) == 0)
 				break;
 
-		lpCommand[label_end[i]] = temp_char;
+		lpCommand[text_end[i]] = temp_char;
 
 		if(label_node == NULL)
 		{
 			lstrcpy(lpError, "The label was not defined");
-			return -label_start[i];
+			return -text_start[i];
 		}
 
-		dwAddresses[i] = label_node->dwAddress;
-	}
-
-	// Allocate memory for new command
-	for(i=0; i<label_count; i++)
-		text_addresses_size[i] = wsprintf(dwTextAddresses[i], "0%X", dwAddresses[i]);
-
-	new_command_len = lstrlen(lpCommand);
-	for(i=0; i<label_count; i++)
-		new_command_len += text_addresses_size[i]-(label_end[i]-label_start[i]);
-
-	lpNewCommand = (char *)HeapAlloc(GetProcessHeap(), 0, new_command_len+1);
-	if(!lpNewCommand)
-	{
-		lstrcpy(lpError, "Allocation failed");
-		return 0;
+		dwAddress[i] = label_node->dwAddress;
 	}
 
 	// Replace
-	dest = lpNewCommand;
-	src = lpCommand;
+	if(!ReplaceTextsWithAddresses(lpCommand, ppNewCommand, label_count, text_start, text_end, dwAddress, lpError))
+		return 0;
 
-	CopyMemory(dest, src, label_start[0]);
-	CopyMemory(dest+label_start[0], dwTextAddresses[0], text_addresses_size[0]);
-	dest += label_start[0]+text_addresses_size[0];
-	src += label_end[0];
-
-	for(i=1; i<label_count; i++)
-	{
-		CopyMemory(dest, src, label_start[i]-label_end[i-1]);
-		CopyMemory(dest+label_start[i]-label_end[i-1], dwTextAddresses[i], text_addresses_size[i]);
-		dest += label_start[i]-label_end[i-1]+text_addresses_size[i];
-		src += label_end[i]-label_end[i-1];
-	}
-
-	lstrcpy(dest, src);
-
-	*ppNewCommand = lpNewCommand;
 	return 1;
-}
-
-static int AssembleWithGivenSize(char *lpCommand, DWORD dwAddress, DWORD dwSize, t_asmmodel *model_ptr, char *lpError)
-{
-	char *lpFixedCommand, *lpCommandToAssemble;
-	t_asmmodel model;
-	BOOL bHadResults;
-	int attempt;
-	int result;
-	int i;
-
-	result = FixAsmCommand(lpCommand, &lpFixedCommand, lpError);
-	if(result <= 0)
-		return result;
-
-	if(lpFixedCommand)
-		lpCommandToAssemble = lpFixedCommand;
-	else
-		lpCommandToAssemble = lpCommand;
-
-	model.length = MAXCMDSIZE+1;
-
-	attempt = 0;
-
-	do
-	{
-		bHadResults = FALSE;
-
-		for(i=0; i<4; i++)
-		{
-			result = Assemble(lpCommandToAssemble, dwAddress, &model, attempt, i, lpError);
-			if(result > 0)
-			{
-				bHadResults = TRUE;
-
-				if(model.length == dwSize)
-				{
-					if(lpFixedCommand)
-						HeapFree(GetProcessHeap(), 0, lpFixedCommand);
-
-					for(i=0; i<model.length; i++)
-					{
-						if(model.mask[i] != 0xFF)
-						{
-							lstrcpy(lpError, "Undefined operands allowed only for search");
-							return 0;
-						}
-					}
-
-					*model_ptr = model;
-					return result;
-				}
-			}
-		}
-
-		attempt++;
-	}
-	while(bHadResults);
-
-	if(lpFixedCommand)
-		HeapFree(GetProcessHeap(), 0, lpFixedCommand);
-
-	return result;
 }
 
 static char *PatchCommands(CMD_BLOCK_HEAD *p_cmd_block_head, char *lpError)
@@ -1180,7 +1216,6 @@ static char *SetLabels(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_hea
 {
 	LABEL_NODE *label_node;
 	CMD_BLOCK_NODE *cmd_block_node;
-	int labelgen_method;
 	char *lpLabel;
 	UINT nLabelLen;
 	UINT i;
@@ -1188,8 +1223,6 @@ static char *SetLabels(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_hea
 	for(cmd_block_node = p_cmd_block_head->next; cmd_block_node != NULL; cmd_block_node = cmd_block_node->next)
 		if(cmd_block_node->dwSize > 0)
 			Deletenamerange(cmd_block_node->dwAddress, cmd_block_node->dwAddress+cmd_block_node->dwSize, NM_LABEL);
-
-	labelgen_method = options.disasm_labelgen;
 
 	for(label_node = p_label_head->next; label_node != NULL; label_node = label_node->next)
 	{
@@ -1238,10 +1271,196 @@ static char *SetLabels(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_hea
 	return NULL;
 }
 
+static t_module *FindModuleByName(char *lpModule)
+{
+	int module_len;
+	t_table *table;
+	t_sorted *sorted;
+	int n, itemsize;
+	t_module *module;
+	int i, j;
+
+	module_len = lstrlen(lpModule);
+	if(module_len > SHORTLEN)
+		return NULL;
+
+	table = (t_table *)Plugingetvalue(VAL_MODULES);
+	sorted = &table->data;
+
+	n = sorted->n;
+	itemsize = sorted->itemsize;
+	module = (t_module *)sorted->data;
+
+	for(i=0; i<n; i++)
+	{
+		for(j=0; j<module_len; j++)
+		{
+			if(lpModule[j] != module->name[j])
+				break;
+		}
+
+		if(j == module_len && (j == SHORTLEN || module->name[j] == '\0'))
+			return module;
+
+		module = (t_module *)((char *)module + itemsize);
+	}
+
+	return NULL;
+}
+
+static int AssembleShortest(char *lpCommand, DWORD dwAddress, t_asmmodel *model_ptr, char *lpError)
+{
+	char *lpFixedCommand, *lpCommandToAssemble;
+	t_asmmodel model1, model2;
+	t_asmmodel *pm, *pm_shortest, *temp;
+	BOOL bHadResults;
+	int attempt;
+	int result;
+	int i;
+
+	result = FixAsmCommand(lpCommand, &lpFixedCommand, lpError);
+	if(result <= 0)
+		return result;
+
+	if(lpFixedCommand)
+		lpCommandToAssemble = lpFixedCommand;
+	else
+		lpCommandToAssemble = lpCommand;
+
+	pm = &model1;
+	pm_shortest = &model2;
+
+	pm_shortest->length = MAXCMDSIZE+1;
+	attempt = 0;
+
+	do
+	{
+		bHadResults = FALSE;
+
+		for(i=0; i<4; i++)
+		{
+			result = Assemble(lpCommandToAssemble, dwAddress, pm, attempt, i, lpError);
+			if(result > 0)
+			{
+				bHadResults = TRUE;
+
+				if(pm->length < pm_shortest->length)
+				{
+					temp = pm_shortest;
+					pm_shortest = pm;
+					pm = temp;
+				}
+			}
+		}
+
+		attempt++;
+	}
+	while(bHadResults);
+
+	if(pm_shortest->length == MAXCMDSIZE+1)
+	{
+		if(lpFixedCommand)
+		{
+			result = FixedAsmCorrectErrorSpot(lpCommand, lpFixedCommand, result);
+			HeapFree(GetProcessHeap(), 0, lpFixedCommand);
+		}
+
+		return result;
+	}
+
+	if(lpFixedCommand)
+		HeapFree(GetProcessHeap(), 0, lpFixedCommand);
+
+	for(i=0; i<pm_shortest->length; i++)
+	{
+		if(pm_shortest->mask[i] != 0xFF)
+		{
+			lstrcpy(lpError, "Undefined operands allowed only for search");
+			return 0;
+		}
+	}
+
+	*model_ptr = *pm_shortest;
+	return pm_shortest->length;
+}
+
+static int AssembleWithGivenSize(char *lpCommand, DWORD dwAddress, DWORD dwSize, t_asmmodel *model_ptr, char *lpError)
+{
+	char *lpFixedCommand, *lpCommandToAssemble;
+	t_asmmodel model;
+	BOOL bHadResults;
+	int attempt;
+	int result;
+	int i;
+
+	result = FixAsmCommand(lpCommand, &lpFixedCommand, lpError);
+	if(result <= 0)
+		return result;
+
+	if(lpFixedCommand)
+		lpCommandToAssemble = lpFixedCommand;
+	else
+		lpCommandToAssemble = lpCommand;
+
+	model.length = MAXCMDSIZE+1;
+
+	attempt = 0;
+
+	do
+	{
+		bHadResults = FALSE;
+
+		for(i=0; i<4; i++)
+		{
+			result = Assemble(lpCommandToAssemble, dwAddress, &model, attempt, i, lpError);
+			if(result > 0)
+			{
+				bHadResults = TRUE;
+
+				if(model.length == dwSize)
+				{
+					if(lpFixedCommand)
+						HeapFree(GetProcessHeap(), 0, lpFixedCommand);
+
+					for(i=0; i<model.length; i++)
+					{
+						if(model.mask[i] != 0xFF)
+						{
+							lstrcpy(lpError, "Undefined operands allowed only for search");
+							return 0;
+						}
+					}
+
+					*model_ptr = model;
+					return result;
+				}
+			}
+		}
+
+		attempt++;
+	}
+	while(bHadResults);
+
+	if(lpFixedCommand)
+	{
+		if(result < 0)
+			result = FixedAsmCorrectErrorSpot(lpCommand, lpFixedCommand, result);
+		HeapFree(GetProcessHeap(), 0, lpFixedCommand);
+	}
+
+	if(result > 0)
+	{
+		lstrcpy(lpError, "Assemble error");
+		result = 0;
+	}
+
+	return result;
+}
+
 static int FixAsmCommand(char *lpCommand, char **ppFixedCommand, char *lpError)
 {
 	char *p;
-	char *pHexFirstChar;
+	char *pHexNumberStart, *pHexNumberEnd;
 	int number_count;
 	char *pNewCommand;
 	char *p_dest;
@@ -1255,47 +1474,8 @@ static int FixAsmCommand(char *lpCommand, char **ppFixedCommand, char *lpError)
 	// Search for hex numbers starting with a letter
 	number_count = 0;
 
-	while(*p != '\0' && *p != ';')
-	{
-		if((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'))
-		{
-			if((*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f'))
-			{
-				pHexFirstChar = p;
-
-				do
-					p++;
-				while((*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f') || (*p >= '0' && *p <= '9'));
-
-				if(*p == 'h' || *p == 'H')
-				{
-					// Check registers AH, BH, CH, DH
-					if(
-						p-pHexFirstChar != 1 || 
-						((p[-1] < 'A' || p[-1] > 'D') && (p[-1] < 'a' || p[-1] > 'd'))
-					)
-						p++;
-				}
-
-				if((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'))
-				{
-					do
-						p++;
-					while((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'));
-				}
-				else
-					number_count++;
-			}
-			else
-			{
-				do
-					p++;
-				while((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'));
-			}
-		}
-		else
-			p++;
-	}
+	while(FindNextHexNumberStartingWithALetter(p, &pHexNumberStart, &p))
+		number_count++;
 
 	if(number_count == 0)
 	{
@@ -1319,24 +1499,79 @@ static int FixAsmCommand(char *lpCommand, char **ppFixedCommand, char *lpError)
 	while((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'))
 		*p_dest++ = *p++;
 
+	while(FindNextHexNumberStartingWithALetter(p, &pHexNumberStart, &pHexNumberEnd))
+	{
+		CopyMemory(p_dest, p, pHexNumberStart-p);
+		p_dest += pHexNumberStart-p;
+
+		*p_dest++ = '0';
+
+		CopyMemory(p_dest, pHexNumberStart, pHexNumberEnd-pHexNumberStart);
+		p_dest += pHexNumberEnd-pHexNumberStart;
+
+		p = pHexNumberEnd;
+	}
+
+	// Copy the rest
+	lstrcpy(p_dest, p);
+
+	*ppFixedCommand = pNewCommand;
+	return 1;
+}
+
+static int FixedAsmCorrectErrorSpot(char *lpCommand, char *pFixedCommand, int result)
+{
+	char *p;
+	char *pHexNumberStart;
+
+	p = lpCommand;
+
+	// Skip the command name
+	while((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'))
+		p++;
+
+	if(-result < p-lpCommand)
+		return result;
+
 	// Search for hex numbers starting with a letter
+	while(FindNextHexNumberStartingWithALetter(p, &pHexNumberStart, &p))
+	{
+		if(-result < pHexNumberStart+1-lpCommand)
+			return result;
+
+		result++;
+
+		if(-result < p-lpCommand)
+			return result;
+	}
+
+	return result;
+}
+
+static BOOL FindNextHexNumberStartingWithALetter(char *lpCommand, char **ppHexNumberStart, char **ppHexNumberEnd)
+{
+	char *p;
+	char *pHexNumberStart;
+
+	p = lpCommand;
+
 	while(*p != '\0' && *p != ';')
 	{
 		if((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'))
 		{
 			if((*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f'))
 			{
-				pHexFirstChar = p;
+				pHexNumberStart = p;
 
-				do
+				do {
 					p++;
-				while((*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f') || (*p >= '0' && *p <= '9'));
+				} while((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f'));
 
 				if(*p == 'h' || *p == 'H')
 				{
 					// Check registers AH, BH, CH, DH
 					if(
-						p-pHexFirstChar != 1 || 
+						p-pHexNumberStart != 1 || 
 						((p[-1] < 'A' || p[-1] > 'D') && (p[-1] < 'a' || p[-1] > 'd'))
 					)
 						p++;
@@ -1344,40 +1579,126 @@ static int FixAsmCommand(char *lpCommand, char **ppFixedCommand, char *lpError)
 
 				if((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'))
 				{
-					while(pHexFirstChar < p)
-						*p_dest++ = *pHexFirstChar++;
-
-					do
-						*p_dest++ = *p++;
-					while((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'));
+					do {
+						p++;
+					} while((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'));
 				}
 				else
 				{
-					*p_dest++ = '0';
-
-					while(pHexFirstChar < p)
-						*p_dest++ = *pHexFirstChar++;
+					*ppHexNumberStart = pHexNumberStart;
+					*ppHexNumberEnd = p;
+					return TRUE;
 				}
 			}
 			else
 			{
-				do
-					*p_dest++ = *p++;
-				while((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'));
+				do {
+					p++;
+				} while((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'));
 			}
 		}
 		else
-			*p_dest++ = *p++;
+			p++;
 	}
 
-	// Copy the rest
-	while(*p != '\0')
-		*p_dest++ = *p++;
+	return FALSE;
+}
 
-	*p_dest++ = '\0';
+static BOOL ReplaceTextsWithAddresses(char *lpCommand, char **ppNewCommand, 
+	int text_count, int text_start[4], int text_end[4], DWORD dwAddress[4], char *lpError)
+{
+	int address_len[4];
+	char szAddressText[4][10];
+	int new_command_len;
+	char *lpNewCommand;
+	char *dest, *src;
+	int i;
 
-	*ppFixedCommand = pNewCommand;
-	return 1;
+	new_command_len = lstrlen(lpCommand);
+
+	for(i=0; i<text_count; i++)
+	{
+		address_len[i] = wsprintf(szAddressText[i], "0%X", dwAddress[i]);
+		new_command_len += address_len[i]-(text_end[i]-text_start[i]);
+	}
+
+	lpNewCommand = (char *)HeapAlloc(GetProcessHeap(), 0, new_command_len+1);
+	if(!lpNewCommand)
+	{
+		lstrcpy(lpError, "Allocation failed");
+		return FALSE;
+	}
+
+	// Replace
+	dest = lpNewCommand;
+	src = lpCommand;
+
+	CopyMemory(dest, src, text_start[0]);
+	CopyMemory(dest+text_start[0], szAddressText[0], address_len[0]);
+	dest += text_start[0]+address_len[0];
+	src += text_end[0];
+
+	for(i=1; i<text_count; i++)
+	{
+		CopyMemory(dest, src, text_start[i]-text_end[i-1]);
+		CopyMemory(dest+text_start[i]-text_end[i-1], szAddressText[i], address_len[i]);
+		dest += text_start[i]-text_end[i-1]+address_len[i];
+		src += text_end[i]-text_end[i-1];
+	}
+
+	lstrcpy(dest, src);
+
+	*ppNewCommand = lpNewCommand;
+	return TRUE;
+}
+
+static int ReplacedTextCorrectErrorSpot(char *lpCommand, char *lpReplacedCommand, int result)
+{
+	char *ptxt, *paddr;
+	char *pTextStart, *pAddressStart;
+
+	if(result > 0 || lpCommand == lpReplacedCommand)
+		return result;
+
+	ptxt = lpCommand;
+	paddr = lpReplacedCommand;
+
+	while(*ptxt != '\0' && *ptxt != ';')
+	{
+		if(*ptxt == '@')
+		{
+			pTextStart = ptxt;
+			ptxt = SkipLabel(ptxt);
+		}
+		else if(*ptxt == '$')
+		{
+			pTextStart = ptxt;
+			ptxt = SkipRVAAddress(ptxt);
+		}
+		else
+		{
+			ptxt++;
+			paddr++;
+
+			continue;
+		}
+
+		pAddressStart = paddr;
+
+		while((*paddr >= '0' && *paddr <= '9') || (*paddr >= 'A' && *paddr <= 'F'))
+			paddr++;
+
+		if(-result < pTextStart-lpCommand)
+			return result;
+
+		if(-result < pTextStart-lpCommand+(paddr-pAddressStart))
+			return -(pTextStart-lpCommand);
+
+		result += paddr-pAddressStart;
+		result -= ptxt-pTextStart;
+	}
+
+	return result;
 }
 
 static char *NullTerminateLine(char *p)
@@ -1416,6 +1737,80 @@ static char *SkipSpaces(char *p)
 	return p;
 }
 
+static char *SkipDWORD(char *p)
+{
+	BOOL bZeroX;
+
+	if(*p == '0' && (p[1] == 'x' || p[1] == 'X'))
+	{
+		bZeroX = TRUE;
+		p += 2;
+	}
+	else
+		bZeroX = FALSE;
+
+	while((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f'))
+		p++;
+
+	if(!bZeroX && (*p == 'h' || *p == 'H'))
+		p++;
+
+	return p;
+}
+
+static char *SkipLabel(char *p)
+{
+	if(*p == '@')
+	{
+		p++;
+
+		while(
+			(*p >= '0' && *p <= '9') || 
+			(*p >= 'A' && *p <= 'Z') || 
+			(*p >= 'a' && *p <= 'z') || 
+			*p == '_'
+		)
+			p++;
+	}
+
+	return p;
+}
+
+static char *SkipRVAAddress(char *p)
+{
+	if(*p == '$')
+	{
+		p++;
+
+		switch(*p)
+		{
+		case '$':
+			p++;
+			break;
+
+		case '"':
+			p++;
+
+			while(*p != '"')
+				p++;
+
+			p++;
+			break;
+
+		default:
+			while(*p != '.')
+				p++;
+
+			p++;
+			break;
+		}
+
+		p = SkipDWORD(p);
+	}
+
+	return p;
+}
+
 static void FreeLabelList(LABEL_HEAD *p_label_head)
 {
 	LABEL_NODE *label_node, *next;
@@ -1437,8 +1832,10 @@ static void FreeCmdBlockList(CMD_BLOCK_HEAD *p_cmd_block_head)
 	for(cmd_block_node = p_cmd_block_head->next; cmd_block_node != NULL; cmd_block_node = next)
 	{
 		next = cmd_block_node->next;
+
 		FreeCmdList(&cmd_block_node->cmd_head);
 		FreeAnonLabelList(&cmd_block_node->anon_label_head);
+
 		HeapFree(GetProcessHeap(), 0, cmd_block_node);
 	}
 
@@ -1453,7 +1850,11 @@ static void FreeCmdList(CMD_HEAD *p_cmd_head)
 	for(cmd_node = p_cmd_head->next; cmd_node != NULL; cmd_node = next)
 	{
 		next = cmd_node->next;
+
 		HeapFree(GetProcessHeap(), 0, cmd_node->bCode);
+		if(cmd_node->lpResolvedCommandWithLabels && cmd_node->lpResolvedCommandWithLabels != cmd_node->lpCommand)
+			HeapFree(GetProcessHeap(), 0, cmd_node->lpResolvedCommandWithLabels);
+
 		HeapFree(GetProcessHeap(), 0, cmd_node);
 	}
 

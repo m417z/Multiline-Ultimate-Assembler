@@ -37,6 +37,14 @@ static LRESULT CALLBACK DlgOptionsProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	case WM_COMMAND:
 		switch(LOWORD(wParam))
 		{
+		case IDC_DISASM_RVA:
+			EnableWindow(GetDlgItem(hWnd, IDC_DISASM_RVA_RELOCONLY), IsDlgButtonChecked(hWnd, IDC_DISASM_RVA));
+			break;
+
+		case IDC_DISASM_LABEL:
+			EnableWindow(GetDlgItem(hWnd, IDC_DISASM_EXTJMP), IsDlgButtonChecked(hWnd, IDC_DISASM_LABEL));
+			break;
+
 		case IDOK:
 			OptionsFromDlg(hWnd);
 			OptionsToIni(hDllInst);
@@ -55,14 +63,18 @@ static LRESULT CALLBACK DlgOptionsProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 
 static void OptionsToDlg(HWND hWnd)
 {
-	if(options.disasm_label_jmp)
-		CheckDlgButton(hWnd, IDC_DISASM_LABEL_JMP, BST_CHECKED);
+	if(options.disasm_rva)
+		CheckDlgButton(hWnd, IDC_DISASM_RVA, BST_CHECKED);
+	else
+		EnableWindow(GetDlgItem(hWnd, IDC_DISASM_RVA_RELOCONLY), FALSE);
 
-	if(options.disasm_label_adr)
-		CheckDlgButton(hWnd, IDC_DISASM_LABEL_ADR, BST_CHECKED);
+	if(options.disasm_rva_reloconly)
+		CheckDlgButton(hWnd, IDC_DISASM_RVA_RELOCONLY, BST_CHECKED);
 
-	if(options.disasm_label_imm)
-		CheckDlgButton(hWnd, IDC_DISASM_LABEL_IMM, BST_CHECKED);
+	if(options.disasm_label)
+		CheckDlgButton(hWnd, IDC_DISASM_LABEL, BST_CHECKED);
+	else
+		EnableWindow(GetDlgItem(hWnd, IDC_DISASM_EXTJMP), FALSE);
 
 	if(options.disasm_extjmp)
 		CheckDlgButton(hWnd, IDC_DISASM_EXTJMP, BST_CHECKED);
@@ -85,9 +97,9 @@ static void OptionsToDlg(HWND hWnd)
 
 static void OptionsFromDlg(HWND hWnd)
 {
-	options.disasm_label_jmp = IsDlgButtonChecked(hWnd, IDC_DISASM_LABEL_JMP)==BST_CHECKED;
-	options.disasm_label_adr = IsDlgButtonChecked(hWnd, IDC_DISASM_LABEL_ADR)==BST_CHECKED;
-	options.disasm_label_imm = IsDlgButtonChecked(hWnd, IDC_DISASM_LABEL_IMM)==BST_CHECKED;
+	options.disasm_rva = IsDlgButtonChecked(hWnd, IDC_DISASM_RVA)==BST_CHECKED;
+	options.disasm_rva_reloconly = IsDlgButtonChecked(hWnd, IDC_DISASM_RVA_RELOCONLY)==BST_CHECKED;
+	options.disasm_label = IsDlgButtonChecked(hWnd, IDC_DISASM_LABEL)==BST_CHECKED;
 	options.disasm_extjmp = IsDlgButtonChecked(hWnd, IDC_DISASM_EXTJMP)==BST_CHECKED;
 	options.disasm_hex = SendDlgItemMessage(hWnd, IDC_DISASM_HEX, CB_GETCURSEL, 0, 0);
 	options.disasm_labelgen = SendDlgItemMessage(hWnd, IDC_DISASM_LABELGEN, CB_GETCURSEL, 0, 0);
@@ -99,9 +111,9 @@ static void OptionsFromDlg(HWND hWnd)
 
 static void OptionsToIni(HINSTANCE hInst)
 {
-	Pluginwriteinttoini(hInst, "disasm_label_jmp", options.disasm_label_jmp);
-	Pluginwriteinttoini(hInst, "disasm_label_adr", options.disasm_label_adr);
-	Pluginwriteinttoini(hInst, "disasm_label_imm", options.disasm_label_imm);
+	Pluginwriteinttoini(hInst, "disasm_rva", options.disasm_rva);
+	Pluginwriteinttoini(hInst, "disasm_rva_reloconly", options.disasm_rva_reloconly);
+	Pluginwriteinttoini(hInst, "disasm_label", options.disasm_label);
 	Pluginwriteinttoini(hInst, "disasm_extjmp", options.disasm_extjmp);
 	Pluginwriteinttoini(hInst, "disasm_hex", options.disasm_hex);
 	Pluginwriteinttoini(hInst, "disasm_labelgen", options.disasm_labelgen);

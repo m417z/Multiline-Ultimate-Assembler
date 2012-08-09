@@ -8,8 +8,8 @@
 #include "options_dlg.h"
 #include "resource.h"
 
-#define DEF_VERSION   "1.6"
-#define DEF_COPYRIGHT "Copyright (C) 2009-2011 RaMMicHaeL"
+#define DEF_VERSION   "1.7"
+#define DEF_COPYRIGHT "Copyright (C) 2009-2012 RaMMicHaeL"
 
 HINSTANCE hDllInst;
 HWND hOllyWnd;
@@ -52,6 +52,8 @@ extc int _export cdecl ODBG_Plugindata(char shortname[32])
 // Parameter features is reserved for future extentions, do not use it.
 extc int _export cdecl ODBG_Plugininit(int ollydbgversion, HWND hWnd, ulong *features)
 {
+	char *pError;
+
 	// This plugin uses all the newest features, check that version of OllyDbg is
 	// correct. I will try to keep backward compatibility at least to v1.99.
 	if(ollydbgversion < PLUGIN_VERSION)
@@ -68,9 +70,13 @@ extc int _export cdecl ODBG_Plugininit(int ollydbgversion, HWND hWnd, ulong *fea
 	InstallRAEdit(hDllInst, FALSE);
 
 	// Init assembler thread, etc.
-	if(!AssemblerInit())
+	pError = AssemblerInit();
+
+	if(pError)
 	{
 		UnInstallRAEdit();
+
+		MessageBox(hWnd, pError, "MUltimate Assembler error", MB_ICONHAND);
 		return -1;
 	}
 
@@ -82,9 +88,9 @@ extc int _export cdecl ODBG_Plugininit(int ollydbgversion, HWND hWnd, ulong *fea
 	Addtolist(0, -1, "  " DEF_COPYRIGHT);
 
 	// Load options
-	options.disasm_label_jmp = Pluginreadintfromini(hDllInst, "disasm_label_jmp", 1);
-	options.disasm_label_adr = Pluginreadintfromini(hDllInst, "disasm_label_adr", 1);
-	options.disasm_label_imm = Pluginreadintfromini(hDllInst, "disasm_label_imm", 1);
+	options.disasm_rva = Pluginreadintfromini(hDllInst, "disasm_rva", 1);
+	options.disasm_rva_reloconly = Pluginreadintfromini(hDllInst, "disasm_rva_reloconly", 1);
+	options.disasm_label = Pluginreadintfromini(hDllInst, "disasm_label", 1);
 	options.disasm_extjmp = Pluginreadintfromini(hDllInst, "disasm_extjmp", 1);
 	options.disasm_hex = Pluginreadintfromini(hDllInst, "disasm_hex", 0);
 	options.disasm_labelgen = Pluginreadintfromini(hDllInst, "disasm_labelgen", 0);
@@ -159,13 +165,13 @@ extc void _export cdecl ODBG_Pluginaction(int origin, int action, void *item)
 		{
 		case 0:
 			// Menu item, main plugin functionality
-			ShowAssemblerDlg(0, 0);
+			AssemblerShowDlg();
 			break;
 
 		case 1:
 			// Menu item "Options"
 			if(ShowOptionsDlg())
-				OptionsChanged();
+				AssemblerOptionsChanged();
 			break;
 
 		case 2:
@@ -180,21 +186,23 @@ extc void _export cdecl ODBG_Pluginaction(int origin, int action, void *item)
 				"Rules:\n"
 				"- You must define the address your code should be assembled on, like this: <00401000>\n"
 				"- You can use any asm commands that OllyDbg can assemble\n"
+				"- You can use RVA (relative virtual) addressess with a module name, "
+					"like this: $module.1000 or $\"module\".1000, or $$1000 to use the module of the address definition "
+					"(e.g. <$m.1000>PUSH $$3 is the same as <$m.1000>PUSH $m.3)\n"
 				"- You can use labels, that must begin with a '@', and contain only letters, numbers, and _\n"
 				"- You can use anonymous labels, which are defined as '@@' and are referenced to as "
 					"@b (or @r) for the preceding label and @f for the following label\n"
-				"- You can use C-style strings for text and binary data (including L for unicode)\n"
+				"- You can use C-style strings for text and binary data (use the L prefix for unicode)\n"
 				"\n"
 				"Show example code?", 
 				"Help", 
 				MB_OK | MB_YESNO
 			) == IDYES)
-				ShowAssemblerDlg(1, 0);
+				AssemblerLoadExample();
 			break;
 
 		case 3:
-			// Menu item "About", displays plugin info. If you write your own code,
-			// please replace with own copyright!
+			// Menu item "About", displays plugin info.
 			ZeroMemory(&mbpMsgBoxParams, sizeof(MSGBOXPARAMS));
 
 			mbpMsgBoxParams.cbSize = sizeof(MSGBOXPARAMS);
@@ -220,7 +228,7 @@ extc void _export cdecl ODBG_Pluginaction(int origin, int action, void *item)
 		{
 			pd = (t_dump *)item;
 
-			ShowAssemblerDlg(pd->sel0, pd->sel1-pd->sel0);
+			AssemblerLoadCode(pd->sel0, pd->sel1-pd->sel0);
 		}
 		break;
 	}
@@ -237,14 +245,14 @@ extc int _export cdecl ODBG_Pluginshortcut(int origin, int ctrl, int alt, int sh
 	{
 		if(!shift)
 		{
-			ShowAssemblerDlg(0, 0);
+			AssemblerShowDlg();
 			return 1;
 		}
 		else if(origin == PM_DISASM)
 		{
 			pd = (t_dump *)item;
 
-			ShowAssemblerDlg(pd->sel0, pd->sel1-pd->sel0);
+			AssemblerLoadCode(pd->sel0, pd->sel1-pd->sel0);
 			return 1;
 		}
 	}

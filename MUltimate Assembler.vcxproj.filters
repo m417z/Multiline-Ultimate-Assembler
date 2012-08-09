@@ -71,9 +71,6 @@
     <ClInclude Include="tabctrl_ex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="raeditlib\resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="plugin_immdbg.h">
       <Filter>Header Files</Filter>
     </ClInclude>

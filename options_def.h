@@ -2,9 +2,9 @@
 #define _OPTIONS_DEF_H_
 
 typedef struct {
-	int disasm_label_jmp;
-	int disasm_label_adr;
-	int disasm_label_imm;
+	int disasm_rva;
+	int disasm_rva_reloconly;
+	int disasm_label;
 	int disasm_extjmp;
 	int disasm_hex;
 	int disasm_labelgen;

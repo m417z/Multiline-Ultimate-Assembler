@@ -1,6 +1,6 @@
 //**********************************************************************
 // File: buffer.h
-//	
+//
 // Custom Buffer-Manipulation Routines
 //
 // By RaMMicHaeL, 12.10.2009

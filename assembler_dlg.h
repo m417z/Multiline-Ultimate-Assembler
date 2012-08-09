@@ -11,6 +11,27 @@
 #include "write_asm.h"
 #include "resource.h"
 
+typedef struct _asm_thread_param {
+	HANDLE hThreadReadyEvent;
+	HWND hAsmWnd;
+	BOOL bQuitThread;
+} ASM_THREAD_PARAM;
+
+// Message window msgs
+#define UWM_SHOWASMDLG           WM_APP
+#define UWM_LOADCODE             (WM_APP+1)
+#define UWM_LOADEXAMPLE          (WM_APP+2)
+#define UWM_OPTIONSCHANGED       (WM_APP+3)
+#define UWM_ASMDLGDESTROYED      (WM_APP+4)
+#define UWM_QUITTHREAD           (WM_APP+5)
+
+// Assembler dialog msgs
+//      UWM_LOADCODE      
+//      UWM_LOADEXAMPLE   
+//      UWM_OPTIONSCHANGED
+#define UWM_NOTIFY               (WM_APP+6)
+#define UWM_ERRORMSG             (WM_APP+7)
+
 #define HILITE_ASM_CMD \
 	"aaa aad aam aas adc add and call cbw clc cld cli cmc cmp cmps cmpsb " \
 	"cmpsw cwd daa das dec div esc hlt idiv imul in inc int into iret ja jae " \
@@ -94,10 +115,6 @@
 #define HILITE_OTHER \
 	"ptr short near far"
 
-#define UWM_LOADCODE             WM_APP
-#define UWM_NOTIFY               (WM_APP+1)
-#define UWM_ERRORMSG             (WM_APP+2)
-
 #ifndef GET_X_LPARAM
 #define GET_X_LPARAM(lParam)	 ((int)(short)LOWORD(lParam))
 #endif
@@ -105,17 +122,21 @@
 #define GET_Y_LPARAM(lParam)	 ((int)(short)HIWORD(lParam))
 #endif
 
-BOOL AssemblerInit();
+char *AssemblerInit();
 void AssemblerExit();
-BOOL ShowAssemblerDlg(DWORD dwAddress, DWORD dwSize);
-void OptionsChanged();
+void AssemblerShowDlg();
+void AssemblerLoadCode(DWORD dwAddress, DWORD dwSize);
+void AssemblerLoadExample();
+void AssemblerOptionsChanged();
 static DWORD WINAPI AssemblerThread(void *pParameter);
+static LRESULT CALLBACK AsmMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 static void SetRAEditDesign(HWND hWnd, RAFONT *praFont);
 static void UpdateRightClickMenuState(HWND hWnd, HMENU hMenu);
 static void LoadWindowPos(HWND hWnd, HINSTANCE hInst, long *p_min_w, long *p_min_h);
 static void SaveWindowPos(HWND hWnd, HINSTANCE hInst);
 static HDWP ChildRelativeDeferWindowPos(HDWP hWinPosInfo, HWND hWnd, int nIDDlgItem, int x, int y, int cx, int cy);
+static void OptionsChanged(HWND hWnd);
 static void LoadExample(HWND hWnd);
 static BOOL LoadCode(HWND hWnd, DWORD dwAddress, DWORD dwSize);
 static BOOL PatchCode(HWND hWnd);

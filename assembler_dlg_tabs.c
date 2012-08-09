@@ -1,12 +1,12 @@
 #include "assembler_dlg_tabs.h"
 
-HWND hPostErrorWnd;
-UINT uPostErrorMsg;
-char szTabFilesPath[MAX_PATH];
-char szConfigFilePath[MAX_PATH];
-char szLibraryFilePath[MAX_PATH];
-FILETIME ftConfigLastWriteTime;
-UINT nTabsCreatedCounter;
+static HWND hPostErrorWnd;
+static UINT uPostErrorMsg;
+static char szTabFilesPath[MAX_PATH];
+static char szConfigFilePath[MAX_PATH];
+static char szLibraryFilePath[MAX_PATH];
+static FILETIME ftConfigLastWriteTime;
+static UINT nTabsCreatedCounter;
 
 void InitTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd, HINSTANCE hInst, HWND hErrorWnd, UINT uErrorMsg)
 {
@@ -401,7 +401,7 @@ void CloseTabByIndex(HWND hTabCtrlWnd, HWND hAsmEditWnd, int nTabIndex)
 				TabCtrl_SetCurSel(hTabCtrlWnd, nTabIndex-1);
 			else
 				TabCtrl_SetCurSel(hTabCtrlWnd, 0);
-	
+
 			OnTabChanged(hTabCtrlWnd, hAsmEditWnd);
 		}
 		else

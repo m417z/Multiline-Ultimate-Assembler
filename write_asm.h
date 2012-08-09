@@ -27,7 +27,7 @@ typedef struct _cmd_node {
 	DWORD dwCodeSize;
 	char *lpCommand;
 	char *lpComment;
-	BOOL bUsesLabels;
+	char *lpResolvedCommandWithLabels;
 } CMD_NODE;
 
 typedef struct _cmd_head {
@@ -52,6 +52,7 @@ typedef struct _anon_label_head {
 typedef struct _cmd_block_node {
 	struct _cmd_block_node *next;
 	DWORD dwAddress, dwSize;
+	t_module *module;
 	CMD_HEAD cmd_head;
 	ANON_LABEL_HEAD anon_label_head;
 } CMD_BLOCK_NODE;
@@ -64,25 +65,48 @@ typedef struct _cmd_block_head {
 // functions
 
 int WriteAsm(char *lpText, char *lpError);
+
+// 1
 static char *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, char *lpText, char *lpError);
-static int ParseAddress(char *lpText, DWORD *pdwAddress, char *lpError);
+static int ParseAddress(char *lpText, DWORD *pdwAddress, t_module **p_module, char *lpError);
 static BOOL NewCmdBlock(CMD_BLOCK_HEAD *p_cmd_block_head, DWORD dwAddress, char *lpError);
 static int ParseAnonLabel(char *lpText, DWORD dwAddress, ANON_LABEL_HEAD *p_anon_label_head, char *lpError);
 static int ParseLabel(char *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, char *lpError);
 static int ParseString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError);
-static int ParseCommand(char *lpText, DWORD dwAddress, CMD_HEAD *p_cmd_head, char *lpError);
-static int ReplaceLabelsWithAddress(char *lpCommand, DWORD dwAddress, char **ppNewCommand, char *lpError);
-static int AssembleShortest(char *lpCommand, DWORD dwAddress, t_asmmodel *model_ptr, char *lpError);
-static char *ReplaceLabelsInCommands(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, char *lpText, char *lpError);
+static int ParseCommand(char *lpText, DWORD dwAddress, t_module *module, CMD_HEAD *p_cmd_head, char *lpError);
+static int ResolveRVAAddresses(char *lpCommand, t_module *module, char **ppNewCommand, char *lpError);
+static int ReplaceLabelsWithAddress(char *lpCommand, DWORD dwReplaceAddress, char **ppNewCommand, char *lpError);
+
+static int ParseRVAAddress(char *lpText, DWORD *pdwAddress, t_module *parent_module, t_module **p_parsed_module, char *lpError);
+static int ParseDWORD(char *lpText, DWORD *pdw, char *lpError);
+
+// 2
+static char *ReplaceLabelsInCommands(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, char *lpError);
 static int ReplaceLabelsFromList(char *lpCommand, DWORD dwPrevAnonAddr, DWORD dwNextAnonAddr, 
 	LABEL_HEAD *p_label_head, char **ppNewCommand, char *lpError);
-static int AssembleWithGivenSize(char *lpCommand, DWORD dwAddress, DWORD dwSize, t_asmmodel *model_ptr, char *lpError);
+
+// 3
 static char *PatchCommands(CMD_BLOCK_HEAD *p_cmd_block_head, char *lpError);
 static char *SetComments(CMD_BLOCK_HEAD *p_cmd_block_head, char *lpError);
 static char *SetLabels(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, char *lpError);
+
+// Helper functions
+static t_module *FindModuleByName(char *lpModule);
+static int AssembleShortest(char *lpCommand, DWORD dwAddress, t_asmmodel *model_ptr, char *lpError);
+static int AssembleWithGivenSize(char *lpCommand, DWORD dwAddress, DWORD dwSize, t_asmmodel *model_ptr, char *lpError);
 static int FixAsmCommand(char *lpCommand, char **ppFixedCommand, char *lpError);
+static int FixedAsmCorrectErrorSpot(char *lpCommand, char *pFixedCommand, int result);
+static BOOL FindNextHexNumberStartingWithALetter(char *lpCommand, char **ppHexNumberStart, char **ppHexNumberEnd);
+static BOOL ReplaceTextsWithAddresses(char *lpCommand, char **ppNewCommand, 
+	int text_count, int text_start[4], int text_end[4], DWORD dwAddress[4], char *lpError);
+static int ReplacedTextCorrectErrorSpot(char *lpCommand, char *lpReplacedCommand, int result);
 static char *NullTerminateLine(char *p);
 static char *SkipSpaces(char *p);
+static char *SkipDWORD(char *p);
+static char *SkipLabel(char *p);
+static char *SkipRVAAddress(char *p);
+
+// Cleanup function
 static void FreeLabelList(LABEL_HEAD *p_label_head);
 static void FreeCmdBlockList(CMD_BLOCK_HEAD *p_cmd_block_head);
 static void FreeCmdList(CMD_HEAD *p_cmd_head);
