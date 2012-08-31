@@ -53,6 +53,7 @@ static int CopyCommand(char *pBuffer, char *pCommand, int hex_option);
 // Helper functions
 static int MakeRVAText(char szText[1+SHORTLEN+2+1+1], t_module *module);
 static BOOL ReplaceAddressWithText(char **ppCommand, DWORD dwAddress, char *lpText, char *lpError);
+static char *SkipCommandName(char *p);
 static int DWORDToString(char szString[11], DWORD dw, BOOL bAddress, int hex_option);
 
 // Cleanup

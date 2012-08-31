@@ -105,6 +105,7 @@ static char *SkipSpaces(char *p);
 static char *SkipDWORD(char *p);
 static char *SkipLabel(char *p);
 static char *SkipRVAAddress(char *p);
+static char *SkipCommandName(char *p);
 
 // Cleanup function
 static void FreeLabelList(LABEL_HEAD *p_label_head);

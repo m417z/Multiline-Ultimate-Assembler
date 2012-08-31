@@ -843,12 +843,15 @@ static int CopyCommand(char *pBuffer, char *pCommand, int hex_option)
 	char *p, *p_dest;
 	char *pHexFirstChar;
 
-	p = pCommand;
 	p_dest = pBuffer;
 
 	// Skip the command name
-	while((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'))
-		*p_dest++ = *p++;
+	p = SkipCommandName(pCommand);
+	if(p != pCommand)
+	{
+		CopyMemory(p_dest, pCommand, p-pCommand);
+		p_dest += p-pCommand;
+	}
 
 	// Search for hex numbers
 	while(*p != '\0')
@@ -983,14 +986,11 @@ static BOOL ReplaceAddressWithText(char **ppCommand, DWORD dwAddress, char *lpTe
 	char *dest, *src;
 	int i;
 
-	p = *ppCommand;
-
 	// Address to replace
 	address_len = wsprintf(szTextAddress, "%X", dwAddress);
 
 	// Skip command name
-	while((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z'))
-		p++;
+	p = SkipCommandName(*ppCommand);
 
 	// Search for numbers
 	address_count = 0;
@@ -1086,6 +1086,70 @@ static BOOL ReplaceAddressWithText(char **ppCommand, DWORD dwAddress, char *lpTe
 	*ppCommand = lpNewCommand;
 
 	return TRUE;
+}
+
+static char *SkipCommandName(char *p)
+{
+	char *pPrefix;
+	int i;
+
+	switch(*p)
+	{
+	case 'L':
+	case 'l':
+		pPrefix = "LOCK";
+
+		for(i=1; pPrefix[i] != '\0'; i++)
+		{
+			if(p[i] != pPrefix[i] && p[i] != pPrefix[i]-'A'+'a')
+				break;
+		}
+
+		if(pPrefix[i] == '\0')
+		{
+			if((p[i] < 'A' || p[i] > 'Z') && (p[i] < 'a' || p[i] > 'z') && (p[i] < '0' || p[i] > '9'))
+			{
+				p = &p[i];
+				while(*p == ' ')
+					p++;
+			}
+		}
+		break;
+
+	case 'R':
+	case 'r':
+		pPrefix = "REP";
+
+		for(i=1; pPrefix[i] != '\0'; i++)
+		{
+			if(p[i] != pPrefix[i] && p[i] != pPrefix[i]-'A'+'a')
+				break;
+		}
+
+		if(pPrefix[i] == '\0')
+		{
+			if((p[i] == 'N' || p[i] == 'n') && (p[i+1] == 'E' || p[i+1] == 'e' || p[i+1] == 'Z' || p[i+1] == 'z'))
+				i += 2;
+			else if(p[i] == 'E' || p[i] == 'e' || p[i] == 'Z' || p[i] == 'z')
+				i++;
+
+			if((p[i] < 'A' || p[i] > 'Z') && (p[i] < 'a' || p[i] > 'z') && (p[i] < '0' || p[i] > '9'))
+			{
+				p = &p[i];
+				while(*p == ' ')
+					p++;
+			}
+		}
+		break;
+	}
+
+	while((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'))
+		p++;
+
+	while(*p == ' ')
+		p++;
+
+	return p;
 }
 
 static int DWORDToString(char szString[11], DWORD dw, BOOL bAddress, int hex_option)

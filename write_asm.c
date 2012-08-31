@@ -1465,11 +1465,8 @@ static int FixAsmCommand(char *lpCommand, char **ppFixedCommand, char *lpError)
 	char *pNewCommand;
 	char *p_dest;
 
-	p = lpCommand;
-
 	// Skip the command name
-	while((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'))
-		p++;
+	p = SkipCommandName(lpCommand);
 
 	// Search for hex numbers starting with a letter
 	number_count = 0;
@@ -1491,13 +1488,16 @@ static int FixAsmCommand(char *lpCommand, char **ppFixedCommand, char *lpError)
 		return 0;
 	}
 
-	// Fix (add zeroes)
-	p = lpCommand;
+	// Fix (add zeros)
 	p_dest = pNewCommand;
 
 	// Skip the command name
-	while((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'))
-		*p_dest++ = *p++;
+	p = SkipCommandName(lpCommand);
+	if(p != lpCommand)
+	{
+		CopyMemory(p_dest, lpCommand, p-lpCommand);
+		p_dest += p-lpCommand;
+	}
 
 	while(FindNextHexNumberStartingWithALetter(p, &pHexNumberStart, &pHexNumberEnd))
 	{
@@ -1524,11 +1524,8 @@ static int FixedAsmCorrectErrorSpot(char *lpCommand, char *pFixedCommand, int re
 	char *p;
 	char *pHexNumberStart;
 
-	p = lpCommand;
-
 	// Skip the command name
-	while((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'))
-		p++;
+	p = SkipCommandName(lpCommand);
 
 	if(-result < p-lpCommand)
 		return result;
@@ -1809,6 +1806,59 @@ static char *SkipRVAAddress(char *p)
 	}
 
 	return p;
+}
+
+static char *SkipCommandName(char *p)
+{
+	char *pPrefix;
+	int i;
+
+	switch(*p)
+	{
+	case 'L':
+	case 'l':
+		pPrefix = "LOCK";
+
+		for(i=1; pPrefix[i] != '\0'; i++)
+		{
+			if(p[i] != pPrefix[i] && p[i] != pPrefix[i]-'A'+'a')
+				break;
+		}
+
+		if(pPrefix[i] == '\0')
+		{
+			if((p[i] < 'A' || p[i] > 'Z') && (p[i] < 'a' || p[i] > 'z') && (p[i] < '0' || p[i] > '9'))
+				p = SkipSpaces(&p[i]);
+		}
+		break;
+
+	case 'R':
+	case 'r':
+		pPrefix = "REP";
+
+		for(i=1; pPrefix[i] != '\0'; i++)
+		{
+			if(p[i] != pPrefix[i] && p[i] != pPrefix[i]-'A'+'a')
+				break;
+		}
+
+		if(pPrefix[i] == '\0')
+		{
+			if((p[i] == 'N' || p[i] == 'n') && (p[i+1] == 'E' || p[i+1] == 'e' || p[i+1] == 'Z' || p[i+1] == 'z'))
+				i += 2;
+			else if(p[i] == 'E' || p[i] == 'e' || p[i] == 'Z' || p[i] == 'z')
+				i++;
+
+			if((p[i] < 'A' || p[i] > 'Z') && (p[i] < 'a' || p[i] > 'z') && (p[i] < '0' || p[i] > '9'))
+				p = SkipSpaces(&p[i]);
+		}
+		break;
+	}
+
+	while((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'))
+		p++;
+
+	return SkipSpaces(p);
 }
 
 static void FreeLabelList(LABEL_HEAD *p_label_head)
