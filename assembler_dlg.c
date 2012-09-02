@@ -93,13 +93,15 @@ static DWORD WINAPI AssemblerThread(void *pParameter)
 	WNDCLASS wndclass;
 	ATOM class_atom;
 	HACCEL hAccelerators;
-	HWND hAsmWnd;
+	HWND hAsmWnd, hFindReplaceWnd;
 	MSG msg;
 	BOOL bRet;
 
 	thread_param.hThreadReadyEvent = (HANDLE)pParameter;
 	thread_param.hAsmWnd = NULL;
 	thread_param.bQuitThread = FALSE;
+
+	thread_param.dialog_param.hFindReplaceWnd = NULL;
 
 	ZeroMemory(&wndclass, sizeof(WNDCLASS));
 	wndclass.lpfnWndProc = AsmMsgProc;
@@ -130,10 +132,17 @@ static DWORD WINAPI AssemblerThread(void *pParameter)
 		}
 
 		hAsmWnd = thread_param.hAsmWnd;
+		hFindReplaceWnd = thread_param.dialog_param.hFindReplaceWnd;
 
-		if(!hAsmWnd || 
-			(!TranslateAccelerator(hAsmWnd, hAccelerators, &msg) && !IsDialogMessage(hAsmWnd, &msg))
-		)
+		if(hFindReplaceWnd && IsDialogMessage(hFindReplaceWnd, &msg))
+		{
+			// processed
+		}
+		else if(hAsmWnd && (TranslateAccelerator(hAsmWnd, hAccelerators, &msg) || IsDialogMessage(hAsmWnd, &msg)))
+		{
+			// processed
+		}
+		else
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
@@ -176,7 +185,8 @@ static LRESULT CALLBACK AsmMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 
 		if(!p_thread_param->hAsmWnd)
 		{
-			hAsmWnd = CreateDialog(hDllInst, MAKEINTRESOURCE(IDD_MAIN), hOllyWnd, (DLGPROC)DlgAsmProc);
+			hAsmWnd = CreateDialogParam(hDllInst, MAKEINTRESOURCE(IDD_MAIN), hOllyWnd, 
+				(DLGPROC)DlgAsmProc, (LPARAM)&p_thread_param->dialog_param);
 			if(!hAsmWnd)
 			{
 				MessageBox(hOllyWnd, "CreateDialog() error", "MUltimate Assembler error", MB_ICONHAND);
@@ -234,45 +244,56 @@ static LRESULT CALLBACK AsmMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 
 static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	static HICON hSmallIcon, hLargeIcon;
-	static RAFONT raFont;
-	static HMENU hMenu;
-	static BOOL bTabCtrlEx;
-	static long dlg_min_w, dlg_min_h, dlg_last_cw, dlg_last_ch;
+	ASM_DIALOG_PARAM *p_dialog_param;
 	DWORD dwAddress, dwSize;
+	FINDREPLACE *p_findreplace;
 	POINT pt;
 	RECT rc;
 	HDWP hDwp;
 
+	if(uMsg == WM_INITDIALOG)
+	{
+		p_dialog_param = (ASM_DIALOG_PARAM *)lParam;
+		SetWindowLongPtr(hWnd, DWLP_USER, (LONG_PTR)p_dialog_param);
+	}
+	else
+	{
+		p_dialog_param = (ASM_DIALOG_PARAM *)GetWindowLongPtr(hWnd, DWLP_USER);
+		if(!p_dialog_param)
+			return FALSE;
+	}
+
 	switch(uMsg)
 	{
 	case WM_INITDIALOG:
-		hSmallIcon = (HICON)LoadImage(hDllInst, MAKEINTRESOURCE(IDI_MAIN), IMAGE_ICON, 16, 16, 0);
-		if(hSmallIcon)
-			SendMessage(hWnd, WM_SETICON, ICON_SMALL, (LPARAM)hSmallIcon);
+		p_dialog_param->hSmallIcon = (HICON)LoadImage(hDllInst, MAKEINTRESOURCE(IDI_MAIN), IMAGE_ICON, 16, 16, 0);
+		if(p_dialog_param->hSmallIcon)
+			SendMessage(hWnd, WM_SETICON, ICON_SMALL, (LPARAM)p_dialog_param->hSmallIcon);
 
-		hLargeIcon = (HICON)LoadImage(hDllInst, MAKEINTRESOURCE(IDI_MAIN), IMAGE_ICON, 32, 32, 0);
-		if(hLargeIcon)
-			SendMessage(hWnd, WM_SETICON, ICON_BIG, (LPARAM)hLargeIcon);
+		p_dialog_param->hLargeIcon = (HICON)LoadImage(hDllInst, MAKEINTRESOURCE(IDI_MAIN), IMAGE_ICON, 32, 32, 0);
+		if(p_dialog_param->hLargeIcon)
+			SendMessage(hWnd, WM_SETICON, ICON_BIG, (LPARAM)p_dialog_param->hLargeIcon);
 
-		SetRAEditDesign(hWnd, &raFont);
-		hMenu = LoadMenu(hDllInst, MAKEINTRESOURCE(IDR_RIGHTCLICK));
+		SetRAEditDesign(hWnd, &p_dialog_param->raFont);
+		p_dialog_param->hMenu = LoadMenu(hDllInst, MAKEINTRESOURCE(IDR_RIGHTCLICK));
 
 		GetClientRect(hWnd, &rc);
-		dlg_last_cw = rc.right-rc.left;
-		dlg_last_ch = rc.bottom-rc.top;
+		p_dialog_param->dlg_last_cw = rc.right-rc.left;
+		p_dialog_param->dlg_last_ch = rc.bottom-rc.top;
 
-		LoadWindowPos(hWnd, hDllInst, &dlg_min_w, &dlg_min_h);
+		LoadWindowPos(hWnd, hDllInst, &p_dialog_param->dlg_min_w, &p_dialog_param->dlg_min_h);
 
-		bTabCtrlEx = TabCtrlExInit(GetDlgItem(hWnd, IDC_TABS), 
+		p_dialog_param->bTabCtrlExInitialized = TabCtrlExInit(GetDlgItem(hWnd, IDC_TABS), 
 			TCF_EX_REORDER|TCF_EX_LABLEEDIT|TCF_EX_REDUCEFLICKER|TCF_EX_MBUTTONNOFOCUS, UWM_NOTIFY);
-		if(!bTabCtrlEx)
+		if(!p_dialog_param->bTabCtrlExInitialized)
 		{
 			DestroyWindow(hWnd);
 			break;
 		}
 
 		InitTabs(GetDlgItem(hWnd, IDC_TABS), GetDlgItem(hWnd, IDC_ASSEMBLER), hDllInst, hWnd, UWM_ERRORMSG);
+
+		InitFindReplace(hWnd, hDllInst, p_dialog_param);
 		break;
 
 	case UWM_LOADCODE:
@@ -322,8 +343,8 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 		break;
 
 	case WM_GETMINMAXINFO:
-		((MINMAXINFO *)lParam)->ptMinTrackSize.x = dlg_min_w;
-		((MINMAXINFO *)lParam)->ptMinTrackSize.y = dlg_min_h;
+		((MINMAXINFO *)lParam)->ptMinTrackSize.x = p_dialog_param->dlg_min_w;
+		((MINMAXINFO *)lParam)->ptMinTrackSize.y = p_dialog_param->dlg_min_h;
 		break;
 
 	case WM_SIZE:
@@ -333,25 +354,25 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 
 			if(hDwp)
 				hDwp = ChildRelativeDeferWindowPos(hDwp, hWnd, IDC_TABS, 
-					0, 0, LOWORD(lParam)-dlg_last_cw, 0);
+					0, 0, LOWORD(lParam)-p_dialog_param->dlg_last_cw, 0);
 
 			if(hDwp)
 				hDwp = ChildRelativeDeferWindowPos(hDwp, hWnd, IDC_ASSEMBLER, 
-					0, 0, LOWORD(lParam)-dlg_last_cw, HIWORD(lParam)-dlg_last_ch);
+					0, 0, LOWORD(lParam)-p_dialog_param->dlg_last_cw, HIWORD(lParam)-p_dialog_param->dlg_last_ch);
 
 			if(hDwp)
 				hDwp = ChildRelativeDeferWindowPos(hDwp, hWnd, IDOK, 
-					0, HIWORD(lParam)-dlg_last_ch, 0, 0);
+					0, HIWORD(lParam)-p_dialog_param->dlg_last_ch, 0, 0);
 
 			if(hDwp)
 				hDwp = ChildRelativeDeferWindowPos(hDwp, hWnd, IDCANCEL, 
-					LOWORD(lParam)-dlg_last_cw, HIWORD(lParam)-dlg_last_ch, 0, 0);
+					LOWORD(lParam)-p_dialog_param->dlg_last_cw, HIWORD(lParam)-p_dialog_param->dlg_last_ch, 0, 0);
 
 			if(hDwp)
 				EndDeferWindowPos(hDwp);
 
-			dlg_last_cw = LOWORD(lParam);
-			dlg_last_ch = HIWORD(lParam);
+			p_dialog_param->dlg_last_cw = LOWORD(lParam);
+			p_dialog_param->dlg_last_ch = HIWORD(lParam);
 		}
 		break;
 
@@ -369,8 +390,8 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 				pt.y = GET_Y_LPARAM(lParam);
 			}
 
-			UpdateRightClickMenuState(hWnd, GetSubMenu(hMenu, 0));
-			TrackPopupMenu(GetSubMenu(hMenu, 0), TPM_RIGHTBUTTON, pt.x, pt.y, 0, hWnd, NULL);
+			UpdateRightClickMenuState(hWnd, GetSubMenu(p_dialog_param->hMenu, 0));
+			TrackPopupMenu(GetSubMenu(p_dialog_param->hMenu, 0), TPM_RIGHTBUTTON, pt.x, pt.y, 0, hWnd, NULL);
 		}
 		else if((HWND)wParam == hWnd && lParam != -1)
 		{
@@ -380,7 +401,7 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			GetWindowRect(GetDlgItem(hWnd, IDC_TABS), &rc);
 
 			if(PtInRect(&rc, pt))
-				TrackPopupMenu(GetSubMenu(hMenu, 2), TPM_RIGHTBUTTON, pt.x, pt.y, 0, hWnd, NULL);
+				TrackPopupMenu(GetSubMenu(p_dialog_param->hMenu, 2), TPM_RIGHTBUTTON, pt.x, pt.y, 0, hWnd, NULL);
 		}
 		break;
 
@@ -437,7 +458,7 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			case TCN_EX_CONTEXTMENU:
 				if(OnContextMenu(GetDlgItem(hWnd, IDC_TABS), GetDlgItem(hWnd, IDC_ASSEMBLER), 
 					((UNMTABCTRLEX *)lParam)->lParam, &pt))
-					TrackPopupMenu(GetSubMenu(hMenu, 1), TPM_RIGHTBUTTON, pt.x, pt.y, 0, hWnd, NULL);
+					TrackPopupMenu(GetSubMenu(p_dialog_param->hMenu, 1), TPM_RIGHTBUTTON, pt.x, pt.y, 0, hWnd, NULL);
 				break;
 
 			case TCN_EX_BEGINLABELEDIT:
@@ -520,12 +541,31 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			NextTab(GetDlgItem(hWnd, IDC_TABS), GetDlgItem(hWnd, IDC_ASSEMBLER));
 			break;
 
+		case ID_ACCEL_FINDWND:
+			ShowFindDialog(p_dialog_param);
+			break;
+
+		case ID_ACCEL_REPLACEWND:
+			ShowReplaceDialog(p_dialog_param);
+			break;
+
+		case ID_ACCEL_FINDNEXT:
+			// TODO
+			break;
+
+		case ID_ACCEL_FINDPREV:
+			// TODO
+			break;
+
 		case IDOK:
 			SaveFileOfTab(GetDlgItem(hWnd, IDC_TABS), GetDlgItem(hWnd, IDC_ASSEMBLER));
 			PatchCode(hWnd);
 			break;
 
 		case IDCANCEL:
+			if(p_dialog_param->hFindReplaceWnd)
+				SendMessage(p_dialog_param->hFindReplaceWnd, WM_CLOSE, 0, 0);
+
 			SaveWindowPos(hWnd, hDllInst);
 			SaveFileOfTab(GetDlgItem(hWnd, IDC_TABS), GetDlgItem(hWnd, IDC_ASSEMBLER));
 			DestroyWindow(hWnd);
@@ -534,49 +574,71 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 		break;
 
 	case WM_DESTROY:
-		if(hSmallIcon)
+		if(p_dialog_param->hSmallIcon)
 		{
-			DestroyIcon(hSmallIcon);
-			hSmallIcon = NULL;
+			DestroyIcon(p_dialog_param->hSmallIcon);
+			p_dialog_param->hSmallIcon = NULL;
 		}
 
-		if(hLargeIcon)
+		if(p_dialog_param->hLargeIcon)
 		{
-			DestroyIcon(hLargeIcon);
-			hLargeIcon = NULL;
+			DestroyIcon(p_dialog_param->hLargeIcon);
+			p_dialog_param->hLargeIcon = NULL;
 		}
 
-		if(raFont.hFont)
+		if(p_dialog_param->raFont.hFont)
 		{
-			DeleteObject(raFont.hFont);
-			raFont.hFont = NULL;
+			DeleteObject(p_dialog_param->raFont.hFont);
+			p_dialog_param->raFont.hFont = NULL;
 		}
 
-		if(raFont.hIFont)
+		if(p_dialog_param->raFont.hIFont)
 		{
-			DeleteObject(raFont.hIFont);
-			raFont.hIFont = NULL;
+			DeleteObject(p_dialog_param->raFont.hIFont);
+			p_dialog_param->raFont.hIFont = NULL;
 		}
 
-		if(raFont.hLnrFont)
+		if(p_dialog_param->raFont.hLnrFont)
 		{
-			DeleteObject(raFont.hLnrFont);
-			raFont.hLnrFont = NULL;
+			DeleteObject(p_dialog_param->raFont.hLnrFont);
+			p_dialog_param->raFont.hLnrFont = NULL;
 		}
 
-		if(hMenu)
+		if(p_dialog_param->hMenu)
 		{
-			DestroyMenu(hMenu);
-			hMenu = NULL;
+			DestroyMenu(p_dialog_param->hMenu);
+			p_dialog_param->hMenu = NULL;
 		}
 
-		if(bTabCtrlEx)
+		if(p_dialog_param->bTabCtrlExInitialized)
 		{
 			TabCtrlExExit(GetDlgItem(hWnd, IDC_TABS));
-			bTabCtrlEx = FALSE;
+			p_dialog_param->bTabCtrlExInitialized = FALSE;
 		}
 
 		PostMessage(hAsmMsgWnd, UWM_ASMDLGDESTROYED, 0, 0);
+		break;
+
+	default:
+		if(uMsg == p_dialog_param->uFindReplaceMsg)
+		{
+			p_findreplace = (FINDREPLACE *)lParam;
+
+			if(p_findreplace->Flags & FR_FINDNEXT)
+			{
+				// TODO
+			}
+			else if(p_findreplace->Flags & FR_REPLACE)
+			{
+
+			}
+			else if(p_findreplace->Flags & FR_REPLACEALL)
+			{
+
+			}
+			else if(p_findreplace->Flags & FR_DIALOGTERM)
+				p_dialog_param->hFindReplaceWnd = NULL;
+		}
 		break;
 	}
 
@@ -740,6 +802,39 @@ static HDWP ChildRelativeDeferWindowPos(HDWP hWinPosInfo, HWND hWnd, int nIDDlgI
 
 	return DeferWindowPos(hWinPosInfo, hChildWnd, NULL, 
 		rc.left+x, rc.top+y, (rc.right-rc.left)+cx, (rc.bottom-rc.top)+cy, SWP_NOZORDER|SWP_NOACTIVATE|SWP_NOOWNERZORDER);
+}
+
+static void InitFindReplace(HWND hWnd, HINSTANCE hInst, ASM_DIALOG_PARAM *p_dialog_param)
+{
+	p_dialog_param->uFindReplaceMsg = RegisterWindowMessage(FINDMSGSTRING);
+	p_dialog_param->hFindReplaceWnd = NULL;
+	*p_dialog_param->szFindStr = '\0';
+	*p_dialog_param->szReplaceStr = '\0';
+
+	p_dialog_param->findreplace.lStructSize = sizeof(FINDREPLACE);
+	p_dialog_param->findreplace.hwndOwner = hWnd;
+	p_dialog_param->findreplace.hInstance = hInst;
+	p_dialog_param->findreplace.Flags = 0;
+	p_dialog_param->findreplace.lpstrFindWhat = p_dialog_param->szFindStr;
+	p_dialog_param->findreplace.lpstrReplaceWith = p_dialog_param->szReplaceStr;
+	p_dialog_param->findreplace.wFindWhatLen = 128;
+	p_dialog_param->findreplace.wReplaceWithLen = 128;
+}
+
+static void ShowFindDialog(ASM_DIALOG_PARAM *p_dialog_param)
+{
+	if(p_dialog_param->hFindReplaceWnd)
+		SetForegroundWindow(p_dialog_param->hFindReplaceWnd);
+	else
+		p_dialog_param->hFindReplaceWnd = FindText(&p_dialog_param->findreplace);
+}
+
+static void ShowReplaceDialog(ASM_DIALOG_PARAM *p_dialog_param)
+{
+	if(p_dialog_param->hFindReplaceWnd)
+		SetForegroundWindow(p_dialog_param->hFindReplaceWnd);
+	else
+		p_dialog_param->hFindReplaceWnd = ReplaceText(&p_dialog_param->findreplace);
 }
 
 static void OptionsChanged(HWND hWnd)

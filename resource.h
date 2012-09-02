@@ -34,13 +34,17 @@
 #define ID_TABSTRIPMENU_CLOSEALLTABS    40013
 #define ID_ACCEL_PREVTAB                40014
 #define ID_ACCEL_NEXTTAB                40015
+#define ID_ACCEL_FINDWND                40016
+#define ID_ACCEL_REPLACEWND             40017
+#define ID_ACCEL_FINDNEXT               40018
+#define ID_ACCEL_FINDPREV               40019
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        113
-#define _APS_NEXT_COMMAND_VALUE         40016
+#define _APS_NEXT_COMMAND_VALUE         40020
 #define _APS_NEXT_CONTROL_VALUE         1013
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

@@ -11,10 +11,27 @@
 #include "write_asm.h"
 #include "resource.h"
 
+typedef struct _asm_dialog_param {
+	// General
+	HICON hSmallIcon, hLargeIcon;
+	RAFONT raFont;
+	HMENU hMenu;
+	BOOL bTabCtrlExInitialized;
+	long dlg_min_w, dlg_min_h, dlg_last_cw, dlg_last_ch;
+
+	// Find and replace
+	UINT uFindReplaceMsg;
+	HWND hFindReplaceWnd;
+	char szFindStr[128];
+	char szReplaceStr[128];
+	FINDREPLACE findreplace;
+} ASM_DIALOG_PARAM;
+
 typedef struct _asm_thread_param {
 	HANDLE hThreadReadyEvent;
 	HWND hAsmWnd;
 	BOOL bQuitThread;
+	ASM_DIALOG_PARAM dialog_param;
 } ASM_THREAD_PARAM;
 
 // Message window msgs
@@ -136,6 +153,9 @@ static void UpdateRightClickMenuState(HWND hWnd, HMENU hMenu);
 static void LoadWindowPos(HWND hWnd, HINSTANCE hInst, long *p_min_w, long *p_min_h);
 static void SaveWindowPos(HWND hWnd, HINSTANCE hInst);
 static HDWP ChildRelativeDeferWindowPos(HDWP hWinPosInfo, HWND hWnd, int nIDDlgItem, int x, int y, int cx, int cy);
+static void InitFindReplace(HWND hWnd, HINSTANCE hInst, ASM_DIALOG_PARAM *p_dialog_param);
+static void ShowFindDialog(ASM_DIALOG_PARAM *p_dialog_param);
+static void ShowReplaceDialog(ASM_DIALOG_PARAM *p_dialog_param);
 static void OptionsChanged(HWND hWnd);
 static void LoadExample(HWND hWnd);
 static BOOL LoadCode(HWND hWnd, DWORD dwAddress, DWORD dwSize);
