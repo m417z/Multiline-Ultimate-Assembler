@@ -11,6 +11,8 @@
 #include "write_asm.h"
 #include "resource.h"
 
+#define FIND_REPLACE_TEXT_BUFFER 128
+
 typedef struct _asm_dialog_param {
 	// General
 	HICON hSmallIcon, hLargeIcon;
@@ -22,8 +24,8 @@ typedef struct _asm_dialog_param {
 	// Find and replace
 	UINT uFindReplaceMsg;
 	HWND hFindReplaceWnd;
-	char szFindStr[128];
-	char szReplaceStr[128];
+	char szFindStr[FIND_REPLACE_TEXT_BUFFER];
+	char szReplaceStr[FIND_REPLACE_TEXT_BUFFER];
 	FINDREPLACE findreplace;
 } ASM_DIALOG_PARAM;
 
@@ -34,20 +36,19 @@ typedef struct _asm_thread_param {
 	ASM_DIALOG_PARAM dialog_param;
 } ASM_THREAD_PARAM;
 
-// Message window msgs
-#define UWM_SHOWASMDLG           WM_APP
-#define UWM_LOADCODE             (WM_APP+1)
-#define UWM_LOADEXAMPLE          (WM_APP+2)
-#define UWM_OPTIONSCHANGED       (WM_APP+3)
-#define UWM_ASMDLGDESTROYED      (WM_APP+4)
-#define UWM_QUITTHREAD           (WM_APP+5)
+// Message window messages
+#define UWM_SHOWASMDLG                  WM_APP
+#define UWM_ASMDLGDESTROYED             (WM_APP+1)
+#define UWM_QUITTHREAD                  (WM_APP+2)
 
-// Assembler dialog msgs
-//      UWM_LOADCODE      
-//      UWM_LOADEXAMPLE   
-//      UWM_OPTIONSCHANGED
-#define UWM_NOTIFY               (WM_APP+6)
-#define UWM_ERRORMSG             (WM_APP+7)
+// Both Message window and Assembler dialog messages
+#define UWM_LOADCODE                    (WM_APP+3)
+#define UWM_LOADEXAMPLE                 (WM_APP+4)
+#define UWM_OPTIONSCHANGED              (WM_APP+5)
+
+// Assembler dialog messages
+#define UWM_NOTIFY                      (WM_APP+6)
+#define UWM_ERRORMSG                    (WM_APP+7)
 
 #define HILITE_ASM_CMD \
 	"aaa aad aam aas adc add and call cbw clc cld cli cmc cmp cmps cmpsb " \
@@ -153,9 +154,14 @@ static void UpdateRightClickMenuState(HWND hWnd, HMENU hMenu);
 static void LoadWindowPos(HWND hWnd, HINSTANCE hInst, long *p_min_w, long *p_min_h);
 static void SaveWindowPos(HWND hWnd, HINSTANCE hInst);
 static HDWP ChildRelativeDeferWindowPos(HDWP hWinPosInfo, HWND hWnd, int nIDDlgItem, int x, int y, int cx, int cy);
+static int AsmDlgMessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType);
 static void InitFindReplace(HWND hWnd, HINSTANCE hInst, ASM_DIALOG_PARAM *p_dialog_param);
 static void ShowFindDialog(ASM_DIALOG_PARAM *p_dialog_param);
 static void ShowReplaceDialog(ASM_DIALOG_PARAM *p_dialog_param);
+static void DoFind(ASM_DIALOG_PARAM *p_dialog_param);
+static void DoFindCustom(ASM_DIALOG_PARAM *p_dialog_param, DWORD dwFlagsSet, DWORD dwFlagsRemove);
+static void DoReplace(ASM_DIALOG_PARAM *p_dialog_param);
+static void DoReplaceAll(ASM_DIALOG_PARAM *p_dialog_param);
 static void OptionsChanged(HWND hWnd);
 static void LoadExample(HWND hWnd);
 static BOOL LoadCode(HWND hWnd, DWORD dwAddress, DWORD dwSize);

@@ -158,6 +158,7 @@ static LRESULT CALLBACK AsmMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 {
 	ASM_THREAD_PARAM *p_thread_param;
 	HWND hAsmWnd;
+	HWND hPopupWnd;
 
 	if(uMsg == WM_CREATE)
 	{
@@ -196,16 +197,31 @@ static LRESULT CALLBACK AsmMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			p_thread_param->hAsmWnd = hAsmWnd;
 
 			ShowWindow(hAsmWnd, SW_SHOWNORMAL);
+
+			if(uMsg == UWM_LOADCODE || uMsg == UWM_LOADEXAMPLE)
+				PostMessage(hAsmWnd, uMsg, wParam, lParam);
 		}
 		else
 		{
 			hAsmWnd = p_thread_param->hAsmWnd;
 
-			SetForegroundWindow(hAsmWnd);
-		}
+			if(IsWindowEnabled(hAsmWnd))
+			{
+				if(IsIconic(hAsmWnd))
+					ShowWindow(hAsmWnd, SW_RESTORE);
 
-		if(uMsg == UWM_LOADCODE || uMsg == UWM_LOADEXAMPLE)
-			PostMessage(hAsmWnd, uMsg, wParam, lParam);
+				SetFocus(hAsmWnd);
+
+				if(uMsg == UWM_LOADCODE || uMsg == UWM_LOADEXAMPLE)
+					PostMessage(hAsmWnd, uMsg, wParam, lParam);
+			}
+			else
+			{
+				hPopupWnd = GetWindow(hAsmWnd, GW_ENABLEDPOPUP);
+				if(hPopupWnd)
+					SetFocus(hPopupWnd);
+			}
+		}
 		break;
 
 	case UWM_OPTIONSCHANGED:
@@ -250,6 +266,7 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 	POINT pt;
 	RECT rc;
 	HDWP hDwp;
+	HWND hPopupWnd;
 
 	if(uMsg == WM_INITDIALOG)
 	{
@@ -474,7 +491,7 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 		break;
 
 	case UWM_ERRORMSG:
-		MessageBox(hWnd, (char *)lParam, NULL, wParam);
+		AsmDlgMessageBox(hWnd, (char *)lParam, NULL, wParam);
 		break;
 
 	case WM_COMMAND:
@@ -550,11 +567,17 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			break;
 
 		case ID_ACCEL_FINDNEXT:
-			// TODO
+			if(*p_dialog_param->szFindStr != '\0')
+				DoFindCustom(p_dialog_param, FR_DOWN, 0);
+			else
+				ShowFindDialog(p_dialog_param);
 			break;
 
 		case ID_ACCEL_FINDPREV:
-			// TODO
+			if(*p_dialog_param->szFindStr != '\0')
+				DoFindCustom(p_dialog_param, 0, FR_DOWN);
+			else
+				ShowFindDialog(p_dialog_param);
 			break;
 
 		case IDOK:
@@ -563,6 +586,13 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			break;
 
 		case IDCANCEL:
+			if(!IsWindowEnabled(hWnd))
+			{
+				hPopupWnd = GetWindow(hWnd, GW_ENABLEDPOPUP);
+				if(hPopupWnd && hPopupWnd != hWnd)
+					SendMessage(hPopupWnd, WM_CLOSE, 0, 0);
+			}
+
 			if(p_dialog_param->hFindReplaceWnd)
 				SendMessage(p_dialog_param->hFindReplaceWnd, WM_CLOSE, 0, 0);
 
@@ -625,17 +655,11 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			p_findreplace = (FINDREPLACE *)lParam;
 
 			if(p_findreplace->Flags & FR_FINDNEXT)
-			{
-				// TODO
-			}
+				DoFind(p_dialog_param);
 			else if(p_findreplace->Flags & FR_REPLACE)
-			{
-
-			}
+				DoReplace(p_dialog_param);
 			else if(p_findreplace->Flags & FR_REPLACEALL)
-			{
-
-			}
+				DoReplaceAll(p_dialog_param);
 			else if(p_findreplace->Flags & FR_DIALOGTERM)
 				p_dialog_param->hFindReplaceWnd = NULL;
 		}
@@ -685,7 +709,7 @@ static void SetRAEditDesign(HWND hWnd, RAFONT *praFont)
 	SendDlgItemMessage(hWnd, IDC_ASSEMBLER, REM_SETHILITEWORDS, RGB(0, 64, 128), (LPARAM)HILITE_TYPE);
 	SendDlgItemMessage(hWnd, IDC_ASSEMBLER, REM_SETHILITEWORDS, RGB(255, 128, 64), (LPARAM)HILITE_OTHER);
 
-	// C-sytle strings \m/
+	// C-style strings \m/
 	SendDlgItemMessage(hWnd, IDC_ASSEMBLER, REM_SETSTYLEEX, STILEEX_STRINGMODEC, 0);
 
 	// Tab width
@@ -804,6 +828,36 @@ static HDWP ChildRelativeDeferWindowPos(HDWP hWinPosInfo, HWND hWnd, int nIDDlgI
 		rc.left+x, rc.top+y, (rc.right-rc.left)+cx, (rc.bottom-rc.top)+cy, SWP_NOZORDER|SWP_NOACTIVATE|SWP_NOOWNERZORDER);
 }
 
+static int AsmDlgMessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType)
+{
+	ASM_DIALOG_PARAM *p_dialog_param;
+	HWND hForegroundWnd;
+	int nRet;
+
+	hForegroundWnd = GetForegroundWindow();
+
+	p_dialog_param = (ASM_DIALOG_PARAM *)GetWindowLongPtr(hWnd, DWLP_USER);
+	if(p_dialog_param && p_dialog_param->hFindReplaceWnd)
+	{
+		if(hForegroundWnd == p_dialog_param->hFindReplaceWnd)
+		{
+			EnableWindow(hWnd, FALSE);
+			nRet = MessageBox(p_dialog_param->hFindReplaceWnd, lpText, lpCaption, uType);
+			EnableWindow(hWnd, TRUE);
+		}
+		else
+		{
+			EnableWindow(p_dialog_param->hFindReplaceWnd, FALSE);
+			nRet = MessageBox(hWnd, lpText, lpCaption, uType);
+			EnableWindow(p_dialog_param->hFindReplaceWnd, TRUE);
+		}
+	}
+	else
+		nRet = MessageBox(hWnd, lpText, lpCaption, uType);
+
+	return nRet;
+}
+
 static void InitFindReplace(HWND hWnd, HINSTANCE hInst, ASM_DIALOG_PARAM *p_dialog_param)
 {
 	p_dialog_param->uFindReplaceMsg = RegisterWindowMessage(FINDMSGSTRING);
@@ -814,17 +868,17 @@ static void InitFindReplace(HWND hWnd, HINSTANCE hInst, ASM_DIALOG_PARAM *p_dial
 	p_dialog_param->findreplace.lStructSize = sizeof(FINDREPLACE);
 	p_dialog_param->findreplace.hwndOwner = hWnd;
 	p_dialog_param->findreplace.hInstance = hInst;
-	p_dialog_param->findreplace.Flags = 0;
+	p_dialog_param->findreplace.Flags = FR_DOWN;
 	p_dialog_param->findreplace.lpstrFindWhat = p_dialog_param->szFindStr;
 	p_dialog_param->findreplace.lpstrReplaceWith = p_dialog_param->szReplaceStr;
-	p_dialog_param->findreplace.wFindWhatLen = 128;
-	p_dialog_param->findreplace.wReplaceWithLen = 128;
+	p_dialog_param->findreplace.wFindWhatLen = FIND_REPLACE_TEXT_BUFFER;
+	p_dialog_param->findreplace.wReplaceWithLen = FIND_REPLACE_TEXT_BUFFER;
 }
 
 static void ShowFindDialog(ASM_DIALOG_PARAM *p_dialog_param)
 {
 	if(p_dialog_param->hFindReplaceWnd)
-		SetForegroundWindow(p_dialog_param->hFindReplaceWnd);
+		SetFocus(p_dialog_param->hFindReplaceWnd);
 	else
 		p_dialog_param->hFindReplaceWnd = FindText(&p_dialog_param->findreplace);
 }
@@ -832,9 +886,149 @@ static void ShowFindDialog(ASM_DIALOG_PARAM *p_dialog_param)
 static void ShowReplaceDialog(ASM_DIALOG_PARAM *p_dialog_param)
 {
 	if(p_dialog_param->hFindReplaceWnd)
-		SetForegroundWindow(p_dialog_param->hFindReplaceWnd);
+		SetFocus(p_dialog_param->hFindReplaceWnd);
 	else
 		p_dialog_param->hFindReplaceWnd = ReplaceText(&p_dialog_param->findreplace);
+}
+
+static void DoFind(ASM_DIALOG_PARAM *p_dialog_param)
+{
+	DoFindCustom(p_dialog_param, 0, 0);
+}
+
+static void DoFindCustom(ASM_DIALOG_PARAM *p_dialog_param, DWORD dwFlagsSet, DWORD dwFlagsRemove)
+{
+	FINDREPLACE *p_findreplace;
+	HWND hWnd;
+	WPARAM wFlagsParam;
+	CHARRANGE selrange;
+	FINDTEXTEX findtextex;
+	char szInfoMsg[sizeof("Cannot find \"\"")-1+FIND_REPLACE_TEXT_BUFFER];
+
+	p_findreplace = &p_dialog_param->findreplace;
+	hWnd = p_findreplace->hwndOwner;
+
+	wFlagsParam = p_findreplace->Flags & (FR_DOWN | FR_WHOLEWORD | FR_MATCHCASE);
+	wFlagsParam |= dwFlagsSet;
+	wFlagsParam &= ~dwFlagsRemove;
+
+	SendDlgItemMessage(hWnd, IDC_ASSEMBLER, EM_EXGETSEL, 0, (LPARAM)&selrange);
+
+	if(wFlagsParam & FR_DOWN)
+	{
+		findtextex.chrg.cpMin = selrange.cpMax;
+		findtextex.chrg.cpMax = -1;
+	}
+	else
+	{
+		findtextex.chrg.cpMin = selrange.cpMin - 1;
+		findtextex.chrg.cpMax = 0;
+	}
+
+	findtextex.lpstrText = p_findreplace->lpstrFindWhat;
+
+	if(findtextex.chrg.cpMin >= 0 && 
+		SendDlgItemMessage(hWnd, IDC_ASSEMBLER, EM_FINDTEXTEX, wFlagsParam, (LPARAM)&findtextex) != -1)
+	{
+		SendDlgItemMessage(hWnd, IDC_ASSEMBLER, EM_EXSETSEL, 0, (LPARAM)&findtextex.chrgText);
+		SendDlgItemMessage(hWnd, IDC_ASSEMBLER, EM_SCROLLCARET, 0, 0);
+	}
+	else
+	{
+		wsprintf(szInfoMsg, "Cannot find \"%s\"", p_findreplace->lpstrFindWhat);
+		AsmDlgMessageBox(hWnd, szInfoMsg, "Find", MB_ICONASTERISK);
+	}
+}
+
+static void DoReplace(ASM_DIALOG_PARAM *p_dialog_param)
+{
+	FINDREPLACE *p_findreplace;
+	HWND hWnd;
+	WPARAM wFlagsParam;
+	CHARRANGE selrange;
+	FINDTEXTEX findtextex;
+
+	p_findreplace = &p_dialog_param->findreplace;
+	hWnd = p_findreplace->hwndOwner;
+
+	wFlagsParam = p_findreplace->Flags & (FR_DOWN | FR_WHOLEWORD | FR_MATCHCASE);
+
+	SendDlgItemMessage(hWnd, IDC_ASSEMBLER, EM_EXGETSEL, 0, (LPARAM)&selrange);
+
+	findtextex.chrg.cpMin = selrange.cpMin;
+	findtextex.chrg.cpMax = selrange.cpMin;
+
+	findtextex.lpstrText = p_findreplace->lpstrFindWhat;
+
+	if(SendDlgItemMessage(hWnd, IDC_ASSEMBLER, EM_FINDTEXTEX, wFlagsParam, (LPARAM)&findtextex) != -1)
+	{
+		if(findtextex.chrgText.cpMin == selrange.cpMin && findtextex.chrgText.cpMax == selrange.cpMax)
+			SendDlgItemMessage(hWnd, IDC_ASSEMBLER, EM_REPLACESEL, TRUE, (LPARAM)p_findreplace->lpstrReplaceWith);
+	}
+
+	DoFind(p_dialog_param);
+}
+
+static void DoReplaceAll(ASM_DIALOG_PARAM *p_dialog_param)
+{
+	FINDREPLACE *p_findreplace;
+	HWND hWnd;
+	WPARAM wFlagsParam;
+	FINDTEXTEX findtextex;
+	CHARRANGE selrange;
+	UINT uReplacedCount;
+	char szInfoMsg[sizeof("4294967295 occurrences were replaced")];
+
+	p_findreplace = &p_dialog_param->findreplace;
+	hWnd = p_findreplace->hwndOwner;
+
+	wFlagsParam = p_findreplace->Flags & (FR_DOWN | FR_WHOLEWORD | FR_MATCHCASE);
+
+	findtextex.chrg.cpMin = 0;
+	findtextex.chrg.cpMax = -1;
+	findtextex.lpstrText = p_findreplace->lpstrFindWhat;
+
+	uReplacedCount = 0;
+
+	if(SendDlgItemMessage(hWnd, IDC_ASSEMBLER, EM_FINDTEXTEX, wFlagsParam, (LPARAM)&findtextex) != -1)
+	{
+		SendDlgItemMessage(hWnd, IDC_ASSEMBLER, WM_SETREDRAW, FALSE, 0);
+		SendDlgItemMessage(hWnd, IDC_ASSEMBLER, REM_LOCKUNDOID, TRUE, 0);
+
+		do
+		{
+			SendDlgItemMessage(hWnd, IDC_ASSEMBLER, EM_EXSETSEL, 0, (LPARAM)&findtextex.chrgText);
+			SendDlgItemMessage(hWnd, IDC_ASSEMBLER, EM_REPLACESEL, TRUE, (LPARAM)p_findreplace->lpstrReplaceWith);
+
+			uReplacedCount++;
+
+			SendDlgItemMessage(hWnd, IDC_ASSEMBLER, EM_EXGETSEL, 0, (LPARAM)&selrange);
+
+			findtextex.chrg.cpMin = selrange.cpMax;
+		}
+		while(SendDlgItemMessage(hWnd, IDC_ASSEMBLER, EM_FINDTEXTEX, wFlagsParam, (LPARAM)&findtextex) != -1);
+
+		SendDlgItemMessage(hWnd, IDC_ASSEMBLER, REM_LOCKUNDOID, FALSE, 0);
+		SendDlgItemMessage(hWnd, IDC_ASSEMBLER, WM_SETREDRAW, TRUE, 0);
+		SendDlgItemMessage(hWnd, IDC_ASSEMBLER, REM_REPAINT, 0, FALSE);
+	}
+
+	switch(uReplacedCount)
+	{
+	case 0:
+		lstrcpy(szInfoMsg, "No occurrences were replaced");
+		break;
+
+	case 1:
+		lstrcpy(szInfoMsg, "1 occurrence was replaced");
+		break;
+
+	default:
+		wsprintf(szInfoMsg, "%u occurrences were replaced", uReplacedCount);
+		break;
+	}
+
+	AsmDlgMessageBox(hWnd, szInfoMsg, "Replace All", MB_ICONASTERISK);
 }
 
 static void OptionsChanged(HWND hWnd)
@@ -880,7 +1074,7 @@ static BOOL LoadCode(HWND hWnd, DWORD dwAddress, DWORD dwSize)
 	lpText = ReadAsm(dwAddress, dwSize, szLabelPerfix, szError);
 	if(!lpText)
 	{
-		MessageBox(hWnd, szError, NULL, MB_ICONHAND);
+		AsmDlgMessageBox(hWnd, szError, NULL, MB_ICONHAND);
 		return FALSE;
 	}
 
@@ -899,7 +1093,7 @@ static BOOL PatchCode(HWND hWnd)
 
 	if(Getstatus() == STAT_NONE)
 	{
-		MessageBox(hWnd, "No process is loaded", NULL, MB_ICONASTERISK);
+		AsmDlgMessageBox(hWnd, "No process is loaded", NULL, MB_ICONASTERISK);
 		return FALSE;
 	}
 
@@ -908,7 +1102,7 @@ static BOOL PatchCode(HWND hWnd)
 	lpText = (char *)HeapAlloc(GetProcessHeap(), 0, dwTextSize+1);
 	if(!lpText)
 	{
-		MessageBox(hWnd, "Allocation failed", NULL, MB_ICONHAND);
+		AsmDlgMessageBox(hWnd, "Allocation failed", NULL, MB_ICONHAND);
 		return FALSE;
 	}
 
@@ -923,7 +1117,7 @@ static BOOL PatchCode(HWND hWnd)
 		SendDlgItemMessage(hWnd, IDC_ASSEMBLER, EM_SETSEL, -result, -result);
 		SendDlgItemMessage(hWnd, IDC_ASSEMBLER, EM_SCROLLCARET, 0, 0);
 
-		MessageBox(hWnd, szError, NULL, MB_ICONHAND);
+		AsmDlgMessageBox(hWnd, szError, NULL, MB_ICONHAND);
 		SetFocus(GetDlgItem(hWnd, IDC_ASSEMBLER));
 
 		return FALSE;
