@@ -128,7 +128,7 @@ typedef struct _asm_thread_param {
 
 #define HILITE_TYPE \
 	"byte word dword qword dqword " \
-	"db dd dw"
+	"db dw dd dq dt"
 
 #define HILITE_OTHER \
 	"ptr short near far"
