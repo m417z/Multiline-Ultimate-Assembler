@@ -6,6 +6,7 @@ static char szTabFilesPath[MAX_PATH];
 static char szConfigFilePath[MAX_PATH];
 static char szLibraryFilePath[MAX_PATH];
 static FILETIME ftConfigLastWriteTime;
+static FILETIME ftCurrentTabLastWriteTime;
 static UINT nTabsCreatedCounter;
 
 void InitTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd, HINSTANCE hInst, HWND hErrorWnd, UINT uErrorMsg)
@@ -126,7 +127,11 @@ void SyncTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 	int nMaxLabelLen;
 	int nTabCount, nTabInvalidCount;
 	int nTabIndex;
+	BOOL bTabChanged;
+	char szFileName[MAX_PATH];
 	int i;
+
+	bTabChanged = FALSE;
 
 	GetConfigLastWriteTime(&ftWriteTimeCompare);
 
@@ -185,6 +190,8 @@ void SyncTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 		{
 			NewTab(hTabCtrlWnd, hAsmEditWnd, NULL);
 			nTabIndex = 0;
+
+			bTabChanged = TRUE;
 		}
 		else
 		{
@@ -194,12 +201,24 @@ void SyncTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 				TabCtrl_SetCurSel(hTabCtrlWnd, 0);
 				OnTabChanged(hTabCtrlWnd, hAsmEditWnd);
 				nTabIndex = 0;
+
+				bTabChanged = TRUE;
 			}
 		}
 
 		WriteIntToPrivateIni("tabs_last_open", nTabIndex);
 
 		//GetConfigLastWriteTime(&ftConfigLastWriteTime); // done at WriteIntToPrivateIni
+	}
+
+	if(!bTabChanged)
+	{
+		GetTabFileName(hTabCtrlWnd, -1, szFileName);
+		GetFileLastWriteTime(szFileName, &ftWriteTimeCompare);
+
+		if(ftWriteTimeCompare.dwLowDateTime != ftCurrentTabLastWriteTime.dwLowDateTime || 
+			ftWriteTimeCompare.dwHighDateTime != ftCurrentTabLastWriteTime.dwHighDateTime)
+			OnTabFileUpdated(hTabCtrlWnd, hAsmEditWnd);
 	}
 }
 
@@ -266,6 +285,8 @@ void NewTab(HWND hTabCtrlWnd, HWND hAsmEditWnd, char *pTabLabel)
 	TabCtrl_SetCurSel(hTabCtrlWnd, nTabCount);
 
 	SendMessage(hAsmEditWnd, WM_SETTEXT, 0, (LPARAM)"");
+
+	ZeroMemory(&ftCurrentTabLastWriteTime, sizeof(FILETIME));
 
 	WriteIntToPrivateIni("tabs_counter", nTabsCreatedCounter);
 	WriteIntToPrivateIni("tabs_last_open", nTabCount);
@@ -512,6 +533,21 @@ void OnTabChanged(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 	WriteIntToPrivateIni("tabs_last_open", TabCtrl_GetCurSel(hTabCtrlWnd));
 }
 
+void OnTabFileUpdated(HWND hTabCtrlWnd, HWND hAsmEditWnd)
+{
+	int first_visible_line;
+	CHARRANGE char_range;
+
+	SendMessage(hAsmEditWnd, EM_EXGETSEL, 0, (LPARAM)&char_range);
+	first_visible_line = SendMessage(hAsmEditWnd, EM_GETFIRSTVISIBLELINE, 0, 0);
+
+	LoadFileOfTab(hTabCtrlWnd, hAsmEditWnd);
+
+	SendMessage(hAsmEditWnd, EM_EXSETSEL, 0, (LPARAM)&char_range);
+	SendMessage(hAsmEditWnd, EM_LINESCROLL, 0, first_visible_line);
+	SendMessage(hAsmEditWnd, EM_SCROLLCARET, 0, 0);
+}
+
 void TabRenameStart(HWND hTabCtrlWnd)
 {
 	int nMaxLabelLen;
@@ -625,6 +661,7 @@ BOOL LoadFileOfTab(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 	hFile = CreateFile(szFileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hFile == INVALID_HANDLE_VALUE)
 	{
+		ZeroMemory(&ftCurrentTabLastWriteTime, sizeof(FILETIME));
 		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)"Could not read content of file");
 		return FALSE;
 	}
@@ -636,6 +673,8 @@ BOOL LoadFileOfTab(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 	SendMessage(hAsmEditWnd, EM_STREAMIN, SF_TEXT, (LPARAM)&es);
 
 	CloseHandle(hFile);
+
+	GetFileLastWriteTime(szFileName, &ftCurrentTabLastWriteTime);
 
 	SendMessage(hAsmEditWnd, EM_SETMODIFY, FALSE, 0);
 
@@ -673,6 +712,8 @@ BOOL SaveFileOfTab(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 	SendMessage(hAsmEditWnd, EM_STREAMOUT, SF_TEXT, (LPARAM)&es);
 
 	CloseHandle(hFile);
+
+	GetFileLastWriteTime(szFileName, &ftCurrentTabLastWriteTime);
 
 	SendMessage(hAsmEditWnd, EM_SETMODIFY, FALSE, 0);
 
@@ -920,20 +961,7 @@ static BOOL WriteStringToPrivateIni(char *pKeyName, char *pValue)
 
 static BOOL GetConfigLastWriteTime(FILETIME *pftLastWriteTime)
 {
-	HANDLE hFind;
-	WIN32_FIND_DATA find_data;
-
-	hFind = FindFirstFile(szConfigFilePath, &find_data);
-	if(!hFind)
-	{
-		ZeroMemory(pftLastWriteTime, sizeof(FILETIME));
-		return FALSE;
-	}
-
-	*pftLastWriteTime = find_data.ftLastWriteTime;
-
-	FindClose(hFind);
-	return TRUE;
+	return GetFileLastWriteTime(szConfigFilePath, pftLastWriteTime);
 }
 
 // General
@@ -1077,4 +1105,22 @@ static DWORD PathRelativeToModuleDir(HMODULE hModule, char *pRelativePath, char 
 	}
 
 	return dwBufferLen;
+}
+
+static BOOL GetFileLastWriteTime(char *pFilePath, FILETIME *pftLastWriteTime)
+{
+	HANDLE hFind;
+	WIN32_FIND_DATA find_data;
+
+	hFind = FindFirstFile(pFilePath, &find_data);
+	if(!hFind)
+	{
+		ZeroMemory(pftLastWriteTime, sizeof(FILETIME));
+		return FALSE;
+	}
+
+	*pftLastWriteTime = find_data.ftLastWriteTime;
+
+	FindClose(hFind);
+	return TRUE;
 }

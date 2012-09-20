@@ -41,6 +41,7 @@ void CloseAllTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd);
 BOOL OnContextMenu(HWND hTabCtrlWnd, HWND hAsmEditWnd, LPARAM lParam, POINT *ppt);
 void OnTabChanging(HWND hTabCtrlWnd, HWND hAsmEditWnd);
 void OnTabChanged(HWND hTabCtrlWnd, HWND hAsmEditWnd);
+void OnTabFileUpdated(HWND hTabCtrlWnd, HWND hAsmEditWnd);
 void TabRenameStart(HWND hTabCtrlWnd);
 BOOL TabRenameEnd(HWND hTabCtrlWnd, char *pNewName);
 BOOL OnTabDrag(HWND hTabCtrlWnd, int nDragFromId, int nDropToId);
@@ -67,5 +68,6 @@ static BOOL GetConfigLastWriteTime(FILETIME *pftLastWriteTime);
 // General
 static BOOL MakeSureDirectoryExists(char *pPathName);
 static DWORD PathRelativeToModuleDir(HMODULE hModule, char *pRelativePath, char *pResult, BOOL bPathAddBackslash);
+static BOOL GetFileLastWriteTime(char *pFilePath, FILETIME *pftLastWriteTime);
 
 #endif // _ASSEMBLER_DLG_TABS_H_
