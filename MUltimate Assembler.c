@@ -8,7 +8,7 @@
 #include "options_dlg.h"
 #include "resource.h"
 
-#define DEF_VERSION   "1.7"
+#define DEF_VERSION   "1.7.1"
 #define DEF_COPYRIGHT "Copyright (C) 2009-2012 RaMMicHaeL"
 
 HINSTANCE hDllInst;
