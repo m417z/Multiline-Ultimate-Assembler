@@ -131,7 +131,7 @@ typedef struct _asm_thread_param {
 	"db dw dd dq dt"
 
 #define HILITE_OTHER \
-	"ptr short near far"
+	"ptr short long near far"
 
 #ifndef GET_X_LPARAM
 #define GET_X_LPARAM(lParam)	 ((int)(short)LOWORD(lParam))
