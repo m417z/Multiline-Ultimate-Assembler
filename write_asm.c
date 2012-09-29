@@ -346,8 +346,9 @@ static int ParseString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError)
 		if(*p == '\\')
 		{
 			p++;
-			if(*p == 'x')
+			switch(*p)
 			{
+			case 'x':
 				p++;
 
 				if((*p < '0' || *p > '9') && (*p < 'A' || *p > 'F') && (*p < 'a' || *p > 'f'))
@@ -370,11 +371,22 @@ static int ParseString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError)
 					lstrcpy(lpError, "Could not parse string, value is too big for a character");
 					return -(p-lpText);
 				}
-			}
-			else if(*p == '\\' || *p == '\"' || *p == '0' || *p == 't' || *p == 'r' || *p == 'n')
+				break;
+
+			case '\\':
+			case '\"':
+			case '0':
+			case 'a':
+			case 'b':
+			case 'f':
+			case 'r':
+			case 'n':
+			case 't':
+			case 'v':
 				p++;
-			else
-			{
+				break;
+
+			default:
 				lstrcpy(lpError, "Could not parse string, unrecognized character escape sequence");
 				return -(p-lpText);
 			}
@@ -445,8 +457,9 @@ static int ParseString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError)
 		if(*p2 == '\\')
 		{
 			p2++;
-			if(*p2 == 'x')
+			switch(*p2)
 			{
+			case 'x':
 				p2++;
 				*dest = 0;
 
@@ -463,21 +476,53 @@ static int ParseString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError)
 
 					p2++;
 				}
-			}
-			else
-			{
-				if(*p2 == '\\' || *p2 == '\"')
-					*dest = *p2;
-				else if(*p2 == '0')
-					*dest = '\0';
-				else if(*p2 == 't')
-					*dest = '\t';
-				else if(*p2 == 'r')
-					*dest = '\r';
-				else if(*p2 == 'n')
-					*dest = '\n';
+				break;
 
+			case '\\':
+			case '\"':
+				*dest = *p2;
 				p2++;
+				break;
+
+			case '0':
+				*dest = '\0';
+				p2++;
+				break;
+
+			case 'a':
+				*dest = '\a';
+				p2++;
+				break;
+
+			case 'b':
+				*dest = '\b';
+				p2++;
+				break;
+
+			case 'f':
+				*dest = '\f';
+				p2++;
+				break;
+
+			case 'r':
+				*dest = '\r';
+				p2++;
+				break;
+
+			case 'n':
+				*dest = '\n';
+				p2++;
+				break;
+
+			case 't':
+				*dest = '\t';
+				p2++;
+				break;
+
+			case 'v':
+				*dest = '\v';
+				p2++;
+				break;
 			}
 		}
 		else

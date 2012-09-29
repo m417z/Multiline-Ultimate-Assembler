@@ -348,10 +348,22 @@ static BOOL ValidateString(BYTE *p, DWORD dwSize, DWORD *pdwTextSize)
 
 		if(*p < 32)
 		{
-			if(*p == '\0' || *p == '\t' || *p == '\r' || *p == '\n')
+			switch(*p)
+			{
+			case '\0':
+			case '\a':
+			case '\b':
+			case '\f':
+			case '\r':
+			case '\n':
+			case '\t':
+			case '\v':
 				dwTextSize += 2;
-			else
+				break;
+
+			default:
 				return FALSE;
+			}
 		}
 		else if(*p == '\\' || *p == '\"')
 			dwTextSize += 2;
@@ -397,9 +409,19 @@ static void ConvertStringToText(BYTE *p, DWORD dwSize, char *pText)
 			*pText++ = '0';
 			break;
 
-		case '\t':
+		case '\a':
 			*pText++ = '\\';
-			*pText++ = 't';
+			*pText++ = 'a';
+			break;
+
+		case '\b':
+			*pText++ = '\\';
+			*pText++ = 'b';
+			break;
+
+		case '\f':
+			*pText++ = '\\';
+			*pText++ = 'f';
 			break;
 
 		case '\r':
@@ -410,6 +432,16 @@ static void ConvertStringToText(BYTE *p, DWORD dwSize, char *pText)
 		case '\n':
 			*pText++ = '\\';
 			*pText++ = 'n';
+			break;
+
+		case '\t':
+			*pText++ = '\\';
+			*pText++ = 't';
+			break;
+
+		case '\v':
+			*pText++ = '\\';
+			*pText++ = 'v';
 			break;
 
 		default:
