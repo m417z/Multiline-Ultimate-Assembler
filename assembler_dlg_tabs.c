@@ -722,10 +722,21 @@ BOOL SaveFileOfTab(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 
 BOOL LoadFileFromLibrary(HWND hTabCtrlWnd, HWND hAsmEditWnd, HWND hWnd, HINSTANCE hInst)
 {
-	char szFileName[MAX_PATH];
+	char *pOfnBuffer;
 	OPENFILENAME ofn;
+	char szFilePath[MAX_PATH];
+	char *pFileNameSrc, *pFileNameDst, *pFileNameExt;
 	HANDLE hFile;
 	EDITSTREAM es;
+	BOOL bAtLeastOneSucceeded;
+	BOOL bMultipleFiles, bAtLeastOneFailed;
+
+	pOfnBuffer = (char *)HeapAlloc(GetProcessHeap(), 0, 1024*10);
+	if(!pOfnBuffer)
+	{
+		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONHAND, (LPARAM)"Memory allocation failed");
+		return FALSE;
+	}
 
 	ZeroMemory(&ofn, sizeof(OPENFILENAME));
 
@@ -735,41 +746,92 @@ BOOL LoadFileFromLibrary(HWND hTabCtrlWnd, HWND hAsmEditWnd, HWND hWnd, HINSTANC
 	ofn.lpstrFilter = 
 		"Assembler files (*.asm)\0*.asm\0"
 		"All files (*.*)\0*.*\0";
-	ofn.lpstrFile = szFileName;
-	ofn.nMaxFile = MAX_PATH;
+	ofn.lpstrFile = pOfnBuffer;
+	ofn.nMaxFile = 1024*10;
 	ofn.lpstrTitle = "Load code from file";
-	ofn.Flags = OFN_FILEMUSTEXIST|OFN_HIDEREADONLY;
+	ofn.Flags = OFN_FILEMUSTEXIST|OFN_HIDEREADONLY|OFN_ALLOWMULTISELECT|OFN_EXPLORER;
 	ofn.lpstrDefExt = "asm";
 
 	if(MakeSureDirectoryExists(szLibraryFilePath))
 		ofn.lpstrInitialDir = szLibraryFilePath;
 
-	*szFileName = '\0';
+	*pOfnBuffer = '\0';
 
-	if(!GetOpenFileName(&ofn))
-		return FALSE;
+	bAtLeastOneSucceeded = FALSE;
 
-	hFile = CreateFile(szFileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if(hFile == INVALID_HANDLE_VALUE)
+	if(GetOpenFileName(&ofn))
 	{
-		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)"Could not read content of file");
-		return FALSE;
+		pFileNameSrc = pOfnBuffer + ofn.nFileOffset;
+		bMultipleFiles = (pFileNameSrc[-1] == '\0');
+		pFileNameSrc[-1] = '\0';
+
+		lstrcpy(szFilePath, pOfnBuffer);
+
+		pFileNameDst = szFilePath + ofn.nFileOffset;
+		pFileNameDst[-1] = '\\';
+
+		bAtLeastOneFailed = FALSE;
+
+		if(bMultipleFiles)
+			SendMessage(hWnd, WM_SETREDRAW, FALSE, 0);
+
+		do
+		{
+			lstrcpy(pFileNameDst, pFileNameSrc);
+			pFileNameSrc += lstrlen(pFileNameSrc)+1;
+
+			hFile = CreateFile(szFilePath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+			if(hFile != INVALID_HANDLE_VALUE)
+			{
+				bAtLeastOneSucceeded = TRUE;
+
+				pFileNameExt = pFileNameDst + lstrlen(pFileNameDst);
+				for(pFileNameExt--; pFileNameExt > pFileNameDst; pFileNameExt--)
+				{
+					if(*pFileNameExt == '.')
+					{
+						*pFileNameExt = '\0';
+						break;
+					}
+				}
+
+				OnTabChanging(hTabCtrlWnd, hAsmEditWnd);
+				NewTab(hTabCtrlWnd, hAsmEditWnd, pFileNameDst);
+
+				ZeroMemory(&es, sizeof(EDITSTREAM));
+				es.dwCookie = (DWORD_PTR)hFile;
+				es.pfnCallback = StreamInProc;
+
+				SendMessage(hAsmEditWnd, EM_STREAMIN, SF_TEXT, (LPARAM)&es);
+
+				CloseHandle(hFile);
+			}
+			else
+				bAtLeastOneFailed = TRUE;
+		}
+		while(*pFileNameSrc != '\0');
+
+		if(bMultipleFiles)
+		{
+			SendMessage(hWnd, WM_SETREDRAW, TRUE, 0);
+			RedrawWindow(hWnd, NULL, NULL, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
+		}
+
+		if(bAtLeastOneFailed)
+		{
+			PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, 
+				(LPARAM)(bMultipleFiles?"Could not read content of at least one of the files":"Could not read content of file"));
+		}
+	}
+	else if(CommDlgExtendedError() == FNERR_BUFFERTOOSMALL)
+	{
+		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONHAND, 
+			(LPARAM)"Our buffer is too small for your gigantic assembly collection :(");
 	}
 
-	szFileName[ofn.nFileExtension-1] = '\0';
+	HeapFree(GetProcessHeap(), 0, pOfnBuffer);
 
-	OnTabChanging(hTabCtrlWnd, hAsmEditWnd);
-	NewTab(hTabCtrlWnd, hAsmEditWnd, szFileName+ofn.nFileOffset);
-
-	ZeroMemory(&es, sizeof(EDITSTREAM));
-	es.dwCookie = (DWORD_PTR)hFile;
-	es.pfnCallback = StreamInProc;
-
-	SendMessage(hAsmEditWnd, EM_STREAMIN, SF_TEXT, (LPARAM)&es);
-
-	CloseHandle(hFile);
-
-	return TRUE;
+	return bAtLeastOneSucceeded;
 }
 
 BOOL SaveFileToLibrary(HWND hTabCtrlWnd, HWND hAsmEditWnd, HWND hWnd, HINSTANCE hInst)
