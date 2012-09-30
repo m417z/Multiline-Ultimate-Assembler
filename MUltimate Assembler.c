@@ -39,7 +39,7 @@ BOOL APIENTRY DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 // this name should be descriptive and correlate with the name of DLL.
 extc int _export cdecl ODBG_Plugindata(char shortname[32])
 {
-	lstrcpy(shortname, "MUltimate Assembler"); // Name of plugin
+	lstrcpy(shortname, "Multiline Ultimate Assembler"); // Name of plugin
 	return PLUGIN_VERSION;
 }
 
@@ -76,7 +76,7 @@ extc int _export cdecl ODBG_Plugininit(int ollydbgversion, HWND hWnd, ulong *fea
 	{
 		UnInstallRAEdit();
 
-		MessageBox(hWnd, pError, "MUltimate Assembler error", MB_ICONHAND);
+		MessageBox(hWnd, pError, "Multiline Ultimate Assembler error", MB_ICONHAND);
 		return -1;
 	}
 
@@ -84,7 +84,7 @@ extc int _export cdecl ODBG_Plugininit(int ollydbgversion, HWND hWnd, ulong *fea
 	// to the log window. To conform OllyDbg look and feel, please use two lines.
 	// The first, in black, should describe plugin, the second, gray and indented
 	// by two characters, bears copyright notice.
-	Addtolist(0, 0, "MUltimate Assembler v" DEF_VERSION);
+	Addtolist(0, 0, "Multiline Ultimate Assembler v" DEF_VERSION);
 	Addtolist(0, -1, "  " DEF_COPYRIGHT);
 
 	// Load options
@@ -132,7 +132,7 @@ extc int _export cdecl ODBG_Pluginmenu(int origin, char data[4096], void *item)
 	switch(origin)
 	{
 	case PM_MAIN: // Plugin menu in main window
-		lstrcpy(data, "0 &MUltimate Assembler\tCtrl+M|1 &Options|2 &Help,3 &About");
+		lstrcpy(data, "0 &Multiline Ultimate Assembler\tCtrl+M|1 &Options|2 &Help,3 &About");
 		// If your plugin is more than trivial, I also recommend to include Help.
 		return 1;
 
@@ -143,7 +143,7 @@ extc int _export cdecl ODBG_Pluginmenu(int origin, char data[4096], void *item)
 			return 0; // Window empty, don't add
 
 		// Menu item
-		lstrcpy(data, "0 &MUltimate Assembler\tCtrl+Shift+M");
+		lstrcpy(data, "0 &Multiline Ultimate Assembler\tCtrl+Shift+M");
 		return 1;
 	}
 
@@ -179,8 +179,8 @@ extc void _export cdecl ODBG_Pluginaction(int origin, int action, void *item)
 			if(MessageBox(
 				hOllyWnd, 
 				"General:\n"
-				"- MUltimate Assembler is a multiline (and ultimate) assembler (and disassembler)\n"
-				"- To disassemble code, select it, and choose \"MUltimate Assembler\" from the right click menu\n"
+				"- Multiline Ultimate Assembler is a multiline (and ultimate) assembler (and disassembler)\n"
+				"- To disassemble code, select it, and choose \"Multiline Ultimate Assembler\" from the right click menu\n"
 				"- To assemble code, click the Assemble button in the assembler window\n"
 				"\n"
 				"Rules:\n"
@@ -209,7 +209,7 @@ extc void _export cdecl ODBG_Pluginaction(int origin, int action, void *item)
 			mbpMsgBoxParams.hwndOwner = hOllyWnd;
 			mbpMsgBoxParams.hInstance = hDllInst;
 			mbpMsgBoxParams.lpszText = 
-				"MUltimate Assembler v" DEF_VERSION "\n"
+				"Multiline Ultimate Assembler v" DEF_VERSION "\n"
 				"By RaMMicHaeL\n"
 				"http://rammichael.com/\n"
 				"\n"

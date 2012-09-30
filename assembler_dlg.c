@@ -106,7 +106,7 @@ static DWORD WINAPI AssemblerThread(void *pParameter)
 	ZeroMemory(&wndclass, sizeof(WNDCLASS));
 	wndclass.lpfnWndProc = AsmMsgProc;
 	wndclass.hInstance = hDllInst;
-	wndclass.lpszClassName = "MUltimate Assembler Message Window";
+	wndclass.lpszClassName = "Multiline Ultimate Assembler Message Window";
 
 	class_atom = RegisterClass(&wndclass);
 	if(!class_atom)
@@ -126,7 +126,7 @@ static DWORD WINAPI AssemblerThread(void *pParameter)
 	{
 		if(bRet == -1)
 		{
-			MessageBox(hOllyWnd, "GetMessage() error", "MUltimate Assembler error", MB_ICONHAND);
+			MessageBox(hOllyWnd, "GetMessage() error", "Multiline Ultimate Assembler error", MB_ICONHAND);
 			msg.wParam = 0;
 			break;
 		}
@@ -190,7 +190,7 @@ static LRESULT CALLBACK AsmMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 				(DLGPROC)DlgAsmProc, (LPARAM)&p_thread_param->dialog_param);
 			if(!hAsmWnd)
 			{
-				MessageBox(hOllyWnd, "CreateDialog() error", "MUltimate Assembler error", MB_ICONHAND);
+				MessageBox(hOllyWnd, "CreateDialog() error", "Multiline Ultimate Assembler error", MB_ICONHAND);
 				break;
 			}
 
