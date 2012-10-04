@@ -14,7 +14,7 @@ BOOL TabCtrlExInit(HWND hTabCtrlWnd, DWORD dwFlags, UINT uUserNotifyMsg)
 	if(!pTabCtrlExProp)
 		return FALSE;
 
-	if(!SetProp(hTabCtrlWnd, "TabCtrlExProp", (HANDLE)pTabCtrlExProp))
+	if(!SetProp(hTabCtrlWnd, TEXT("TabCtrlExProp"), (HANDLE)pTabCtrlExProp))
 	{
 		HeapFree(GetProcessHeap(), 0, pTabCtrlExProp);
 		return FALSE;
@@ -26,7 +26,7 @@ BOOL TabCtrlExInit(HWND hTabCtrlWnd, DWORD dwFlags, UINT uUserNotifyMsg)
 	pTabCtrlExProp->pOldTabCtrlProc = (WNDPROC)SetWindowLongPtr(hTabCtrlWnd, GWLP_WNDPROC, (LONG_PTR)TabCtrlSubclassProc);
 	if(!pTabCtrlExProp->pOldTabCtrlProc)
 	{
-		RemoveProp(hTabCtrlWnd, "TabCtrlExProp");
+		RemoveProp(hTabCtrlWnd, TEXT("TabCtrlExProp"));
 		HeapFree(GetProcessHeap(), 0, pTabCtrlExProp);
 		return FALSE;
 	}
@@ -43,7 +43,7 @@ BOOL TabCtrlExExit(HWND hTabCtrlWnd)
 {
 	TABCTRL_EX_PROP *pTabCtrlExProp;
 
-	pTabCtrlExProp = (TABCTRL_EX_PROP *)GetProp(hTabCtrlWnd, "TabCtrlExProp");
+	pTabCtrlExProp = (TABCTRL_EX_PROP *)GetProp(hTabCtrlWnd, TEXT("TabCtrlExProp"));
 	if(!pTabCtrlExProp)
 		return FALSE;
 
@@ -65,7 +65,7 @@ BOOL TabCtrlExExit(HWND hTabCtrlWnd)
 	if(pTabCtrlExProp->dwFlags & TCF_EX_LABLEEDIT)
 		SetWindowLongPtr(hTabCtrlWnd, GWL_STYLE, (pTabCtrlExProp->dwStyle & ~WS_CLIPCHILDREN));
 
-	RemoveProp(hTabCtrlWnd, "TabCtrlExProp");
+	RemoveProp(hTabCtrlWnd, TEXT("TabCtrlExProp"));
 	HeapFree(GetProcessHeap(), 0, pTabCtrlExProp);
 
 	return TRUE;
@@ -75,7 +75,7 @@ DWORD TabCtrlExGetFlags(HWND hTabCtrlWnd)
 {
 	TABCTRL_EX_PROP *pTabCtrlExProp;
 
-	pTabCtrlExProp = (TABCTRL_EX_PROP *)GetProp(hTabCtrlWnd, "TabCtrlExProp");
+	pTabCtrlExProp = (TABCTRL_EX_PROP *)GetProp(hTabCtrlWnd, TEXT("TabCtrlExProp"));
 	if(!pTabCtrlExProp)
 		return 0;
 
@@ -86,7 +86,7 @@ BOOL TabCtrlExSetFlags(HWND hTabCtrlWnd, DWORD dwFlags)
 {
 	TABCTRL_EX_PROP *pTabCtrlExProp;
 
-	pTabCtrlExProp = (TABCTRL_EX_PROP *)GetProp(hTabCtrlWnd, "TabCtrlExProp");
+	pTabCtrlExProp = (TABCTRL_EX_PROP *)GetProp(hTabCtrlWnd, TEXT("TabCtrlExProp"));
 	if(!pTabCtrlExProp)
 		return FALSE;
 
@@ -118,7 +118,7 @@ static LRESULT CALLBACK TabCtrlSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam,
 {
 	TABCTRL_EX_PROP *pTabCtrlExProp;
 	HDC hControlDC;
-	char szEditedText[TABCTRL_EX_TEXTMAXBUFF];
+	TCHAR szEditedText[TABCTRL_EX_TEXTMAXBUFF];
 	HWND hUpDownCtrlWnd;
 	WORD wPos;
 	int nCurTabId;
@@ -126,7 +126,7 @@ static LRESULT CALLBACK TabCtrlSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam,
 	POINT pt;
 	RECT rc;
 
-	pTabCtrlExProp = (TABCTRL_EX_PROP *)GetProp(hWnd, "TabCtrlExProp");
+	pTabCtrlExProp = (TABCTRL_EX_PROP *)GetProp(hWnd, TEXT("TabCtrlExProp"));
 	if(!pTabCtrlExProp)
 		return 0;
 
@@ -180,7 +180,7 @@ static LRESULT CALLBACK TabCtrlSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam,
 				{
 					SetCapture(hWnd);
 
-					hUpDownCtrlWnd = FindWindowEx(hWnd, NULL, "msctls_updown32", NULL);
+					hUpDownCtrlWnd = FindWindowEx(hWnd, NULL, TEXT("msctls_updown32"), NULL);
 					if(hUpDownCtrlWnd && !IsWindowVisible(hUpDownCtrlWnd))
 						hUpDownCtrlWnd = NULL;
 
@@ -304,7 +304,7 @@ static LRESULT CALLBACK TabCtrlSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam,
 			lResult = CallWindowProc(pTabCtrlExProp->pOldTabCtrlProc, hWnd, uMsg, wParam, lParam);
 			if(lResult)
 			{
-				hUpDownCtrlWnd = FindWindowEx(hWnd, NULL, "msctls_updown32", NULL);
+				hUpDownCtrlWnd = FindWindowEx(hWnd, NULL, TEXT("msctls_updown32"), NULL);
 				if(hUpDownCtrlWnd && IsWindowVisible(hUpDownCtrlWnd))
 				{
 					wPos = LOWORD(SendMessage(hUpDownCtrlWnd, UDM_GETPOS, 0, 0));
@@ -365,7 +365,7 @@ static int TabMoveToX(HWND hTabCtrlWnd, int nTabIndex, long x)
 		TCITEMHEADER header;
 		BYTE extra[TABCTRL_EX_EXTRABYTES];
 	} tci;
-	char szTabText[TABCTRL_EX_TEXTMAXBUFF];
+	TCHAR szTabText[TABCTRL_EX_TEXTMAXBUFF];
 
 	TabCtrl_GetItemRect(hTabCtrlWnd, 0, &rc);
 
@@ -496,7 +496,7 @@ static HWND TabEditLabel(HWND hTabCtrlWnd, int nTextLimit)
 	HWND hEditCtrlWnd;
 	int nCurrentTabIndex;
 	TCITEM tci;
-	char szTabText[TABCTRL_EX_TEXTMAXBUFF];
+	TCHAR szTabText[TABCTRL_EX_TEXTMAXBUFF];
 	RECT rc;
 
 	nCurrentTabIndex = TabCtrl_GetCurSel(hTabCtrlWnd);
@@ -511,7 +511,7 @@ static HWND TabEditLabel(HWND hTabCtrlWnd, int nTextLimit)
 
 	TabCtrl_GetItemRect(hTabCtrlWnd, nCurrentTabIndex, &rc);
 
-	hEditCtrlWnd = CreateWindowEx(WS_EX_CLIENTEDGE, "edit", szTabText, WS_CHILD|WS_VISIBLE|ES_LEFT|ES_AUTOHSCROLL, 
+	hEditCtrlWnd = CreateWindowEx(WS_EX_CLIENTEDGE, TEXT("edit"), szTabText, WS_CHILD|WS_VISIBLE|ES_LEFT|ES_AUTOHSCROLL, 
 		rc.left, rc.top, rc.right-rc.left, rc.bottom-rc.top, hTabCtrlWnd, NULL, NULL, NULL);
 	if(!hEditCtrlWnd)
 		return NULL;
@@ -543,7 +543,7 @@ static HWND TabEditLabel(HWND hTabCtrlWnd, int nTextLimit)
 	return hEditCtrlWnd;
 }
 
-static void TabApplyEditLabel(HWND hTabCtrlWnd, char *pEditedText)
+static void TabApplyEditLabel(HWND hTabCtrlWnd, TCHAR *pEditedText)
 {
 	TCITEM tci;
 

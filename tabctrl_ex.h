@@ -32,7 +32,7 @@
 // Notifications
 #define TCN_EX_DRAGDROP          0 // wParam: (int)nDragFromId, lParam: (int)nDropToId
 #define TCN_EX_BEGINLABELEDIT    1 // wParam/lParam: 0, Return: TRUE to cancle, FALSE to proceed
-#define TCN_EX_ENDLABELEDIT      2 // wParam: 0, lParam: (char *)pszEditedText, Return: TRUE to proceed, FALSE to cancle
+#define TCN_EX_ENDLABELEDIT      2 // wParam: 0, lParam: (TCHAR *)pszEditedText, Return: TRUE to proceed, FALSE to cancle
 #define TCN_EX_DBLCLK            3 // wParam/lParam: see WM_LBUTTONDBLCLK
 #define TCN_EX_MCLICK            4 // wParam/lParam: see WM_MBUTTONUP
 #define TCN_EX_CONTEXTMENU       5 // wParam/lParam: see WM_CONTEXTMENU
@@ -77,7 +77,7 @@ static BOOL TabStripScroll(HWND hTabCtrlWnd, HWND hUpDownCtrlWnd, DWORD *pdwLast
 static LRESULT CALLBACK EditCtrlSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 static LRESULT CALLBACK EditLabelMouseProc(int nCode, WPARAM wParam, LPARAM lParam);
 static HWND TabEditLabel(HWND hTabCtrlWnd, int nTextLimit);
-static void TabApplyEditLabel(HWND hTabCtrlWnd, char *pEditedText);
+static void TabApplyEditLabel(HWND hTabCtrlWnd, TCHAR *pEditedText);
 static void TabEndEditLabel(HWND hTabCtrlWnd, HWND hEditCtrlWnd);
 
 #endif // _TABCTRL_EX_H_
