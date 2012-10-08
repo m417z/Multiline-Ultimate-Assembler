@@ -69,6 +69,12 @@ void AssemblerShowDlg()
 		PostMessage(hAsmMsgWnd, UWM_SHOWASMDLG, 0, 0);
 }
 
+void AssemblerCloseDlg()
+{
+	if(hAsmThread)
+		PostMessage(hAsmMsgWnd, UWM_CLOSEASMDLG, 0, 0);
+}
+
 void AssemblerLoadCode(DWORD dwAddress, DWORD dwSize)
 {
 	if(hAsmThread)
@@ -222,6 +228,13 @@ static LRESULT CALLBACK AsmMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 					SetFocus(hPopupWnd);
 			}
 		}
+		break;
+
+	case UWM_CLOSEASMDLG:
+		hAsmWnd = p_thread_param->hAsmWnd;
+
+		if(hAsmWnd)
+			PostMessage(hAsmWnd, WM_CLOSE, 0, 0);
 		break;
 
 	case UWM_OPTIONSCHANGED:

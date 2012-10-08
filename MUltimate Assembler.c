@@ -266,7 +266,7 @@ extc int _export cdecl ODBG_Pluginshortcut(int origin, int ctrl, int alt, int sh
 // termination is not good and ask for his decision!
 extc int _export cdecl ODBG_Pluginclose(void)
 {
-	AssemblerExit();
+	AssemblerCloseDlg();
 	return 0;
 }
 
@@ -276,5 +276,6 @@ extc int _export cdecl ODBG_Pluginclose(void)
 // window classes, files, memory and so on.
 extc void _export cdecl ODBG_Plugindestroy(void)
 {
+	AssemblerExit();
 	UnInstallRAEdit();
 }

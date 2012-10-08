@@ -37,17 +37,18 @@ typedef struct _asm_thread_param {
 
 // Message window messages
 #define UWM_SHOWASMDLG                  WM_APP
-#define UWM_ASMDLGDESTROYED             (WM_APP+1)
-#define UWM_QUITTHREAD                  (WM_APP+2)
+#define UWM_CLOSEASMDLG                 (WM_APP+1)
+#define UWM_ASMDLGDESTROYED             (WM_APP+2)
+#define UWM_QUITTHREAD                  (WM_APP+3)
 
 // Both Message window and Assembler dialog messages
-#define UWM_LOADCODE                    (WM_APP+3)
-#define UWM_LOADEXAMPLE                 (WM_APP+4)
-#define UWM_OPTIONSCHANGED              (WM_APP+5)
+#define UWM_LOADCODE                    (WM_APP+4)
+#define UWM_LOADEXAMPLE                 (WM_APP+5)
+#define UWM_OPTIONSCHANGED              (WM_APP+6)
 
 // Assembler dialog messages
-#define UWM_NOTIFY                      (WM_APP+6)
-#define UWM_ERRORMSG                    (WM_APP+7)
+#define UWM_NOTIFY                      (WM_APP+7)
+#define UWM_ERRORMSG                    (WM_APP+8)
 
 #define HILITE_ASM_CMD \
 	"aaa aad aam aas adc add and call cbw clc cld cli cmc cmp cmps cmpsb " \
@@ -142,6 +143,7 @@ typedef struct _asm_thread_param {
 char *AssemblerInit();
 void AssemblerExit();
 void AssemblerShowDlg();
+void AssemblerCloseDlg();
 void AssemblerLoadCode(DWORD dwAddress, DWORD dwSize);
 void AssemblerLoadExample();
 void AssemblerOptionsChanged();
