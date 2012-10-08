@@ -30,9 +30,9 @@ static BOOL ProcessCode(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_H
 static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bDecode, DISASM_CMD_HEAD *p_dasm_head, char *lpError);
 static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress, 
 	BYTE *bDecode, DWORD dwCommandType, DISASM_CMD_HEAD *p_dasm_head, char *lpError);
-static BOOL ValidateUnicode(BYTE *p, DWORD dwSize, DWORD *pdwTextSize);
+static BOOL ValidateUnicode(WORD *p, DWORD dwSize, DWORD *pdwTextSize);
 static BOOL ValidateString(BYTE *p, DWORD dwSize, DWORD *pdwTextSize);
-static void ConvertUnicodeToText(BYTE *p, DWORD dwSize, char *pText);
+static void ConvertUnicodeToText(WORD *p, DWORD dwSize, char *pText);
 static void ConvertStringToText(BYTE *p, DWORD dwSize, char *pText);
 static void ConvertBinaryToText(BYTE *p, DWORD dwSize, char *pText);
 

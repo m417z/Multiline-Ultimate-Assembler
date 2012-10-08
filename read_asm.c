@@ -244,7 +244,7 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 	switch(dwCommandType)
 	{
 	case DEC_UNICODE:
-		if(ValidateUnicode(pCode, dwCommandSize, &dwTextSize))
+		if((dwCommandSize % 2) == 0 && ValidateUnicode((WORD *)pCode, dwCommandSize/2, &dwTextSize))
 		{
 			dwCommandType = DEC_UNICODE;
 			break;
@@ -285,7 +285,7 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 	switch(dwCommandType)
 	{
 	case DEC_UNICODE:
-		ConvertUnicodeToText(pCode, dwCommandSize, dasm_cmd->lpCommand);
+		ConvertUnicodeToText((WORD *)pCode, dwCommandSize/2, dasm_cmd->lpCommand);
 		break;
 
 	case DEC_STRING:
@@ -313,25 +313,45 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 	return dwCommandSize;
 }
 
-static BOOL ValidateUnicode(BYTE *p, DWORD dwSize, DWORD *pdwTextSize)
+static BOOL ValidateUnicode(WORD *p, DWORD dwSize, DWORD *pdwTextSize)
 {
-	// Works with up to 8 characters, otherwise returns FALSE
-	// That's so to avoid allocations
-	BYTE bMultiByteBuffer[8];
-	BOOL bUsedDefaultChar;
-	int multi_byte_size;
+	DWORD dwTextSize;
 
-	if(dwSize % 2)
-		return FALSE;
+	dwTextSize = 0;
 
-	multi_byte_size = WideCharToMultiByte(CP_ACP, 0, (WCHAR *)p, dwSize/2, (char *)bMultiByteBuffer, 8, NULL, &bUsedDefaultChar);
-	if(!multi_byte_size || bUsedDefaultChar)
-		return FALSE;
+	while(dwSize--)
+	{
+		if(*p > 126)
+			return FALSE;
 
-	if(!ValidateString(bMultiByteBuffer, multi_byte_size, pdwTextSize))
-		return FALSE;
+		if(*p < 32)
+		{
+			switch(*p)
+			{
+			case L'\0':
+			case L'\a':
+			case L'\b':
+			case L'\f':
+			case L'\r':
+			case L'\n':
+			case L'\t':
+			case L'\v':
+				dwTextSize += 2;
+				break;
 
-	(*pdwTextSize)++; // for L
+			default:
+				return FALSE;
+			}
+		}
+		else if(*p == L'\\' || *p == L'\"')
+			dwTextSize += 2;
+		else
+			dwTextSize++;
+
+		p++;
+	}
+
+	*pdwTextSize = dwTextSize+3; // for L""
 	return TRUE;
 }
 
@@ -377,17 +397,71 @@ static BOOL ValidateString(BYTE *p, DWORD dwSize, DWORD *pdwTextSize)
 	return TRUE;
 }
 
-static void ConvertUnicodeToText(BYTE *p, DWORD dwSize, char *pText)
+static void ConvertUnicodeToText(WORD *p, DWORD dwSize, char *pText)
 {
-	// Works with up to 8 characters
-	// That's so to avoid allocations
-	BYTE bMultiByteBuffer[8];
-	int multi_byte_size;
+	*pText++ = 'L';
+	*pText++ = '\"';
 
-	multi_byte_size = WideCharToMultiByte(CP_ACP, 0, (WCHAR *)p, dwSize/2, (char *)bMultiByteBuffer, 8, NULL, NULL);
+	while(dwSize--)
+	{
+		switch(*p)
+		{
+		case L'\\':
+		case L'\"':
+			*pText++ = '\\';
+			*pText++ = (char)*p;
+			break;
 
-	*pText = 'L';
-	ConvertStringToText(bMultiByteBuffer, multi_byte_size, pText+1);
+		case L'\0':
+			*pText++ = '\\';
+			*pText++ = '0';
+			break;
+
+		case L'\a':
+			*pText++ = '\\';
+			*pText++ = 'a';
+			break;
+
+		case L'\b':
+			*pText++ = '\\';
+			*pText++ = 'b';
+			break;
+
+		case L'\f':
+			*pText++ = '\\';
+			*pText++ = 'f';
+			break;
+
+		case L'\r':
+			*pText++ = '\\';
+			*pText++ = 'r';
+			break;
+
+		case L'\n':
+			*pText++ = '\\';
+			*pText++ = 'n';
+			break;
+
+		case L'\t':
+			*pText++ = '\\';
+			*pText++ = 't';
+			break;
+
+		case L'\v':
+			*pText++ = '\\';
+			*pText++ = 'v';
+			break;
+
+		default:
+			*pText++ = (char)*p;
+			break;
+		}
+
+		p++;
+	}
+
+	*pText++ = '\"';
+	*pText++ = '\0';
 }
 
 static void ConvertStringToText(BYTE *p, DWORD dwSize, char *pText)
