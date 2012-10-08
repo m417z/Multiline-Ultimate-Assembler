@@ -2,7 +2,6 @@
 #define _ASSEMBLER_DLG_H_
 
 #include <windows.h>
-#include "buffer.h"
 #include "plugin.h"
 #include "raedit.h"
 #include "options_def.h"

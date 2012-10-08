@@ -38,9 +38,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="buffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="assembler_dlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>

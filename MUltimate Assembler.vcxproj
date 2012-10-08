@@ -87,7 +87,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>comctl32.lib;shlwapi.lib;raeditlib\masm32.lib;raeditlib\raedit.lib;ollydbglib\ollydbg.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;shlwapi.lib;minicrt\minicrt.lib;raeditlib\masm32.lib;raeditlib\raedit.lib;ollydbglib\ollydbg.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
     </Link>
@@ -114,7 +114,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>comctl32.lib;shlwapi.lib;raeditlib\masm32.lib;raeditlib\raedit.lib;ollydbglib\ollydbg.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;shlwapi.lib;minicrt\minicrt.lib;raeditlib\masm32.lib;raeditlib\raedit.lib;ollydbglib\ollydbg.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
     </Link>
@@ -141,7 +141,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>comctl32.lib;shlwapi.lib;raeditlib\masm32.lib;raeditlib\raedit.lib;immdbglib\immunitydebugger.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;shlwapi.lib;minicrt\minicrt.lib;raeditlib\masm32.lib;raeditlib\raedit.lib;immdbglib\immunitydebugger.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
     </Link>
@@ -158,7 +158,6 @@
   <ItemGroup>
     <ClInclude Include="assembler_dlg.h" />
     <ClInclude Include="assembler_dlg_tabs.h" />
-    <ClInclude Include="buffer.h" />
     <ClInclude Include="options_def.h" />
     <ClInclude Include="options_dlg.h" />
     <ClInclude Include="plugin.h" />

@@ -1,6 +1,5 @@
 #include <windows.h>
 #include <commctrl.h>
-#include "buffer.h"
 #include "plugin.h"
 #include "raedit.h"
 #include "options_def.h"
