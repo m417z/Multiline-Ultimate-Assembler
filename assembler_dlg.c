@@ -84,7 +84,7 @@ void AssemblerLoadExample()
 void AssemblerOptionsChanged()
 {
 	if(hAsmThread)
-		PostThreadMessage(dwAsmThreadId, UWM_OPTIONSCHANGED, 0, 0);
+		PostMessage(hAsmMsgWnd, UWM_OPTIONSCHANGED, 0, 0);
 }
 
 static DWORD WINAPI AssemblerThread(void *pParameter)
@@ -749,22 +749,23 @@ static void UpdateRightClickMenuState(HWND hWnd, HMENU hMenu)
 
 static void LoadWindowPos(HWND hWnd, HINSTANCE hInst, long *p_min_w, long *p_min_h)
 {
+	long cur_w, cur_h;
 	long min_w, min_h;
 	int x, y, w, h;
 	RECT rc;
 
 	GetWindowRect(hWnd, &rc);
-	min_w = rc.right-rc.left;
-	min_h = rc.bottom-rc.top;
+	cur_w = rc.right-rc.left;
+	cur_h = rc.bottom-rc.top;
 
 	GetWindowRect(GetDlgItem(hWnd, IDOK), &rc);
-	min_w += rc.right;
+	min_w = cur_w + rc.right;
 
 	GetWindowRect(GetDlgItem(hWnd, IDCANCEL), &rc);
 	min_w -= rc.left;
 
 	GetWindowRect(GetDlgItem(hWnd, IDC_ASSEMBLER), &rc);
-	min_h -= rc.bottom-rc.top;
+	min_h = cur_h - rc.bottom-rc.top;
 
 	*p_min_w = min_w;
 	*p_min_h = min_h;
@@ -784,13 +785,17 @@ static void LoadWindowPos(HWND hWnd, HINSTANCE hInst, long *p_min_w, long *p_min
 			if(y < rc.top || y > rc.bottom)
 				y = rc.top;
 
-			w = Pluginreadintfromini(hInst, "pos_w", 0);
-			h = Pluginreadintfromini(hInst, "pos_h", 0);
+			w = Pluginreadintfromini(hInst, "pos_w", 0xDEADBEEF);
+			h = Pluginreadintfromini(hInst, "pos_h", 0xDEADBEEF);
 
-			if(w < min_w)
+			if(w == 0xDEADBEEF)
+				w = cur_w;
+			else if(w < min_w)
 				w = min_w;
 
-			if(h < min_h)
+			if(h == 0xDEADBEEF)
+				h = cur_h;
+			else if(h < min_h)
 				h = min_h;
 
 			SetWindowPos(hWnd, NULL, x, y, w, h, SWP_NOZORDER|SWP_NOACTIVATE|SWP_NOOWNERZORDER);
