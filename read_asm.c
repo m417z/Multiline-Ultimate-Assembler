@@ -753,7 +753,7 @@ static BOOL IsValidLabel(char *lpLabel, DISASM_CMD_HEAD *p_dasm_head, DISASM_CMD
 	int nLabelLen;
 	int i;
 
-	// Genric validation
+	// Generic validation
 	for(i=0; lpLabel[i] != '\0'; i++)
 	{
 		if(
