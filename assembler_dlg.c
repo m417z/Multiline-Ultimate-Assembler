@@ -778,7 +778,7 @@ static void LoadWindowPos(HWND hWnd, HINSTANCE hInst, long *p_min_w, long *p_min
 	min_w -= rc.left;
 
 	GetWindowRect(GetDlgItem(hWnd, IDC_ASSEMBLER), &rc);
-	min_h = cur_h - rc.bottom-rc.top;
+	min_h = cur_h - (rc.bottom-rc.top);
 
 	*p_min_w = min_w;
 	*p_min_h = min_h;
