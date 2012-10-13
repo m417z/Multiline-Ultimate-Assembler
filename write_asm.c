@@ -552,7 +552,7 @@ static int ParseString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError)
 			HeapFree(GetProcessHeap(), 0, cmd_node->bCode);
 			HeapFree(GetProcessHeap(), 0, cmd_node);
 
-			lstrcpy(lpError, "Convertion to UNICODE failed");
+			lstrcpy(lpError, "Conversion to UNICODE failed");
 			return 0;
 		}
 
