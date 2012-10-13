@@ -581,7 +581,7 @@ static int ParseCommand(char *lpText, DWORD dwAddress, t_module *module, CMD_HEA
 	char *p;
 	char *lpResolvedCommand;
 	char *lpCommandWithoutLabels;
-	t_asmmodel model, model2;
+	t_asmmodel model;
 	int result;
 	char *lpComment;
 
@@ -594,7 +594,7 @@ static int ParseCommand(char *lpText, DWORD dwAddress, t_module *module, CMD_HEA
 		lpResolvedCommand = lpText;
 
 	// Assemble command (with a foo address instead of labels)
-	result = ReplaceLabelsWithAddress(lpResolvedCommand, dwAddress, &lpCommandWithoutLabels, lpError);
+	result = ReplaceLabelsWithAddress(lpResolvedCommand, (DWORD)(dwAddress+INT_MAX), &lpCommandWithoutLabels, lpError);
 	if(result > 0)
 	{
 		if(lpCommandWithoutLabels)
@@ -603,15 +603,13 @@ static int ParseCommand(char *lpText, DWORD dwAddress, t_module *module, CMD_HEA
 			result = ReplacedTextCorrectErrorSpot(lpText, lpCommandWithoutLabels, result);
 			HeapFree(GetProcessHeap(), 0, lpCommandWithoutLabels);
 
-			if(result > 0 && model.jmpsize)
+			if(result <= 0)
 			{
-				result = ReplaceLabelsWithAddress(lpResolvedCommand, (DWORD)(dwAddress+INT_MAX), 
-					&lpCommandWithoutLabels, lpError);
+				result = ReplaceLabelsWithAddress(lpResolvedCommand, dwAddress, &lpCommandWithoutLabels, lpError);
 				if(result > 0 && lpCommandWithoutLabels)
 				{
-					if(AssembleShortest(lpCommandWithoutLabels, dwAddress, &model2, lpError) > 0)
-						model = model2;
-
+					result = AssembleShortest(lpCommandWithoutLabels, dwAddress, &model, lpError);
+					result = ReplacedTextCorrectErrorSpot(lpText, lpCommandWithoutLabels, result);
 					HeapFree(GetProcessHeap(), 0, lpCommandWithoutLabels);
 				}
 			}
