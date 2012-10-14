@@ -229,6 +229,7 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 	DWORD dwCommandSize;
 	t_disasm td;
 	DWORD dwTextSize;
+	BOOL bReadAsBinary;
 	int i;
 
 	// Check size of data
@@ -244,25 +245,25 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 	switch(dwCommandType)
 	{
 	case DEC_UNICODE:
-		if((dwCommandSize % 2) == 0 && ValidateUnicode((WORD *)pCode, dwCommandSize/2, &dwTextSize))
-		{
+		if(ValidateUnicode(pCode, dwCommandSize, &dwTextSize, &bReadAsBinary))
 			dwCommandType = DEC_UNICODE;
-			break;
-		}
-		// slip down
+		else
+			dwCommandType = DEC_UNKNOWN;
+		break;
 
 	case DEC_STRING:
-		if(ValidateString(pCode, dwCommandSize, &dwTextSize))
-		{
-			dwCommandType = DEC_STRING;
-			break;
-		}
-		// slip down
-
 	default:
-		dwCommandType = DEC_UNKNOWN;
-		dwTextSize = dwCommandSize*4+2;
+		if(ValidateAscii(pCode, dwCommandSize, &dwTextSize, &bReadAsBinary))
+			dwCommandType = DEC_STRING;
+		else
+			dwCommandType = DEC_UNKNOWN;
 		break;
+	}
+
+	if(dwCommandType == DEC_UNKNOWN)
+	{
+		wsprintf(lpError, "Couldn't parse data on address 0x%08X", dwAddress);
+		return 0;
 	}
 
 	// Allocate and fill
@@ -285,15 +286,11 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 	switch(dwCommandType)
 	{
 	case DEC_UNICODE:
-		ConvertUnicodeToText((WORD *)pCode, dwCommandSize/2, dasm_cmd->lpCommand);
+		ConvertUnicodeToText(pCode, dwCommandSize, bReadAsBinary, dasm_cmd->lpCommand);
 		break;
 
 	case DEC_STRING:
-		ConvertStringToText(pCode, dwCommandSize, dasm_cmd->lpCommand);
-		break;
-
-	default:
-		ConvertBinaryToText(pCode, dwCommandSize, dasm_cmd->lpCommand);
+		ConvertAsciiToText(pCode, dwCommandSize, bReadAsBinary, dasm_cmd->lpCommand);
 		break;
 	}
 
@@ -313,20 +310,32 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 	return dwCommandSize;
 }
 
-static BOOL ValidateUnicode(WORD *p, DWORD dwSize, DWORD *pdwTextSize)
+static BOOL ValidateUnicode(BYTE *p, DWORD dwSize, DWORD *pdwTextSize, BOOL *pbReadAsBinary)
 {
+	WORD *pw;
+	DWORD dwSizeW;
 	DWORD dwTextSize;
+	BOOL bReadAsBinary;
+	DWORD i;
+
+	if(dwSize % 2)
+		return FALSE;
+
+	pw = (WORD *)p;
+	dwSizeW = dwSize/2;
 
 	dwTextSize = 0;
+	bReadAsBinary = FALSE;
 
-	while(dwSize--)
+	for(i=0; !bReadAsBinary && i<dwSizeW; i++)
 	{
-		if(*p > 126)
-			return FALSE;
-
-		if(*p < 32)
+		if(pw[i] > 126)
 		{
-			switch(*p)
+			bReadAsBinary = TRUE;
+		}
+		else if(pw[i] < 32)
+		{
+			switch(pw[i])
 			{
 			case L'\0':
 			case L'\a':
@@ -340,35 +349,43 @@ static BOOL ValidateUnicode(WORD *p, DWORD dwSize, DWORD *pdwTextSize)
 				break;
 
 			default:
-				return FALSE;
+				bReadAsBinary = TRUE;
+				break;
 			}
 		}
-		else if(*p == L'\\' || *p == L'\"')
+		else if(pw[i] == L'\\' || pw[i] == L'\"')
 			dwTextSize += 2;
 		else
 			dwTextSize++;
-
-		p++;
 	}
 
+	if(bReadAsBinary)
+		dwTextSize = dwSizeW*6; // \xFFFE
+
 	*pdwTextSize = dwTextSize+3; // for L""
+	*pbReadAsBinary = bReadAsBinary;
+
 	return TRUE;
 }
 
-static BOOL ValidateString(BYTE *p, DWORD dwSize, DWORD *pdwTextSize)
+static BOOL ValidateAscii(BYTE *p, DWORD dwSize, DWORD *pdwTextSize, BOOL *pbReadAsBinary)
 {
 	DWORD dwTextSize;
+	BOOL bReadAsBinary;
+	DWORD i;
 
 	dwTextSize = 0;
+	bReadAsBinary = FALSE;
 
-	while(dwSize--)
+	for(i=0; !bReadAsBinary && i<dwSize; i++)
 	{
-		if(*p > 126)
-			return FALSE;
-
-		if(*p < 32)
+		if(p[i] > 126)
 		{
-			switch(*p)
+			bReadAsBinary = TRUE;
+		}
+		else if(p[i] < 32)
+		{
+			switch(p[i])
 			{
 			case '\0':
 			case '\a':
@@ -382,148 +399,174 @@ static BOOL ValidateString(BYTE *p, DWORD dwSize, DWORD *pdwTextSize)
 				break;
 
 			default:
-				return FALSE;
+				bReadAsBinary = TRUE;
+				break;
 			}
 		}
-		else if(*p == '\\' || *p == '\"')
+		else if(p[i] == '\\' || p[i] == '\"')
 			dwTextSize += 2;
 		else
 			dwTextSize++;
-
-		p++;
 	}
 
+	if(bReadAsBinary)
+		dwTextSize = dwSize*4; // \xFE
+
 	*pdwTextSize = dwTextSize+2; // for ""
+	*pbReadAsBinary = bReadAsBinary;
+
 	return TRUE;
 }
 
-static void ConvertUnicodeToText(WORD *p, DWORD dwSize, char *pText)
+static void ConvertUnicodeToText(BYTE *p, DWORD dwSize, BOOL bAsBinary, char *pText)
 {
+	WORD *pw;
+	DWORD dwSizeW;
+
+	pw = (WORD *)p;
+	dwSizeW = dwSize/2;
+
 	*pText++ = 'L';
 	*pText++ = '\"';
 
-	while(dwSize--)
+	if(!bAsBinary)
 	{
-		switch(*p)
+		while(dwSizeW--)
 		{
-		case L'\\':
-		case L'\"':
-			*pText++ = '\\';
-			*pText++ = (char)*p;
-			break;
+			switch(*pw)
+			{
+			case L'\\':
+			case L'\"':
+				*pText++ = '\\';
+				*pText++ = (char)*pw;
+				break;
 
-		case L'\0':
-			*pText++ = '\\';
-			*pText++ = '0';
-			break;
+			case L'\0':
+				*pText++ = '\\';
+				*pText++ = '0';
+				break;
 
-		case L'\a':
-			*pText++ = '\\';
-			*pText++ = 'a';
-			break;
+			case L'\a':
+				*pText++ = '\\';
+				*pText++ = 'a';
+				break;
 
-		case L'\b':
-			*pText++ = '\\';
-			*pText++ = 'b';
-			break;
+			case L'\b':
+				*pText++ = '\\';
+				*pText++ = 'b';
+				break;
 
-		case L'\f':
-			*pText++ = '\\';
-			*pText++ = 'f';
-			break;
+			case L'\f':
+				*pText++ = '\\';
+				*pText++ = 'f';
+				break;
 
-		case L'\r':
-			*pText++ = '\\';
-			*pText++ = 'r';
-			break;
+			case L'\r':
+				*pText++ = '\\';
+				*pText++ = 'r';
+				break;
 
-		case L'\n':
-			*pText++ = '\\';
-			*pText++ = 'n';
-			break;
+			case L'\n':
+				*pText++ = '\\';
+				*pText++ = 'n';
+				break;
 
-		case L'\t':
-			*pText++ = '\\';
-			*pText++ = 't';
-			break;
+			case L'\t':
+				*pText++ = '\\';
+				*pText++ = 't';
+				break;
 
-		case L'\v':
-			*pText++ = '\\';
-			*pText++ = 'v';
-			break;
+			case L'\v':
+				*pText++ = '\\';
+				*pText++ = 'v';
+				break;
 
-		default:
-			*pText++ = (char)*p;
-			break;
+			default:
+				*pText++ = (char)*pw;
+				break;
+			}
+
+			pw++;
 		}
-
-		p++;
+	}
+	else
+	{
+		while(dwSizeW--)
+			pText += wsprintf(pText, "\\x%04X", *pw++);
 	}
 
 	*pText++ = '\"';
 	*pText++ = '\0';
 }
 
-static void ConvertStringToText(BYTE *p, DWORD dwSize, char *pText)
+static void ConvertAsciiToText(BYTE *p, DWORD dwSize, BOOL bAsBinary, char *pText)
 {
 	*pText++ = '\"';
 
-	while(dwSize--)
+	if(!bAsBinary)
 	{
-		switch(*p)
+		while(dwSize--)
 		{
-		case '\\':
-		case '\"':
-			*pText++ = '\\';
-			*pText++ = *p;
-			break;
+			switch(*p)
+			{
+			case '\\':
+			case '\"':
+				*pText++ = '\\';
+				*pText++ = *p;
+				break;
 
-		case '\0':
-			*pText++ = '\\';
-			*pText++ = '0';
-			break;
+			case '\0':
+				*pText++ = '\\';
+				*pText++ = '0';
+				break;
 
-		case '\a':
-			*pText++ = '\\';
-			*pText++ = 'a';
-			break;
+			case '\a':
+				*pText++ = '\\';
+				*pText++ = 'a';
+				break;
 
-		case '\b':
-			*pText++ = '\\';
-			*pText++ = 'b';
-			break;
+			case '\b':
+				*pText++ = '\\';
+				*pText++ = 'b';
+				break;
 
-		case '\f':
-			*pText++ = '\\';
-			*pText++ = 'f';
-			break;
+			case '\f':
+				*pText++ = '\\';
+				*pText++ = 'f';
+				break;
 
-		case '\r':
-			*pText++ = '\\';
-			*pText++ = 'r';
-			break;
+			case '\r':
+				*pText++ = '\\';
+				*pText++ = 'r';
+				break;
 
-		case '\n':
-			*pText++ = '\\';
-			*pText++ = 'n';
-			break;
+			case '\n':
+				*pText++ = '\\';
+				*pText++ = 'n';
+				break;
 
-		case '\t':
-			*pText++ = '\\';
-			*pText++ = 't';
-			break;
+			case '\t':
+				*pText++ = '\\';
+				*pText++ = 't';
+				break;
 
-		case '\v':
-			*pText++ = '\\';
-			*pText++ = 'v';
-			break;
+			case '\v':
+				*pText++ = '\\';
+				*pText++ = 'v';
+				break;
 
-		default:
-			*pText++ = *p;
-			break;
+			default:
+				*pText++ = *p;
+				break;
+			}
+
+			p++;
 		}
-
-		p++;
+	}
+	else
+	{
+		while(dwSize--)
+			pText += wsprintf(pText, "\\x%02X", *p++);
 	}
 
 	*pText++ = '\"';
