@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MUltimate Assembler", "MUltimate Assembler.vcxproj", "{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}.Debug|Win32.ActiveCfg = Debug|Win32
+		{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}.Debug|Win32.Build.0 = Debug|Win32
+		{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}.Release|Win32.ActiveCfg = Release|Win32
+		{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
