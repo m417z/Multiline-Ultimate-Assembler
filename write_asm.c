@@ -586,9 +586,11 @@ static int ParseCommand(char *lpText, DWORD dwAddress, t_module *module, CMD_HEA
 	char *lpComment;
 
 	// Resolve RVA addresses
-	result = ResolveRVAAddresses(lpText, module, &lpResolvedCommand, lpError);
+	result = ResolveCommand(lpText, module, &lpResolvedCommand, &lpComment, lpError);
 	if(result <= 0)
 		return result;
+
+	p = lpText + result;
 
 	if(!lpResolvedCommand)
 		lpResolvedCommand = lpText;
@@ -628,28 +630,6 @@ static int ParseCommand(char *lpText, DWORD dwAddress, t_module *module, CMD_HEA
 
 		return result;
 	}
-
-	// Find comment
-	p = lpText;
-
-	while(*p != '\0' && *p != ';')
-	{
-		if(*p == '@')
-			p = SkipLabel(p);
-		else if(*p == '$')
-			p = SkipRVAAddress(p);
-		else
-			p++;
-	}
-
-	if(p[0] == ';' && p[1] != ';')
-	{
-		lpComment = SkipSpaces(p+1);
-		if(*lpComment == '\0')
-			lpComment = NULL;
-	}
-	else
-		lpComment = NULL;
 
 	// Allocate and fill data
 	cmd_node = (CMD_NODE *)HeapAlloc(GetProcessHeap(), 0, sizeof(CMD_NODE));
@@ -692,13 +672,14 @@ static int ParseCommand(char *lpText, DWORD dwAddress, t_module *module, CMD_HEA
 	return p-lpText;
 }
 
-static int ResolveRVAAddresses(char *lpCommand, t_module *module, char **ppNewCommand, char *lpError)
+static int ResolveCommand(char *lpCommand, t_module *module, char **ppNewCommand, char **ppComment, char *lpError)
 {
 	char *p;
 	int text_start[4];
 	int text_end[4];
 	DWORD dwAddress[4];
 	int address_count;
+	char *lpComment;
 	int result;
 
 	// Find and parse addresses
@@ -730,17 +711,32 @@ static int ResolveRVAAddresses(char *lpCommand, t_module *module, char **ppNewCo
 			p++;
 	}
 
-	if(address_count == 0)
+	lpComment = NULL;
+
+	if(*p == ';')
 	{
-		*ppNewCommand = NULL;
-		return 1;
+		*p = '\0';
+
+		if(p[1] != ';')
+		{
+			lpComment = SkipSpaces(p+1);
+			if(*lpComment == '\0')
+				lpComment = NULL;
+		}
 	}
 
-	// Replace
-	if(!ReplaceTextsWithAddresses(lpCommand, ppNewCommand, address_count, text_start, text_end, dwAddress, lpError))
-		return 0;
+	*ppComment = lpComment;
 
-	return 1;
+	if(address_count > 0)
+	{
+		// Replace
+		if(!ReplaceTextsWithAddresses(lpCommand, ppNewCommand, address_count, text_start, text_end, dwAddress, lpError))
+			return 0;
+	}
+	else
+		*ppNewCommand = NULL;
+
+	return p-lpCommand;
 }
 
 static int ReplaceLabelsWithAddress(char *lpCommand, DWORD dwReplaceAddress, char **ppNewCommand, char *lpError)
