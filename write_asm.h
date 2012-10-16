@@ -71,7 +71,8 @@ static int ParseAddress(char *lpText, DWORD *pdwAddress, t_module **p_module, ch
 static BOOL NewCmdBlock(CMD_BLOCK_HEAD *p_cmd_block_head, DWORD dwAddress, char *lpError);
 static int ParseAnonLabel(char *lpText, DWORD dwAddress, ANON_LABEL_HEAD *p_anon_label_head, char *lpError);
 static int ParseLabel(char *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, char *lpError);
-static int ParseString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError);
+static int ParseAsciiString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError);
+static int ParseUnicodeString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError);
 static int ParseCommand(char *lpText, DWORD dwAddress, t_module *module, CMD_HEAD *p_cmd_head, char *lpError);
 static int ResolveCommand(char *lpCommand, t_module *module, char **ppNewCommand, char **ppComment, char *lpError);
 static int ReplaceLabelsWithAddress(char *lpCommand, DWORD dwReplaceAddress, char **ppNewCommand, char *lpError);

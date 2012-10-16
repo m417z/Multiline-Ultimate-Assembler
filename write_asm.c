@@ -97,8 +97,10 @@ static char *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_b
 				break;
 
 			default: // an asm command or a string
-				if(*p == '\"' || (*p == 'L' && p[1] == '\"'))
-					result = ParseString(p, &cmd_block_node->cmd_head, lpError);
+				if(*p == '\"')
+					result = ParseAsciiString(p, &cmd_block_node->cmd_head, lpError);
+				else if(*p == 'L' && p[1] == '\"')
+					result = ParseUnicodeString(p, &cmd_block_node->cmd_head, lpError);
 				else
 					result = ParseCommand(p, dwAddress, module, &cmd_block_node->cmd_head, lpError);
 
@@ -312,25 +314,19 @@ static int ParseLabel(char *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, c
 	return p-lpText;
 }
 
-static int ParseString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError)
+static int ParseAsciiString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError)
 {
 	CMD_NODE *cmd_node;
 	char *p, *p2;
-	BOOL bUnicode;
+	char *pescape;
 	DWORD dwStringLength;
 	char *lpComment;
-	BYTE *dest;
+	char *dest;
+	BYTE bHexVal;
+	int i;
 
 	// Check string, calc size
 	p = lpText;
-
-	if(*p == 'L')
-	{
-		bUnicode = TRUE;
-		p++;
-	}
-	else
-		bUnicode = FALSE;
 
 	if(*p != '\"')
 	{
@@ -345,6 +341,8 @@ static int ParseString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError)
 	{
 		if(*p == '\\')
 		{
+			pescape = p;
+
 			p++;
 			switch(*p)
 			{
@@ -354,23 +352,22 @@ static int ParseString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError)
 				if((*p < '0' || *p > '9') && (*p < 'A' || *p > 'F') && (*p < 'a' || *p > 'f'))
 				{
 					lstrcpy(lpError, "Could not parse string, hex constants must have at least one hex digit");
-					return -(p-lpText);
+					return -(pescape-lpText);
 				}
 
 				while(*p == '0')
 					p++;
 
-				if((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f'))
-					p++;
-
-				if((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f'))
-					p++;
-
-				if((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f'))
+				for(i=0; (p[i] >= '0' && p[i] <= '9') || (p[i] >= 'A' && p[i] <= 'F') || (p[i] >= 'a' && p[i] <= 'f'); i++)
 				{
-					lstrcpy(lpError, "Could not parse string, value is too big for a character");
-					return -(p-lpText);
+					if(i >= 2)
+					{
+						lstrcpy(lpError, "Could not parse string, value is too big for a character");
+						return -(pescape-lpText);
+					}
 				}
+
+				p += i;
 				break;
 
 			case '\\':
@@ -388,7 +385,7 @@ static int ParseString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError)
 
 			default:
 				lstrcpy(lpError, "Could not parse string, unrecognized character escape sequence");
-				return -(p-lpText);
+				return -(pescape-lpText);
 			}
 		}
 		else
@@ -446,11 +443,9 @@ static int ParseString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError)
 	}
 
 	// Parse string
-	p2 = lpText+1;
-	if(bUnicode)
-		p2++;
+	p2 = lpText+1; // skip "
 
-	dest = cmd_node->bCode;
+	dest = (char *)cmd_node->bCode;
 
 	while(*p2 != '\"')
 	{
@@ -461,21 +456,23 @@ static int ParseString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError)
 			{
 			case 'x':
 				p2++;
-				*dest = 0;
+				bHexVal = 0;
 
 				while((*p2 >= '0' && *p2 <= '9') || (*p2 >= 'A' && *p2 <= 'F') || (*p2 >= 'a' && *p2 <= 'f'))
 				{
-					*dest <<= 4;
+					bHexVal <<= 4;
 
 					if(*p2 >= '0' && *p2 <= '9')
-						*dest |= *p2-'0';
+						bHexVal |= *p2-'0';
 					else if(*p2 >= 'A' && *p2 <= 'F')
-						*dest |= *p2-'A'+10;
+						bHexVal |= *p2-'A'+10;
 					else if(*p2 >= 'a' && *p2 <= 'f')
-						*dest |= *p2-'a'+10;
+						bHexVal |= *p2-'a'+10;
 
 					p2++;
 				}
+
+				*dest = (char)bHexVal;
 				break;
 
 			case '\\':
@@ -534,35 +531,271 @@ static int ParseString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError)
 		dest++;
 	}
 
-	if(bUnicode)
+	cmd_node->dwCodeSize = dwStringLength;
+	cmd_node->lpCommand = lpText;
+	cmd_node->lpComment = lpComment;
+	cmd_node->lpResolvedCommandWithLabels = NULL;
+
+	cmd_node->next = NULL;
+
+	p_cmd_head->last->next = cmd_node;
+	p_cmd_head->last = cmd_node;
+
+	return p-lpText;
+}
+
+static int ParseUnicodeString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError)
+{
+	CMD_NODE *cmd_node;
+	char *p, *p2;
+	char *psubstr;
+	DWORD dwStringLength;
+	char *lpComment;
+	WCHAR *dest;
+	DWORD nDestLen;
+	WORD bHexVal;
+	int nBytesWritten;
+	int i;
+
+	// Check string, calc size
+	p = lpText;
+
+	if(*p != 'L')
 	{
-		dest = (BYTE *)HeapAlloc(GetProcessHeap(), 0, dwStringLength*2);
-		if(!dest)
-		{
-			HeapFree(GetProcessHeap(), 0, cmd_node->bCode);
-			HeapFree(GetProcessHeap(), 0, cmd_node);
-
-			lstrcpy(lpError, "Allocation failed");
-			return 0;
-		}
-
-		if(!MultiByteToWideChar(CP_ACP, 0, (char *)cmd_node->bCode, dwStringLength, (WCHAR *)dest, dwStringLength*2))
-		{
-			HeapFree(GetProcessHeap(), 0, dest);
-			HeapFree(GetProcessHeap(), 0, cmd_node->bCode);
-			HeapFree(GetProcessHeap(), 0, cmd_node);
-
-			lstrcpy(lpError, "Conversion to UNICODE failed");
-			return 0;
-		}
-
-		HeapFree(GetProcessHeap(), 0, cmd_node->bCode);
-		cmd_node->bCode = dest;
-
-		dwStringLength *= 2;
+		lstrcpy(lpError, "Could not parse string, 'L' expected");
+		return -(p-lpText);
 	}
 
-	cmd_node->dwCodeSize = dwStringLength;
+	p++;
+
+	if(*p != '\"')
+	{
+		lstrcpy(lpError, "Could not parse string, '\"' expected");
+		return -(p-lpText);
+	}
+
+	p++;
+
+	psubstr = p;
+	dwStringLength = 0;
+
+	while(*p != '\"' && *p != '\0')
+	{
+		if(*p == '\\')
+		{
+			if(p-psubstr > 0)
+			{
+				dwStringLength += MultiByteToWideChar(CP_ACP, 0, psubstr, p-psubstr, NULL, 0);
+				psubstr = p;
+			}
+
+			p++;
+			switch(*p)
+			{
+			case 'x':
+				p++;
+
+				if((*p < '0' || *p > '9') && (*p < 'A' || *p > 'F') && (*p < 'a' || *p > 'f'))
+				{
+					lstrcpy(lpError, "Could not parse string, hex constants must have at least one hex digit");
+					return -(psubstr-lpText);
+				}
+
+				while(*p == '0')
+					p++;
+
+				for(i=0; (p[i] >= '0' && p[i] <= '9') || (p[i] >= 'A' && p[i] <= 'F') || (p[i] >= 'a' && p[i] <= 'f'); i++)
+				{
+					if(i >= 4)
+					{
+						lstrcpy(lpError, "Could not parse string, value is too big for a character");
+						return -(psubstr-lpText);
+					}
+				}
+
+				p += i;
+				break;
+
+			case '\\':
+			case '\"':
+			case '0':
+			case 'a':
+			case 'b':
+			case 'f':
+			case 'r':
+			case 'n':
+			case 't':
+			case 'v':
+				p++;
+				break;
+
+			default:
+				lstrcpy(lpError, "Could not parse string, unrecognized character escape sequence");
+				return -(psubstr-lpText);
+			}
+
+			dwStringLength++;
+
+			psubstr = p;
+		}
+		else
+			p++;
+	}
+
+	if(p-psubstr > 0)
+		dwStringLength += MultiByteToWideChar(CP_ACP, 0, psubstr, p-psubstr, NULL, 0);
+
+	if(*p != '\"')
+	{
+		lstrcpy(lpError, "Could not parse string, '\"' expected");
+		return -(p-lpText);
+	}
+
+	if(dwStringLength == 0)
+	{
+		lstrcpy(lpError, "Empty strings are not allowed");
+		return -(p-lpText);
+	}
+
+	p++;
+	p = SkipSpaces(p);
+
+	if(*p != '\0' && *p != ';')
+	{
+		lstrcpy(lpError, "Unexpected input after string definition");
+		return -(p-lpText);
+	}
+
+	// Check for comment
+	if(p[0] == ';' && p[1] != ';')
+	{
+		lpComment = SkipSpaces(p+1);
+		if(*lpComment == '\0')
+			lpComment = NULL;
+	}
+	else
+		lpComment = NULL;
+
+	// Allocate
+	cmd_node = (CMD_NODE *)HeapAlloc(GetProcessHeap(), 0, sizeof(CMD_NODE));
+	if(!cmd_node)
+	{
+		lstrcpy(lpError, "Allocation failed");
+		return 0;
+	}
+
+	cmd_node->bCode = (BYTE *)HeapAlloc(GetProcessHeap(), 0, dwStringLength*sizeof(WCHAR));
+	if(!cmd_node->bCode)
+	{
+		HeapFree(GetProcessHeap(), 0, cmd_node);
+
+		lstrcpy(lpError, "Allocation failed");
+		return 0;
+	}
+
+	// Parse string
+	p2 = lpText+2; // skip L"
+
+	psubstr = p2;
+	dest = (WCHAR *)cmd_node->bCode;
+	nDestLen = dwStringLength;
+
+	while(*p2 != '\"')
+	{
+		if(*p2 == '\\')
+		{
+			if(p2-psubstr > 0)
+			{
+				nBytesWritten = MultiByteToWideChar(CP_ACP, 0, psubstr, p2-psubstr, dest, nDestLen);
+				dest += nBytesWritten;
+				nDestLen -= nBytesWritten;
+
+				psubstr = p2;
+			}
+
+			p2++;
+			switch(*p2)
+			{
+			case 'x':
+				p2++;
+				bHexVal = 0;
+
+				while((*p2 >= '0' && *p2 <= '9') || (*p2 >= 'A' && *p2 <= 'F') || (*p2 >= 'a' && *p2 <= 'f'))
+				{
+					bHexVal <<= 4;
+
+					if(*p2 >= '0' && *p2 <= '9')
+						bHexVal |= *p2-'0';
+					else if(*p2 >= 'A' && *p2 <= 'F')
+						bHexVal |= *p2-'A'+10;
+					else if(*p2 >= 'a' && *p2 <= 'f')
+						bHexVal |= *p2-'a'+10;
+
+					p2++;
+				}
+
+				*dest = (WCHAR)bHexVal;
+				break;
+
+			case '\\':
+			case '\"':
+				*dest = (WCHAR)*p2;
+				p2++;
+				break;
+
+			case '0':
+				*dest = L'\0';
+				p2++;
+				break;
+
+			case 'a':
+				*dest = L'\a';
+				p2++;
+				break;
+
+			case 'b':
+				*dest = L'\b';
+				p2++;
+				break;
+
+			case 'f':
+				*dest = L'\f';
+				p2++;
+				break;
+
+			case L'r':
+				*dest = L'\r';
+				p2++;
+				break;
+
+			case 'n':
+				*dest = L'\n';
+				p2++;
+				break;
+
+			case 't':
+				*dest = L'\t';
+				p2++;
+				break;
+
+			case 'v':
+				*dest = L'\v';
+				p2++;
+				break;
+			}
+
+			dest++;
+
+			psubstr = p2;
+		}
+		else
+			p2++;
+	}
+
+	if(p2-psubstr > 0)
+		MultiByteToWideChar(CP_ACP, 0, psubstr, p2-psubstr, dest, nDestLen);
+
+	cmd_node->dwCodeSize = dwStringLength*sizeof(WCHAR);
 	cmd_node->lpCommand = lpText;
 	cmd_node->lpComment = lpComment;
 	cmd_node->lpResolvedCommandWithLabels = NULL;
