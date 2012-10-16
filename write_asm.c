@@ -1175,6 +1175,20 @@ static char *PatchCommands(CMD_BLOCK_HEAD *p_cmd_block_head, char *lpError)
 	{
 		if(cmd_block_node->dwSize > 0)
 		{
+			ptm = Findmemory(cmd_block_node->dwAddress);
+			if(!ptm)
+			{
+				wsprintf(lpError, "Failed to find memory block for address 0x%08X", cmd_block_node->dwAddress);
+				return cmd_block_node->cmd_head.next->lpCommand;
+			}
+
+			if(cmd_block_node->dwAddress+cmd_block_node->dwSize > ptm->base+ptm->size)
+			{
+				wsprintf(lpError, "End of code block exceeds end of memory block (%u extra bytes)", 
+					(cmd_block_node->dwAddress+cmd_block_node->dwSize) - (ptm->base+ptm->size));
+				return cmd_block_node->cmd_head.next->lpCommand;
+			}
+
 			bBuffer = (BYTE *)HeapAlloc(GetProcessHeap(), 0, cmd_block_node->dwSize);
 			if(!bBuffer)
 			{
@@ -1190,8 +1204,7 @@ static char *PatchCommands(CMD_BLOCK_HEAD *p_cmd_block_head, char *lpError)
 				dwWritten += cmd_node->dwCodeSize;
 			}
 
-			ptm = Findmemory(cmd_block_node->dwAddress);
-			if(ptm && !ptm->copy)
+			if(!ptm->copy)
 			{
 				td.base = ptm->base;
 				td.size = ptm->size;
