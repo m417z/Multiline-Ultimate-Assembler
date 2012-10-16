@@ -4,7 +4,7 @@
 #include "plugin_ollydbg2.h"
 
 #define DEF_PLUGINNAME        L"Multiline Ultimate Assembler"
-#define DEF_VERSION           L"1.7.1"
+#define DEF_VERSION           L"2.0"
 
 BOOL MyGetintfromini(wchar_t *key, int *p_val, int min, int max, int def);
 BOOL MyWriteinttoini(wchar_t *key, int val);
