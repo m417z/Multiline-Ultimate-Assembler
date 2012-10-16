@@ -81,12 +81,6 @@ void AssemblerLoadCode(DWORD dwAddress, DWORD dwSize)
 		PostMessage(hAsmMsgWnd, UWM_LOADCODE, dwAddress, dwSize);
 }
 
-void AssemblerLoadExample()
-{
-	if(hAsmThread)
-		PostMessage(hAsmMsgWnd, UWM_LOADEXAMPLE, 0, 0);
-}
-
 void AssemblerOptionsChanged()
 {
 	if(hAsmThread)
@@ -186,7 +180,6 @@ static LRESULT CALLBACK AsmMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 
 	case UWM_SHOWASMDLG:
 	case UWM_LOADCODE:
-	case UWM_LOADEXAMPLE:
 		if(p_thread_param->bQuitThread)
 			break;
 
@@ -204,7 +197,7 @@ static LRESULT CALLBACK AsmMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 
 			ShowWindow(hAsmWnd, SW_SHOWNORMAL);
 
-			if(uMsg == UWM_LOADCODE || uMsg == UWM_LOADEXAMPLE)
+			if(uMsg == UWM_LOADCODE)
 				PostMessage(hAsmWnd, uMsg, wParam, lParam);
 		}
 		else
@@ -218,7 +211,7 @@ static LRESULT CALLBACK AsmMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 
 				SetFocus(hAsmWnd);
 
-				if(uMsg == UWM_LOADCODE || uMsg == UWM_LOADEXAMPLE)
+				if(uMsg == UWM_LOADCODE)
 					PostMessage(hAsmWnd, uMsg, wParam, lParam);
 			}
 			else
@@ -340,16 +333,6 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 
 			LoadCode(hWnd, dwAddress, dwSize);
 		}
-		break;
-
-	case UWM_LOADEXAMPLE:
-		if(SendDlgItemMessage(hWnd, IDC_ASSEMBLER, WM_GETTEXTLENGTH, 0, 0) > 0)
-		{
-			OnTabChanging(GetDlgItem(hWnd, IDC_TABS), GetDlgItem(hWnd, IDC_ASSEMBLER));
-			NewTab(GetDlgItem(hWnd, IDC_TABS), GetDlgItem(hWnd, IDC_ASSEMBLER), NULL);
-		}
-
-		LoadExample(hWnd);
 		break;
 
 	case UWM_OPTIONSCHANGED:
@@ -1054,30 +1037,6 @@ static void OptionsChanged(HWND hWnd)
 	int tabwidth_variants[] = {2, 4, 8};
 
 	SendDlgItemMessage(hWnd, IDC_ASSEMBLER, REM_TABWIDTH, tabwidth_variants[options.edit_tabwidth], 0);
-}
-
-static void LoadExample(HWND hWnd)
-{
-	SendDlgItemMessage(hWnd, IDC_ASSEMBLER, WM_SETTEXT, 0, (LPARAM)
-		"<00401000>\r\n"
-		"\r\n"
-		"\tNOP ; This is a nop\r\n"
-		"\tJMP SHORT @f\r\n"
-		"\r\n"
-		"@str:\r\n"
-		"\t\"Hello World!\\0\"\r\n"
-		"\t; L\"Hello World!\\0\" ; for unicode\r\n"
-		"\r\n"
-		"@@:\r\n"
-		"\tPUSH @str\r\n"
-		"\tCALL @print_str\r\n"
-		"\tRET\r\n"
-		"\r\n"
-		"<00401030>\r\n"
-		"\r\n"
-		"@print_str:\r\n"
-		"\tRET 4 ; TODO: Write the function\r\n"
-	);
 }
 
 static BOOL LoadCode(HWND hWnd, DWORD dwAddress, DWORD dwSize)

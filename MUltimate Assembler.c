@@ -10,6 +10,9 @@
 #define DEF_VERSION   "1.7.1"
 #define DEF_COPYRIGHT "Copyright (C) 2009-2012 RaMMicHaeL"
 
+static BOOL OpenHelp();
+static int AboutMessageBox();
+
 HINSTANCE hDllInst;
 HWND hOllyWnd;
 OPTIONS options;
@@ -154,7 +157,6 @@ extc int _export cdecl ODBG_Pluginmenu(int origin, char data[4096], void *item)
 // activates automatically created entry in main menu, action is 0.
 extc void _export cdecl ODBG_Pluginaction(int origin, int action, void *item)
 {
-	MSGBOXPARAMS mbpMsgBoxParams;
 	t_dump *pd;
 
 	switch(origin) 
@@ -175,49 +177,13 @@ extc void _export cdecl ODBG_Pluginaction(int origin, int action, void *item)
 
 		case 2:
 			// Menu item "Help"
-			if(MessageBox(
-				hOllyWnd, 
-				"General:\n"
-				"- Multiline Ultimate Assembler is a multiline (and ultimate) assembler (and disassembler)\n"
-				"- To disassemble code, select it, and choose \"Multiline Ultimate Assembler\" from the right click menu\n"
-				"- To assemble code, click the Assemble button in the assembler window\n"
-				"\n"
-				"Rules:\n"
-				"- You must define the address your code should be assembled on, like this: <00401000>\n"
-				"- You can use any asm commands that OllyDbg can assemble\n"
-				"- You can use RVA (relative virtual) addressess with a module name, "
-					"like this: $module.1000 or $\"module\".1000, or $$1000 to use the module of the address definition "
-					"(e.g. <$m.1000>PUSH $$3 is the same as <$m.1000>PUSH $m.3)\n"
-				"- You can use labels, that must begin with a '@', and contain only letters, numbers, and _\n"
-				"- You can use anonymous labels, which are defined as '@@' and are referenced to as "
-					"@b (or @r) for the preceding label and @f for the following label\n"
-				"- You can use C-style strings for text and binary data (use the L prefix for unicode)\n"
-				"\n"
-				"Show example code?", 
-				"Help", 
-				MB_OK | MB_YESNO
-			) == IDYES)
-				AssemblerLoadExample();
+			if(!OpenHelp())
+				MessageBox(hOllyWnd, "Failed to open the \"multiasm.chm\" help file", NULL, MB_ICONHAND);
 			break;
 
 		case 3:
 			// Menu item "About", displays plugin info.
-			ZeroMemory(&mbpMsgBoxParams, sizeof(MSGBOXPARAMS));
-
-			mbpMsgBoxParams.cbSize = sizeof(MSGBOXPARAMS);
-			mbpMsgBoxParams.hwndOwner = hOllyWnd;
-			mbpMsgBoxParams.hInstance = hDllInst;
-			mbpMsgBoxParams.lpszText = 
-				"Multiline Ultimate Assembler v" DEF_VERSION "\n"
-				"By RaMMicHaeL\n"
-				"http://rammichael.com/\n"
-				"\n"
-				"Compiled on: " __DATE__;
-			mbpMsgBoxParams.lpszCaption = "About";
-			mbpMsgBoxParams.dwStyle = MB_USERICON;
-			mbpMsgBoxParams.lpszIcon = MAKEINTRESOURCE(IDI_MAIN);
-
-			MessageBoxIndirect(&mbpMsgBoxParams);
+			AboutMessageBox();
 			break;
 		}
 		break;
@@ -278,4 +244,57 @@ extc void _export cdecl ODBG_Plugindestroy(void)
 {
 	AssemblerExit();
 	UnInstallRAEdit();
+}
+
+// Functions
+static BOOL OpenHelp()
+{
+	char szFilePath[MAX_PATH];
+	DWORD dwPathLen;
+
+	dwPathLen = GetModuleFileName(hDllInst, szFilePath, MAX_PATH);
+	if(dwPathLen == 0)
+		return FALSE;
+
+	do
+	{
+		dwPathLen--;
+
+		if(dwPathLen == 0)
+			return FALSE;
+	}
+	while(szFilePath[dwPathLen] != L'\\');
+
+	dwPathLen++;
+	szFilePath[dwPathLen] = L'\0';
+
+	dwPathLen += sizeof("multiasm.chm")-1;
+	if(dwPathLen > MAX_PATH-1)
+		return FALSE;
+
+	lstrcat(szFilePath, "multiasm.chm");
+
+	return !((int)ShellExecute(hOllyWnd, NULL, szFilePath, NULL, NULL, SW_SHOWNORMAL) <= 32);
+}
+
+static int AboutMessageBox()
+{
+	MSGBOXPARAMS mbpMsgBoxParams;
+
+	ZeroMemory(&mbpMsgBoxParams, sizeof(MSGBOXPARAMS));
+
+	mbpMsgBoxParams.cbSize = sizeof(MSGBOXPARAMS);
+	mbpMsgBoxParams.hwndOwner = hOllyWnd;
+	mbpMsgBoxParams.hInstance = hDllInst;
+	mbpMsgBoxParams.lpszText = 
+		"Multiline Ultimate Assembler v" DEF_VERSION "\n"
+		"By RaMMicHaeL\n"
+		"http://rammichael.com/\n"
+		"\n"
+		"Compiled on: " TEXT(__DATE__);
+	mbpMsgBoxParams.lpszCaption = "About";
+	mbpMsgBoxParams.dwStyle = MB_USERICON;
+	mbpMsgBoxParams.lpszIcon = MAKEINTRESOURCE(IDI_MAIN);
+
+	return MessageBoxIndirect(&mbpMsgBoxParams);
 }
