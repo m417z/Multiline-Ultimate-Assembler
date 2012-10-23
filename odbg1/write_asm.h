@@ -51,7 +51,6 @@ typedef struct _anon_label_head {
 typedef struct _cmd_block_node {
 	struct _cmd_block_node *next;
 	DWORD dwAddress, dwSize;
-	t_module *module;
 	CMD_HEAD cmd_head;
 	ANON_LABEL_HEAD anon_label_head;
 } CMD_BLOCK_NODE;
