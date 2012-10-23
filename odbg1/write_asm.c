@@ -1563,6 +1563,7 @@ static t_module *FindModuleByName(char *lpModule)
 	t_sorted *sorted;
 	int n, itemsize;
 	t_module *module;
+	char c1, c2;
 	int i, j;
 
 	module_len = lstrlen(lpModule);
@@ -1580,7 +1581,15 @@ static t_module *FindModuleByName(char *lpModule)
 	{
 		for(j=0; j<module_len; j++)
 		{
-			if(lpModule[j] != module->name[j])
+			c1 = lpModule[j];
+			if(c1 >= 'a' && c1 <= 'z')
+				c1 += -'a'+'A';
+
+			c2 = module->name[j];
+			if(c2 >= 'a' && c2 <= 'z')
+				c2 += -'a'+'A';
+
+			if(c1 != c2)
 				break;
 		}
 
