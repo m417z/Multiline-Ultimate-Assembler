@@ -47,14 +47,17 @@ static WCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 	CMD_NODE *cmd_node;
 	WCHAR *p, *lpNextLine;
 	DWORD dwAddress;
-	t_module *module;
+	DWORD dwBaseAddress;
 	int result;
 
 	for(p = lpText; p != NULL; p = lpNextLine)
 	{
 		p = SkipSpaces(p);
 		if(*p == L'<')
+		{
+			dwBaseAddress = 0;
 			break;
+		}
 
 		lpNextLine = NullTerminateLine(p);
 
@@ -75,7 +78,7 @@ static WCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 			switch(*p)
 			{
 			case L'<': // address
-				result = ParseAddress(p, &dwAddress, &module, lpError);
+				result = ParseAddress(p, &dwAddress, &dwBaseAddress, lpError);
 				if(result <= 0)
 					return p+(-result);
 
@@ -101,7 +104,7 @@ static WCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 				else if(*p == L'L' && p[1] == L'\"')
 					result = ParseUnicodeString(p, &cmd_block_node->cmd_head, lpError);
 				else
-					result = ParseCommand(p, dwAddress, module, &cmd_block_node->cmd_head, lpError);
+					result = ParseCommand(p, dwAddress, dwBaseAddress, &cmd_block_node->cmd_head, lpError);
 
 				if(result <= 0)
 					return p+(-result);
@@ -121,7 +124,7 @@ static WCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 	return NULL;
 }
 
-static int ParseAddress(WCHAR *lpText, DWORD *pdwAddress, t_module **p_module, WCHAR *lpError)
+static int ParseAddress(WCHAR *lpText, DWORD *pdwAddress, DWORD *pdwBaseAddress, WCHAR *lpError)
 {
 	WCHAR *p;
 	DWORD dwAddress;
@@ -140,11 +143,11 @@ static int ParseAddress(WCHAR *lpText, DWORD *pdwAddress, t_module **p_module, W
 
 	if(*p == L'$')
 	{
-		result = ParseRVAAddress(p, &dwAddress, NULL, p_module, lpError);
+		result = ParseRVAAddress(p, &dwAddress, *pdwBaseAddress, pdwBaseAddress, lpError);
 	}
 	else
 	{
-		*p_module = NULL;
+		*pdwBaseAddress = 0;
 		result = ParseDWORD(p, &dwAddress, lpError);
 	}
 
@@ -807,7 +810,7 @@ static int ParseUnicodeString(WCHAR *lpText, CMD_HEAD *p_cmd_head, WCHAR *lpErro
 	return p-lpText;
 }
 
-static int ParseCommand(WCHAR *lpText, DWORD dwAddress, t_module *module, CMD_HEAD *p_cmd_head, WCHAR *lpError)
+static int ParseCommand(WCHAR *lpText, DWORD dwAddress, DWORD dwBaseAddress, CMD_HEAD *p_cmd_head, WCHAR *lpError)
 {
 	CMD_NODE *cmd_node;
 	WCHAR *p;
@@ -819,7 +822,7 @@ static int ParseCommand(WCHAR *lpText, DWORD dwAddress, t_module *module, CMD_HE
 	WCHAR *lpComment;
 
 	// Resolve RVA addresses
-	result = ResolveCommand(lpText, module, &lpResolvedCommand, &lpComment, lpError);
+	result = ResolveCommand(lpText, dwBaseAddress, &lpResolvedCommand, &lpComment, lpError);
 	if(result <= 0)
 		return result;
 
@@ -907,7 +910,7 @@ static int ParseCommand(WCHAR *lpText, DWORD dwAddress, t_module *module, CMD_HE
 	return p-lpText;
 }
 
-static int ResolveCommand(WCHAR *lpCommand, t_module *module, WCHAR **ppNewCommand, WCHAR **ppComment, WCHAR *lpError)
+static int ResolveCommand(WCHAR *lpCommand, DWORD dwBaseAddress, WCHAR **ppNewCommand, WCHAR **ppComment, WCHAR *lpError)
 {
 	WCHAR *p;
 	int text_start[4];
@@ -933,7 +936,7 @@ static int ResolveCommand(WCHAR *lpCommand, t_module *module, WCHAR **ppNewComma
 
 			text_start[address_count] = p-lpCommand;
 
-			result = ParseRVAAddress(p, &dwAddress[address_count], module, NULL, lpError);
+			result = ParseRVAAddress(p, &dwAddress[address_count], dwBaseAddress, NULL, lpError);
 			if(result <= 0)
 				return -(p-lpCommand)+result;
 
@@ -1036,11 +1039,12 @@ static int ReplaceLabelsWithAddress(WCHAR *lpCommand, DWORD dwReplaceAddress, WC
 	return 1;
 }
 
-static int ParseRVAAddress(WCHAR *lpText, DWORD *pdwAddress, t_module *parent_module, t_module **p_parsed_module, WCHAR *lpError)
+static int ParseRVAAddress(WCHAR *lpText, DWORD *pdwAddress, DWORD dwParentBaseAddress, DWORD *pdwBaseAddress, WCHAR *lpError)
 {
 	WCHAR *p;
-	WCHAR *pModuleName;
+	WCHAR *pModuleName, *pModuleNameEnd;
 	t_module *module;
+	DWORD dwBaseAddress;
 	DWORD dwAddress;
 	int result;
 	WCHAR c;
@@ -1057,38 +1061,60 @@ static int ParseRVAAddress(WCHAR *lpText, DWORD *pdwAddress, t_module *parent_mo
 
 	if(*p == L'$')
 	{
-		if(!parent_module)
+		if(!dwParentBaseAddress)
 		{
-			lstrcpy(lpError, L"Could not parse RVA address, there is no parent module");
+			lstrcpy(lpError, L"Could not parse RVA address, there is no parent base address");
 			return 0;
 		}
 
-		module = parent_module;
+		dwBaseAddress = dwParentBaseAddress;
+		pModuleName = NULL;
+
+		p++;
+	}
+	else if(*p == L'"')
+	{
+		p++;
+		pModuleName = p;
+
+		while(*p != L'"')
+		{
+			if(*p == L'\0')
+			{
+				lstrcpy(lpError, L"Could not parse RVA address, '\"' expected");
+				return -(p-lpText);
+			}
+
+			p++;
+		}
+
+		pModuleNameEnd = p;
+		p++;
+
+		if(*p != L'.')
+		{
+			lstrcpy(lpError, L"Could not parse RVA address, '.' expected");
+			return -(p-lpText);
+		}
 
 		p++;
 	}
 	else
 	{
-		if(*p == L'"')
+		pModuleName = p;
+
+		if(*p == L'(')
 		{
-			p++;
-			pModuleName = p;
-
-			while(*p != L'"')
+			result = ParseDWORD(&p[1], &dwBaseAddress, lpError);
+			if(result > 0 && p[1+result] == L')' && p[1+result+1] == L'.')
 			{
-				if(*p == L'\0')
-				{
-					lstrcpy(lpError, L"Could not parse RVA address, '\"' expected");
-					return -(p-lpText);
-				}
-
-				p++;
+				pModuleName = NULL;
+				p += 1+result+1+1;
 			}
 		}
-		else
-		{
-			pModuleName = p;
 
+		if(pModuleName)
+		{
 			while(*p != L'.')
 			{
 				if(*p == L' ' || *p == L'\t' || *p == L'"' || *p == L';' || *p == L'\0')
@@ -1099,42 +1125,37 @@ static int ParseRVAAddress(WCHAR *lpText, DWORD *pdwAddress, t_module *parent_mo
 
 				p++;
 			}
-		}
 
-		c = *p;
-		*p = L'\0';
+			pModuleNameEnd = p;
+			p++;
+		}
+	}
+
+	if(pModuleName)
+	{
+		c = *pModuleNameEnd;
+		*pModuleNameEnd = L'\0';
 
 		module = Findmodulebyname(pModuleName);
 		if(!module)
 		{
 			wsprintf(lpError, L"There is no module \"%s\"", pModuleName);
-			*p = c;
+			*pModuleNameEnd = c;
 			return -(pModuleName-lpText);
 		}
 
-		*p = c;
-		p++;
+		*pModuleNameEnd = c;
 
-		if(c == L'"')
-		{
-			if(*p != L'.')
-			{
-				lstrcpy(lpError, L"Could not parse RVA address, '.' expected");
-				return -(p-lpText);
-			}
-
-			p++;
-		}
-
-		if(p_parsed_module)
-			*p_parsed_module = module;
+		dwBaseAddress = module->base;
 	}
+	else
+		module = NULL;
 
 	result = ParseDWORD(p, &dwAddress, lpError);
 	if(result <= 0)
 		return -(p-lpText)+result;
 
-	if(dwAddress > module->size-1)
+	if(module && dwAddress > module->size-1)
 	{
 		lstrcpy(lpError, L"The RVA address exceeds the module size");
 		return -(p-lpText);
@@ -1142,7 +1163,10 @@ static int ParseRVAAddress(WCHAR *lpText, DWORD *pdwAddress, t_module *parent_mo
 
 	p += result;
 
-	*pdwAddress = module->base + dwAddress;
+	if(pdwBaseAddress)
+		*pdwBaseAddress = dwBaseAddress;
+
+	*pdwAddress = dwBaseAddress + dwAddress;
 
 	return p-lpText;
 }
