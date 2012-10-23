@@ -55,7 +55,10 @@ static char *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_b
 	{
 		p = SkipSpaces(p);
 		if(*p == '<')
+		{
+			module = NULL;
 			break;
+		}
 
 		lpNextLine = NullTerminateLine(p);
 
@@ -141,7 +144,7 @@ static int ParseAddress(char *lpText, DWORD *pdwAddress, t_module **p_module, ch
 
 	if(*p == '$')
 	{
-		result = ParseRVAAddress(p, &dwAddress, NULL, p_module, lpError);
+		result = ParseRVAAddress(p, &dwAddress, *p_module, p_module, lpError);
 	}
 	else
 	{
