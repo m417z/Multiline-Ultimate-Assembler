@@ -13,18 +13,18 @@ static LRESULT CALLBACK DlgOptionsProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	switch(uMsg)
 	{
 	case WM_INITDIALOG:
-		SendDlgItemMessage(hWnd, IDC_DISASM_HEX, CB_ADDSTRING, 0, (LPARAM)L"FFFE (default)");
-		SendDlgItemMessage(hWnd, IDC_DISASM_HEX, CB_ADDSTRING, 0, (LPARAM)L"0FFFE");
-		SendDlgItemMessage(hWnd, IDC_DISASM_HEX, CB_ADDSTRING, 0, (LPARAM)L"0FFFEh");
-		SendDlgItemMessage(hWnd, IDC_DISASM_HEX, CB_ADDSTRING, 0, (LPARAM)L"0xFFFE");
+		SendDlgItemMessage(hWnd, IDC_DISASM_HEX, CB_ADDSTRING, 0, (LPARAM)_T("FFFE (default)"));
+		SendDlgItemMessage(hWnd, IDC_DISASM_HEX, CB_ADDSTRING, 0, (LPARAM)_T("0FFFE"));
+		SendDlgItemMessage(hWnd, IDC_DISASM_HEX, CB_ADDSTRING, 0, (LPARAM)_T("0FFFEh"));
+		SendDlgItemMessage(hWnd, IDC_DISASM_HEX, CB_ADDSTRING, 0, (LPARAM)_T("0xFFFE"));
 
-		SendDlgItemMessage(hWnd, IDC_DISASM_LABELGEN, CB_ADDSTRING, 0, (LPARAM)L"L[counter]");
-		SendDlgItemMessage(hWnd, IDC_DISASM_LABELGEN, CB_ADDSTRING, 0, (LPARAM)L"L_[address]");
-		SendDlgItemMessage(hWnd, IDC_DISASM_LABELGEN, CB_ADDSTRING, 0, (LPARAM)L"L_[tab_name]_[counter]");
+		SendDlgItemMessage(hWnd, IDC_DISASM_LABELGEN, CB_ADDSTRING, 0, (LPARAM)_T("L[counter]"));
+		SendDlgItemMessage(hWnd, IDC_DISASM_LABELGEN, CB_ADDSTRING, 0, (LPARAM)_T("L_[address]"));
+		SendDlgItemMessage(hWnd, IDC_DISASM_LABELGEN, CB_ADDSTRING, 0, (LPARAM)_T("L_[tab_name]_[counter]"));
 
-		SendDlgItemMessage(hWnd, IDC_EDIT_TABWIDTH, CB_ADDSTRING, 0, (LPARAM)L"2");
-		SendDlgItemMessage(hWnd, IDC_EDIT_TABWIDTH, CB_ADDSTRING, 0, (LPARAM)L"4");
-		SendDlgItemMessage(hWnd, IDC_EDIT_TABWIDTH, CB_ADDSTRING, 0, (LPARAM)L"8");
+		SendDlgItemMessage(hWnd, IDC_EDIT_TABWIDTH, CB_ADDSTRING, 0, (LPARAM)_T("2"));
+		SendDlgItemMessage(hWnd, IDC_EDIT_TABWIDTH, CB_ADDSTRING, 0, (LPARAM)_T("4"));
+		SendDlgItemMessage(hWnd, IDC_EDIT_TABWIDTH, CB_ADDSTRING, 0, (LPARAM)_T("8"));
 
 		OptionsToDlg(hWnd);
 		break;
@@ -110,14 +110,14 @@ static void OptionsFromDlg(HWND hWnd)
 
 static void OptionsToIni()
 {
-	MyWriteinttoini(L"disasm_rva", options.disasm_rva);
-	MyWriteinttoini(L"disasm_rva_reloconly", options.disasm_rva_reloconly);
-	MyWriteinttoini(L"disasm_label", options.disasm_label);
-	MyWriteinttoini(L"disasm_extjmp", options.disasm_extjmp);
-	MyWriteinttoini(L"disasm_hex", options.disasm_hex);
-	MyWriteinttoini(L"disasm_labelgen", options.disasm_labelgen);
-	MyWriteinttoini(L"asm_comments", options.asm_comments);
-	MyWriteinttoini(L"asm_labels", options.asm_labels);
-	MyWriteinttoini(L"edit_savepos", options.edit_savepos);
-	MyWriteinttoini(L"edit_tabwidth", options.edit_tabwidth);
+	MyWriteinttoini(_T("disasm_rva"), options.disasm_rva);
+	MyWriteinttoini(_T("disasm_rva_reloconly"), options.disasm_rva_reloconly);
+	MyWriteinttoini(_T("disasm_label"), options.disasm_label);
+	MyWriteinttoini(_T("disasm_extjmp"), options.disasm_extjmp);
+	MyWriteinttoini(_T("disasm_hex"), options.disasm_hex);
+	MyWriteinttoini(_T("disasm_labelgen"), options.disasm_labelgen);
+	MyWriteinttoini(_T("asm_comments"), options.asm_comments);
+	MyWriteinttoini(_T("asm_labels"), options.asm_labels);
+	MyWriteinttoini(_T("edit_savepos"), options.edit_savepos);
+	MyWriteinttoini(_T("edit_tabwidth"), options.edit_tabwidth);
 }

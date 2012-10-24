@@ -2,6 +2,7 @@
 #define _ASSEMBLER_DLG_H_
 
 #include <windows.h>
+#include <tchar.h>
 #include "plugin.h"
 #include "raedit.h"
 #include "options_def.h"
@@ -23,8 +24,8 @@ typedef struct _asm_dialog_param {
 	// Find and replace
 	UINT uFindReplaceMsg;
 	HWND hFindReplaceWnd;
-	WCHAR szFindStr[FIND_REPLACE_TEXT_BUFFER];
-	WCHAR szReplaceStr[FIND_REPLACE_TEXT_BUFFER];
+	TCHAR szFindStr[FIND_REPLACE_TEXT_BUFFER];
+	TCHAR szReplaceStr[FIND_REPLACE_TEXT_BUFFER];
 	FINDREPLACE findreplace;
 } ASM_DIALOG_PARAM;
 
@@ -139,7 +140,7 @@ typedef struct _asm_thread_param {
 #define GET_Y_LPARAM(lParam)	 ((int)(short)HIWORD(lParam))
 #endif
 
-WCHAR *AssemblerInit();
+TCHAR *AssemblerInit();
 void AssemblerExit();
 void AssemblerShowDlg();
 void AssemblerCloseDlg();

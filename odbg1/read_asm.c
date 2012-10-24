@@ -2,12 +2,12 @@
 
 extern OPTIONS options;
 
-char *ReadAsm(DWORD dwAddress, DWORD dwSize, char *pLabelPerfix, char *lpError)
+TCHAR *ReadAsm(DWORD dwAddress, DWORD dwSize, TCHAR *pLabelPerfix, TCHAR *lpError)
 {
 	t_module *module;
 	BYTE *pCode;
 	DISASM_CMD_HEAD dasm_head = {NULL, (DISASM_CMD_NODE *)&dasm_head};
-	char *lpText;
+	TCHAR *lpText;
 
 	module = Findmodule(dwAddress);
 
@@ -15,15 +15,15 @@ char *ReadAsm(DWORD dwAddress, DWORD dwSize, char *pLabelPerfix, char *lpError)
 	pCode = (BYTE *)HeapAlloc(GetProcessHeap(), 0, dwSize);
 	if(!pCode)
 	{
-		lstrcpy(lpError, "Allocation failed");
+		lstrcpy(lpError, _T("Allocation failed"));
 		return NULL;
 	}
 
-	if(!Readmemory(pCode, dwAddress, dwSize, MM_RESTORE|MM_SILENT))
+	if(!SimpleReadMemory(pCode, dwAddress, dwSize))
 	{
 		HeapFree(GetProcessHeap(), 0, pCode);
 
-		lstrcpy(lpError, "Could not read from memory");
+		lstrcpy(lpError, _T("Could not read from memory"));
 		return NULL;
 	}
 
@@ -91,13 +91,14 @@ char *ReadAsm(DWORD dwAddress, DWORD dwSize, char *pLabelPerfix, char *lpError)
 	return lpText;
 }
 
-static BOOL ProcessCode(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, char *lpError)
+static BOOL ProcessCode(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
 	DISASM_CMD_NODE *dasm_cmd;
 	BYTE *bDecode;
 	DWORD dwDecodeSize;
 	DWORD dwCommandType;
 	DWORD dwCommandSize;
+	TCHAR szComment[TEXTLEN];
 	int comment_length;
 
 	bDecode = Finddecode(dwAddress, &dwDecodeSize);
@@ -144,17 +145,17 @@ static BOOL ProcessCode(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_H
 		dasm_cmd = p_dasm_head->last;
 
 		// Comments?
-		comment_length = Findname(dwAddress, NM_COMMENT, NULL);
+		comment_length = FindName(dwAddress, NM_COMMENT, szComment);
 		if(comment_length > 0)
 		{
-			dasm_cmd->lpComment = (char *)HeapAlloc(GetProcessHeap(), 0, comment_length+1);
+			dasm_cmd->lpComment = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, (comment_length+1)*sizeof(TCHAR));
 			if(!dasm_cmd->lpComment)
 			{
-				lstrcpy(lpError, "Allocation failed");
+				lstrcpy(lpError, _T("Allocation failed"));
 				return 0;
 			}
 
-			Findname(dwAddress, NM_COMMENT, dasm_cmd->lpComment);
+			lstrcpy(dasm_cmd->lpComment, szComment);
 		}
 
 		// Update values
@@ -171,7 +172,7 @@ static BOOL ProcessCode(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_H
 	return TRUE;
 }
 
-static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bDecode, DISASM_CMD_HEAD *p_dasm_head, char *lpError)
+static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bDecode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
 	DISASM_CMD_NODE *dasm_cmd;
 	DWORD dwCommandSize;
@@ -182,7 +183,7 @@ static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bD
 
 	if(td.error)
 	{
-		wsprintf(lpError, "Disasm failed on address 0x%08X", dwAddress);
+		wsprintf(lpError, _T("Disasm failed on address 0x%08X"), dwAddress);
 		return 0;
 	}
 
@@ -190,16 +191,16 @@ static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bD
 	dasm_cmd = (DISASM_CMD_NODE *)HeapAlloc(GetProcessHeap(), 0, sizeof(DISASM_CMD_NODE));
 	if(!dasm_cmd)
 	{
-		lstrcpy(lpError, "Allocation failed");
+		lstrcpy(lpError, _T("Allocation failed"));
 		return 0;
 	}
 
-	dasm_cmd->lpCommand = (char *)HeapAlloc(GetProcessHeap(), 0, lstrlen(td.result)+1);
+	dasm_cmd->lpCommand = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, (lstrlen(td.result)+1)*sizeof(TCHAR));
 	if(!dasm_cmd->lpCommand)
 	{
 		HeapFree(GetProcessHeap(), 0, dasm_cmd);
 
-		lstrcpy(lpError, "Allocation failed");
+		lstrcpy(lpError, _T("Allocation failed"));
 		return 0;
 	}
 
@@ -223,7 +224,7 @@ static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bD
 }
 
 static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress, 
-	BYTE *bDecode, DWORD dwCommandType, DISASM_CMD_HEAD *p_dasm_head, char *lpError)
+	BYTE *bDecode, DWORD dwCommandType, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
 	DISASM_CMD_NODE *dasm_cmd;
 	DWORD dwCommandSize;
@@ -237,7 +238,7 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 
 	if(td.error)
 	{
-		wsprintf(lpError, "Disasm failed on address 0x%08X", dwAddress);
+		wsprintf(lpError, _T("Disasm failed on address 0x%08X"), dwAddress);
 		return 0;
 	}
 
@@ -262,7 +263,7 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 
 	if(dwCommandType == DEC_UNKNOWN)
 	{
-		wsprintf(lpError, "Couldn't parse data on address 0x%08X", dwAddress);
+		wsprintf(lpError, _T("Couldn't parse data on address 0x%08X"), dwAddress);
 		return 0;
 	}
 
@@ -270,16 +271,16 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 	dasm_cmd = (DISASM_CMD_NODE *)HeapAlloc(GetProcessHeap(), 0, sizeof(DISASM_CMD_NODE));
 	if(!dasm_cmd)
 	{
-		lstrcpy(lpError, "Allocation failed");
+		lstrcpy(lpError, _T("Allocation failed"));
 		return 0;
 	}
 
-	dasm_cmd->lpCommand = (char *)HeapAlloc(GetProcessHeap(), 0, dwTextSize+1);
+	dasm_cmd->lpCommand = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, (dwTextSize+1)*sizeof(TCHAR));
 	if(!dasm_cmd->lpCommand)
 	{
 		HeapFree(GetProcessHeap(), 0, dasm_cmd);
 
-		lstrcpy(lpError, "Allocation failed");
+		lstrcpy(lpError, _T("Allocation failed"));
 		return 0;
 	}
 
@@ -418,7 +419,7 @@ static BOOL ValidateAscii(BYTE *p, DWORD dwSize, DWORD *pdwTextSize, BOOL *pbRea
 	return TRUE;
 }
 
-static void ConvertUnicodeToText(BYTE *p, DWORD dwSize, BOOL bAsBinary, char *pText)
+static void ConvertUnicodeToText(BYTE *p, DWORD dwSize, BOOL bAsBinary, TCHAR *pText)
 {
 	WORD *pw;
 	DWORD dwSizeW;
@@ -426,8 +427,8 @@ static void ConvertUnicodeToText(BYTE *p, DWORD dwSize, BOOL bAsBinary, char *pT
 	pw = (WORD *)p;
 	dwSizeW = dwSize/2;
 
-	*pText++ = 'L';
-	*pText++ = '\"';
+	*pText++ = _T('L');
+	*pText++ = _T('\"');
 
 	if(!bAsBinary)
 	{
@@ -437,52 +438,52 @@ static void ConvertUnicodeToText(BYTE *p, DWORD dwSize, BOOL bAsBinary, char *pT
 			{
 			case L'\\':
 			case L'\"':
-				*pText++ = '\\';
-				*pText++ = (char)*pw;
+				*pText++ = _T('\\');
+				*pText++ = (TCHAR)*pw;
 				break;
 
 			case L'\0':
-				*pText++ = '\\';
-				*pText++ = '0';
+				*pText++ = _T('\\');
+				*pText++ = _T('0');
 				break;
 
 			case L'\a':
-				*pText++ = '\\';
-				*pText++ = 'a';
+				*pText++ = _T('\\');
+				*pText++ = _T('a');
 				break;
 
 			case L'\b':
-				*pText++ = '\\';
-				*pText++ = 'b';
+				*pText++ = _T('\\');
+				*pText++ = _T('b');
 				break;
 
 			case L'\f':
-				*pText++ = '\\';
-				*pText++ = 'f';
+				*pText++ = _T('\\');
+				*pText++ = _T('f');
 				break;
 
 			case L'\r':
-				*pText++ = '\\';
-				*pText++ = 'r';
+				*pText++ = _T('\\');
+				*pText++ = _T('r');
 				break;
 
 			case L'\n':
-				*pText++ = '\\';
-				*pText++ = 'n';
+				*pText++ = _T('\\');
+				*pText++ = _T('n');
 				break;
 
 			case L'\t':
-				*pText++ = '\\';
-				*pText++ = 't';
+				*pText++ = _T('\\');
+				*pText++ = _T('t');
 				break;
 
 			case L'\v':
-				*pText++ = '\\';
-				*pText++ = 'v';
+				*pText++ = _T('\\');
+				*pText++ = _T('v');
 				break;
 
 			default:
-				*pText++ = (char)*pw;
+				*pText++ = (TCHAR)*pw;
 				break;
 			}
 
@@ -492,16 +493,16 @@ static void ConvertUnicodeToText(BYTE *p, DWORD dwSize, BOOL bAsBinary, char *pT
 	else
 	{
 		while(dwSizeW--)
-			pText += wsprintf(pText, "\\x%04X", *pw++);
+			pText += wsprintf(pText, _T("\\x%04X"), *pw++);
 	}
 
-	*pText++ = '\"';
-	*pText++ = '\0';
+	*pText++ = _T('\"');
+	*pText++ = _T('\0');
 }
 
-static void ConvertAsciiToText(BYTE *p, DWORD dwSize, BOOL bAsBinary, char *pText)
+static void ConvertAsciiToText(BYTE *p, DWORD dwSize, BOOL bAsBinary, TCHAR *pText)
 {
-	*pText++ = '\"';
+	*pText++ = _T('\"');
 
 	if(!bAsBinary)
 	{
@@ -511,52 +512,52 @@ static void ConvertAsciiToText(BYTE *p, DWORD dwSize, BOOL bAsBinary, char *pTex
 			{
 			case '\\':
 			case '\"':
-				*pText++ = '\\';
-				*pText++ = *p;
+				*pText++ = _T('\\');
+				*pText++ = (TCHAR)*p;
 				break;
 
 			case '\0':
-				*pText++ = '\\';
-				*pText++ = '0';
+				*pText++ = _T('\\');
+				*pText++ = _T('0');
 				break;
 
 			case '\a':
-				*pText++ = '\\';
-				*pText++ = 'a';
+				*pText++ = _T('\\');
+				*pText++ = _T('a');
 				break;
 
 			case '\b':
-				*pText++ = '\\';
-				*pText++ = 'b';
+				*pText++ = _T('\\');
+				*pText++ = _T('b');
 				break;
 
 			case '\f':
-				*pText++ = '\\';
-				*pText++ = 'f';
+				*pText++ = _T('\\');
+				*pText++ = _T('f');
 				break;
 
 			case '\r':
-				*pText++ = '\\';
-				*pText++ = 'r';
+				*pText++ = _T('\\');
+				*pText++ = _T('r');
 				break;
 
 			case '\n':
-				*pText++ = '\\';
-				*pText++ = 'n';
+				*pText++ = _T('\\');
+				*pText++ = _T('n');
 				break;
 
 			case '\t':
-				*pText++ = '\\';
-				*pText++ = 't';
+				*pText++ = _T('\\');
+				*pText++ = _T('t');
 				break;
 
 			case '\v':
-				*pText++ = '\\';
-				*pText++ = 'v';
+				*pText++ = _T('\\');
+				*pText++ = _T('v');
 				break;
 
 			default:
-				*pText++ = *p;
+				*pText++ = (TCHAR)*p;
 				break;
 			}
 
@@ -566,22 +567,11 @@ static void ConvertAsciiToText(BYTE *p, DWORD dwSize, BOOL bAsBinary, char *pTex
 	else
 	{
 		while(dwSize--)
-			pText += wsprintf(pText, "\\x%02X", *p++);
+			pText += wsprintf(pText, _T("\\x%02X"), *p++);
 	}
 
-	*pText++ = '\"';
-	*pText++ = '\0';
-}
-
-static void ConvertBinaryToText(BYTE *p, DWORD dwSize, char *pText)
-{
-	*pText++ = '\"';
-
-	while(dwSize--)
-		pText += wsprintf(pText, "\\x%02X", *p++);
-
-	*pText++ = '\"';
-	*pText++ = '\0';
+	*pText++ = _T('\"');
+	*pText++ = _T('\0');
 }
 
 static void MarkLabels(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head)
@@ -607,7 +597,7 @@ static void MarkLabels(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_HE
 }
 
 static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, t_module *module, 
-	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, char *lpError)
+	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
 	DISASM_CMD_NODE *dasm_cmd;
 	t_jdest *jddata;
@@ -618,6 +608,7 @@ static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, t_module *module,
 	DWORD dwCommandType;
 	BYTE bBuffer[MAXCMDSIZE];
 	DWORD dwCommandSize;
+	TCHAR szComment[TEXTLEN];
 	int comment_length;
 	int i;
 
@@ -656,9 +647,9 @@ static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, t_module *module,
 				else
 					dwCommandSize = MAXCMDSIZE;
 
-				if(!Readmemory(bBuffer, dwFromAddr, dwCommandSize, MM_RESILENT|MM_SILENT))
+				if(!SimpleReadMemory(bBuffer, dwFromAddr, dwCommandSize))
 				{
-					wsprintf(lpError, "Could not read memory on address 0x%08X", dwFromAddr);
+					wsprintf(lpError, _T("Could not read memory on address 0x%08X"), dwFromAddr);
 					return FALSE;
 				}
 
@@ -671,17 +662,17 @@ static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, t_module *module,
 				pCode[dwToAddr-dwAddress] = 2;
 
 				// Comments?
-				comment_length = Findname(dwFromAddr, NM_COMMENT, NULL);
+				comment_length = FindName(dwFromAddr, NM_COMMENT, szComment);
 				if(comment_length > 0)
 				{
-					dasm_cmd->lpComment = (char *)HeapAlloc(GetProcessHeap(), 0, comment_length+1);
+					dasm_cmd->lpComment = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, (comment_length+1)*sizeof(TCHAR));
 					if(!dasm_cmd->lpComment)
 					{
-						lstrcpy(lpError, "Allocation failed");
+						lstrcpy(lpError, _T("Allocation failed"));
 						return FALSE;
 					}
 
-					Findname(dwFromAddr, NM_COMMENT, dasm_cmd->lpComment);
+					lstrcpy(dasm_cmd->lpComment, szComment);
 				}
 
 				dasm_cmd->dwAddress = dwFromAddr;
@@ -693,12 +684,12 @@ static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, t_module *module,
 }
 
 static BOOL CreateAndSetLabels(DWORD dwAddress, DWORD dwSize, 
-	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, char *pLabelPerfix, char *lpError)
+	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *pLabelPerfix, TCHAR *lpError)
 {
 	DISASM_CMD_NODE *dasm_cmd, *dasm_cmd_2;
 	UINT nLabelCounter;
-	char szAtLabel[TEXTLEN+1];
-	char *pLabel;
+	TCHAR szAtLabel[TEXTLEN+1];
+	TCHAR *pLabel;
 	int nLabelLen;
 	UINT i;
 	int j;
@@ -707,25 +698,25 @@ static BOOL CreateAndSetLabels(DWORD dwAddress, DWORD dwSize,
 
 	nLabelCounter = 1;
 
-	szAtLabel[0] = '@';
+	szAtLabel[0] = _T('@');
 	pLabel = &szAtLabel[1];
 
 	if(options.disasm_labelgen == 2)
 	{
 		// Make pLabelPerfix valid
-		for(i=0; i<32 && pLabelPerfix[i] != '\0'; i++)
+		for(i=0; i<32 && pLabelPerfix[i] != _T('\0'); i++)
 		{
 			if(
-				(pLabelPerfix[i] < '0' || pLabelPerfix[i] > '9') && 
-				(pLabelPerfix[i] < 'A' || pLabelPerfix[i] > 'Z') && 
-				(pLabelPerfix[i] < 'a' || pLabelPerfix[i] > 'z') && 
-				pLabelPerfix[i] != '_'
+				(pLabelPerfix[i] < _T('0') || pLabelPerfix[i] > _T('9')) && 
+				(pLabelPerfix[i] < _T('A') || pLabelPerfix[i] > _T('Z')) && 
+				(pLabelPerfix[i] < _T('a') || pLabelPerfix[i] > _T('z')) && 
+				pLabelPerfix[i] != _T('_')
 			)
-				pLabelPerfix[i] = '_';
+				pLabelPerfix[i] = _T('_');
 		}
 
 		if(i == 32)
-			pLabelPerfix[i] = '\0';
+			pLabelPerfix[i] = _T('\0');
 	}
 
 	for(i=0; i<dwSize; i++)
@@ -741,25 +732,25 @@ static BOOL CreateAndSetLabels(DWORD dwAddress, DWORD dwSize,
 				{
 				default: // just in case
 				case 0:
-					nLabelLen = wsprintf(pLabel, "L%08u", nLabelCounter++);
+					nLabelLen = wsprintf(pLabel, _T("L%08u"), nLabelCounter++);
 					break;
 
 				case 1:
-					nLabelLen = wsprintf(pLabel, "L_%08X", dwAddress+i);
+					nLabelLen = wsprintf(pLabel, _T("L_%08X"), dwAddress+i);
 					break;
 
 				case 2:
-					nLabelLen = wsprintf(pLabel, "L_%s_%08u", pLabelPerfix, nLabelCounter++);
+					nLabelLen = wsprintf(pLabel, _T("L_%s_%08u"), pLabelPerfix, nLabelCounter++);
 					break;
 				}
 			}
 			else
 				nLabelLen = lstrlen(pLabel);
 
-			dasm_cmd->lpLabel = (char *)HeapAlloc(GetProcessHeap(), 0, (nLabelLen+1)*sizeof(char));
+			dasm_cmd->lpLabel = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, (nLabelLen+1)*sizeof(TCHAR));
 			if(!dasm_cmd->lpLabel)
 			{
-				lstrcpy(lpError, "Allocation failed");
+				lstrcpy(lpError, _T("Allocation failed"));
 				return FALSE;
 			}
 
@@ -790,43 +781,43 @@ static BOOL CreateAndSetLabels(DWORD dwAddress, DWORD dwSize,
 	return TRUE;
 }
 
-static BOOL IsValidLabel(char *lpLabel, DISASM_CMD_HEAD *p_dasm_head, DISASM_CMD_NODE *dasm_cmd_target)
+static BOOL IsValidLabel(TCHAR *lpLabel, DISASM_CMD_HEAD *p_dasm_head, DISASM_CMD_NODE *dasm_cmd_target)
 {
 	DISASM_CMD_NODE *dasm_cmd;
 	int nLabelLen;
 	int i;
 
 	// Generic validation
-	for(i=0; lpLabel[i] != '\0'; i++)
+	for(i=0; lpLabel[i] != _T('\0'); i++)
 	{
 		if(
-			(lpLabel[i] < '0' || lpLabel[i] > '9') && 
-			(lpLabel[i] < 'A' || lpLabel[i] > 'Z') && 
-			(lpLabel[i] < 'a' || lpLabel[i] > 'z') && 
-			lpLabel[i] != '_'
+			(lpLabel[i] < _T('0') || lpLabel[i] > _T('9')) && 
+			(lpLabel[i] < _T('A') || lpLabel[i] > _T('Z')) && 
+			(lpLabel[i] < _T('a') || lpLabel[i] > _T('z')) && 
+			lpLabel[i] != _T('_')
 		)
 			return FALSE;
 	}
 
 	// Conflicts with our labels
-	if(lpLabel[0] == 'L')
+	if(lpLabel[0] == _T('L'))
 	{
 		nLabelLen = lstrlen(lpLabel);
 
-		if(nLabelLen == 9 || (nLabelLen > 10 && lpLabel[1] == '_' && lpLabel[nLabelLen-8-1] == '_'))
+		if(nLabelLen == 9 || (nLabelLen > 10 && lpLabel[1] == _T('_') && lpLabel[nLabelLen-8-1] == _T('_')))
 		{
 			for(i=nLabelLen-8; i<nLabelLen; i++)
 			{
-				if(lpLabel[i] < '0' || lpLabel[i] > '9')
+				if(lpLabel[i] < _T('0') || lpLabel[i] > _T('9'))
 					break;
 			}
 		}
-		else if(nLabelLen == 10 && lpLabel[1] == '_')
+		else if(nLabelLen == 10 && lpLabel[1] == _T('_'))
 		{
 			for(i=nLabelLen-8; i<nLabelLen; i++)
 			{
-				if((lpLabel[i] < '0' || lpLabel[i] > '9') && 
-					(lpLabel[i] < 'A' || lpLabel[i] > 'F'))
+				if((lpLabel[i] < _T('0') || lpLabel[i] > _T('9')) && 
+					(lpLabel[i] < _T('A') || lpLabel[i] > _T('F')))
 					break;
 			}
 		}
@@ -845,18 +836,18 @@ static BOOL IsValidLabel(char *lpLabel, DISASM_CMD_HEAD *p_dasm_head, DISASM_CMD
 	return TRUE;
 }
 
-static BOOL SetRVAAddresses(DWORD dwAddress, DWORD dwSize, t_module *module, DISASM_CMD_HEAD *p_dasm_head, char *lpError)
+static BOOL SetRVAAddresses(DWORD dwAddress, DWORD dwSize, t_module *module, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
 	DISASM_CMD_NODE *dasm_cmd;
-	char szRVAText[2+10+1];
-	char *pRVAAddress;
+	TCHAR szRVAText[2+10+1];
+	TCHAR *pRVAAddress;
 	int i, j;
 
 	if(!module || (options.disasm_rva_reloconly && !module->reloctable))
 		return TRUE;
 
-	szRVAText[0] = '$';
-	szRVAText[1] = '$';
+	szRVAText[0] = _T('$');
+	szRVAText[1] = _T('$');
 
 	pRVAAddress = &szRVAText[2];
 
@@ -889,20 +880,20 @@ static BOOL SetRVAAddresses(DWORD dwAddress, DWORD dwSize, t_module *module, DIS
 	return TRUE;
 }
 
-static char *MakeText(DWORD dwAddress, t_module *module, DISASM_CMD_HEAD *p_dasm_head, char *lpError)
+static TCHAR *MakeText(DWORD dwAddress, t_module *module, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
 	DISASM_CMD_NODE *dasm_cmd;
 	BOOL bRVAAddresses;
-	char szRVAText[1+SHORTLEN+2+1+1];
-	char *lpText, *lpRealloc;
+	TCHAR szRVAText[1+SHORTNAME+2+1+1];
+	TCHAR *lpText, *lpRealloc;
 	DWORD dwSize, dwMemory;
 
 	dwMemory = 4096*2;
 
-	lpText = (char *)HeapAlloc(GetProcessHeap(), 0, dwMemory);
+	lpText = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, dwMemory*sizeof(TCHAR));
 	if(!lpText)
 	{
-		lstrcpy(lpError, "Allocation failed");
+		lstrcpy(lpError, _T("Allocation failed"));
 		return NULL;
 	}
 
@@ -921,58 +912,58 @@ static char *MakeText(DWORD dwAddress, t_module *module, DISASM_CMD_HEAD *p_dasm
 		{
 			if(dasm_cmd != p_dasm_head->next)
 			{
-				lpText[dwSize++] = '\r';
-				lpText[dwSize++] = '\n';
+				lpText[dwSize++] = _T('\r');
+				lpText[dwSize++] = _T('\n');
 			}
 
-			lpText[dwSize++] = '<';
+			lpText[dwSize++] = _T('<');
 
 			if(bRVAAddresses)
 			{
-				dwSize += wsprintf(lpText+dwSize, "%s", szRVAText);
+				dwSize += wsprintf(lpText+dwSize, _T("%s"), szRVAText);
 				dwSize += DWORDToString(lpText+dwSize, dasm_cmd->dwAddress-module->base, FALSE, options.disasm_hex);
 			}
 			else
 				dwSize += DWORDToString(lpText+dwSize, dasm_cmd->dwAddress, TRUE, options.disasm_hex);
 
-			dwSize += wsprintf(lpText+dwSize, "%s", ">\r\n\r\n");
+			dwSize += wsprintf(lpText+dwSize, _T("%s"), _T(">\r\n\r\n"));
 		}
 
 		if(dasm_cmd->lpLabel)
 		{
 			if(!dasm_cmd->dwAddress)
 			{
-				lpText[dwSize++] = '\r';
-				lpText[dwSize++] = '\n';
+				lpText[dwSize++] = _T('\r');
+				lpText[dwSize++] = _T('\n');
 			}
 
-			dwSize += wsprintf(lpText+dwSize, "@%s:\r\n", dasm_cmd->lpLabel);
+			dwSize += wsprintf(lpText+dwSize, _T("@%s:\r\n"), dasm_cmd->lpLabel);
 		}
 
 		if(options.disasm_hex > 0)
 		{
-			lpText[dwSize++] = '\t';
+			lpText[dwSize++] = _T('\t');
 			dwSize += CopyCommand(lpText+dwSize, dasm_cmd->lpCommand, options.disasm_hex-1);
 		}
 		else
-			dwSize += wsprintf(lpText+dwSize, "\t%s", dasm_cmd->lpCommand);
+			dwSize += wsprintf(lpText+dwSize, _T("\t%s"), dasm_cmd->lpCommand);
 
 		if(dasm_cmd->lpComment)
-			dwSize += wsprintf(lpText+dwSize, " ; %s", dasm_cmd->lpComment);
+			dwSize += wsprintf(lpText+dwSize, _T(" ; %s"), dasm_cmd->lpComment);
 
-		lpText[dwSize++] = '\r';
-		lpText[dwSize++] = '\n';
+		lpText[dwSize++] = _T('\r');
+		lpText[dwSize++] = _T('\n');
 
 		if(dwMemory-dwSize < 4096)
 		{
 			dwMemory += 4096;
 
-			lpRealloc = (char *)HeapReAlloc(GetProcessHeap(), 0, lpText, dwMemory);
+			lpRealloc = (TCHAR *)HeapReAlloc(GetProcessHeap(), 0, lpText, dwMemory*sizeof(TCHAR));
 			if(!lpRealloc)
 			{
 				HeapFree(GetProcessHeap(), 0, lpText);
 
-				lstrcpy(lpError, "Allocation failed");
+				lstrcpy(lpError, _T("Allocation failed"));
 				return NULL;
 			}
 			else
@@ -982,15 +973,15 @@ static char *MakeText(DWORD dwAddress, t_module *module, DISASM_CMD_HEAD *p_dasm
 		dasm_cmd = dasm_cmd->next;
 	}
 
-	lpText[dwSize] = '\0';
+	lpText[dwSize] = _T('\0');
 
 	return lpText;
 }
 
-static int CopyCommand(char *pBuffer, char *pCommand, int hex_option)
+static int CopyCommand(TCHAR *pBuffer, TCHAR *pCommand, int hex_option)
 {
-	char *p, *p_dest;
-	char *pHexFirstChar;
+	TCHAR *p, *p_dest;
+	TCHAR *pHexFirstChar;
 
 	p_dest = pBuffer;
 
@@ -998,76 +989,76 @@ static int CopyCommand(char *pBuffer, char *pCommand, int hex_option)
 	p = SkipCommandName(pCommand);
 	if(p != pCommand)
 	{
-		CopyMemory(p_dest, pCommand, p-pCommand);
+		CopyMemory(p_dest, pCommand, (p-pCommand)*sizeof(TCHAR));
 		p_dest += p-pCommand;
 	}
 
 	// Search for hex numbers
-	while(*p != '\0')
+	while(*p != _T('\0'))
 	{
-		if((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'))
+		if((*p >= _T('A') && *p <= _T('Z')) || (*p >= _T('a') && *p <= _T('z')) || (*p >= _T('0') && *p <= _T('9')))
 		{
-			if((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f'))
+			if((*p >= _T('0') && *p <= _T('9')) || (*p >= _T('A') && *p <= _T('F')) || (*p >= _T('a') && *p <= _T('f')))
 			{
 				pHexFirstChar = p;
 
 				do {
 					p++;
-				} while((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f'));
+				} while((*p >= _T('0') && *p <= _T('9')) || (*p >= _T('A') && *p <= _T('F')) || (*p >= _T('a') && *p <= _T('f')));
 
-				if((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'))
+				if((*p >= _T('A') && *p <= _T('Z')) || (*p >= _T('a') && *p <= _T('z')) || (*p >= _T('0') && *p <= _T('9')))
 				{
 					while(pHexFirstChar < p)
 						*p_dest++ = *pHexFirstChar++;
 
 					do {
 						*p_dest++ = *p++;
-					} while((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'));
+					} while((*p >= _T('A') && *p <= _T('Z')) || (*p >= _T('a') && *p <= _T('z')) || (*p >= _T('0') && *p <= _T('9')));
 				}
 				else
 				{
 					if(hex_option == 2)
 					{
-						*p_dest++ = '0';
-						*p_dest++ = 'x';
+						*p_dest++ = _T('0');
+						*p_dest++ = _T('x');
 					}
-					else if(*pHexFirstChar < '0' || *pHexFirstChar > '9')
-						*p_dest++ = '0';
+					else if(*pHexFirstChar < _T('0') || *pHexFirstChar > _T('9'))
+						*p_dest++ = _T('0');
 
 					while(pHexFirstChar < p)
 						*p_dest++ = *pHexFirstChar++;
 
 					if(hex_option == 1)
-						*p_dest++ = 'h';
+						*p_dest++ = _T('h');
 				}
 			}
 			else
 			{
 				do {
 					*p_dest++ = *p++;
-				} while((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'));
+				} while((*p >= _T('A') && *p <= _T('Z')) || (*p >= _T('a') && *p <= _T('z')) || (*p >= _T('0') && *p <= _T('9')));
 			}
 		}
-		else if(*p == '@')
+		else if(*p == _T('@'))
 		{
 			do {
 				*p_dest++ = *p++;
 			} while(
-				(*p >= '0' && *p <= '9') || 
-				(*p >= 'A' && *p <= 'Z') || 
-				(*p >= 'a' && *p <= 'z') || 
-				*p == '_'
+				(*p >= _T('0') && *p <= _T('9')) || 
+				(*p >= _T('A') && *p <= _T('Z')) || 
+				(*p >= _T('a') && *p <= _T('z')) || 
+				*p == _T('_')
 			);
 		}
-		else if(*p == '$')
+		else if(*p == _T('$'))
 		{
 			*p_dest++ = *p++;
 
-			if(*p != '$')
+			if(*p != _T('$'))
 			{
 				do {
 					*p_dest++ = *p++;
-				} while(*p != '.');
+				} while(*p != _T('.'));
 			}
 
 			*p_dest++ = *p++;
@@ -1076,28 +1067,28 @@ static int CopyCommand(char *pBuffer, char *pCommand, int hex_option)
 			*p_dest++ = *p++;
 	}
 
-	*p_dest++ = '\0';
+	*p_dest++ = _T('\0');
 
 	return p_dest-pBuffer-1;
 }
 
-static int MakeRVAText(char szText[1+SHORTLEN+2+1+1], t_module *module)
+static int MakeRVAText(TCHAR szText[1+SHORTNAME+2+1+1], t_module *module)
 {
 	BOOL bQuoted;
-	char *p;
-	char c;
+	TCHAR *p;
+	TCHAR c;
 	int i;
 
 	bQuoted = FALSE;
 
-	for(i=0; i<SHORTLEN && module->name[i] != '\0'; i++)
+	for(i=0; i<SHORTNAME && module->name[i] != _T('\0'); i++)
 	{
 		c = module->name[i];
 		if(
-			(c < '0' || c > '9') && 
-			(c < 'A' || c > 'Z') && 
-			(c < 'a' || c > 'z') && 
-			c != '_'
+			(c < _T('0') || c > _T('9')) && 
+			(c < _T('A') || c > _T('Z')) && 
+			(c < _T('a') || c > _T('z')) && 
+			c != _T('_')
 		)
 		{
 			bQuoted = TRUE;
@@ -1107,36 +1098,36 @@ static int MakeRVAText(char szText[1+SHORTLEN+2+1+1], t_module *module)
 
 	p = szText;
 
-	*p++ = '$';
+	*p++ = _T('$');
 
 	if(bQuoted)
-		*p++ = '"';
+		*p++ = _T('"');
 
-	for(i=0; i<SHORTLEN && module->name[i] != '\0'; i++)
+	for(i=0; i<SHORTNAME && module->name[i] != _T('\0'); i++)
 		*p++ = module->name[i];
 
 	if(bQuoted)
-		*p++ = '"';
+		*p++ = _T('"');
 
-	*p++ = '.';
-	*p = '\0';
+	*p++ = _T('.');
+	*p = _T('\0');
 
 	return p-szText;
 }
 
-static BOOL ReplaceAddressWithText(char **ppCommand, DWORD dwAddress, char *lpText, char *lpError)
+static BOOL ReplaceAddressWithText(TCHAR **ppCommand, DWORD dwAddress, TCHAR *lpText, TCHAR *lpError)
 {
-	char *p;
-	char szTextAddress[9];
+	TCHAR *p;
+	TCHAR szTextAddress[9];
 	int address_len;
 	int address_count, address_start[3], address_end[3];
 	int text_len, new_command_len;
-	char *lpNewCommand;
-	char *dest, *src;
+	TCHAR *lpNewCommand;
+	TCHAR *dest, *src;
 	int i;
 
 	// Address to replace
-	address_len = wsprintf(szTextAddress, "%X", dwAddress);
+	address_len = wsprintf(szTextAddress, _T("%X"), dwAddress);
 
 	// Skip command name
 	p = SkipCommandName(*ppCommand);
@@ -1144,13 +1135,13 @@ static BOOL ReplaceAddressWithText(char **ppCommand, DWORD dwAddress, char *lpTe
 	// Search for numbers
 	address_count = 0;
 
-	while(*p != '\0' && address_count < 3)
+	while(*p != _T('\0') && address_count < 3)
 	{
-		if((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F'))
+		if((*p >= _T('0') && *p <= _T('9')) || (*p >= _T('A') && *p <= _T('F')))
 		{
 			address_start[address_count] = p-*ppCommand;
 
-			while(*p == '0')
+			while(*p == _T('0'))
 				p++;
 
 			for(i=0; i<address_len; i++)
@@ -1159,11 +1150,11 @@ static BOOL ReplaceAddressWithText(char **ppCommand, DWORD dwAddress, char *lpTe
 
 			p += i;
 
-			if((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F'))
+			if((*p >= _T('0') && *p <= _T('9')) || (*p >= _T('A') && *p <= _T('F')))
 			{
 				do {
 					p++;
-				} while((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F'));
+				} while((*p >= _T('0') && *p <= _T('9')) || (*p >= _T('A') && *p <= _T('F')));
 			}
 			else if(i == address_len)
 			{
@@ -1171,22 +1162,22 @@ static BOOL ReplaceAddressWithText(char **ppCommand, DWORD dwAddress, char *lpTe
 				address_count++;
 			}
 		}
-		else if(*p == '@')
+		else if(*p == _T('@'))
 		{
 			do {
 				p++;
 			} while(
-				(*p >= '0' && *p <= '9') || 
-				(*p >= 'A' && *p <= 'Z') || 
-				(*p >= 'a' && *p <= 'z') || 
-				*p == '_'
+				(*p >= _T('0') && *p <= _T('9')) || 
+				(*p >= _T('A') && *p <= _T('Z')) || 
+				(*p >= _T('a') && *p <= _T('z')) || 
+				*p == _T('_')
 			);
 		}
-		else if(*p == '$')
+		else if(*p == _T('$'))
 		{
 			do {
 				p++;
-			} while(*p != '.');
+			} while(*p != _T('.'));
 
 			p++;
 		}
@@ -1204,10 +1195,10 @@ static BOOL ReplaceAddressWithText(char **ppCommand, DWORD dwAddress, char *lpTe
 	for(i=0; i<address_count; i++)
 		new_command_len += text_len-(address_end[i]-address_start[i]);
 
-	lpNewCommand = (char *)HeapAlloc(GetProcessHeap(), 0, new_command_len+1);
+	lpNewCommand = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, (new_command_len+1)*sizeof(TCHAR));
 	if(!lpNewCommand)
 	{
-		lstrcpy(lpError, "Allocation failed");
+		lstrcpy(lpError, _T("Allocation failed"));
 		return FALSE;
 	}
 
@@ -1215,15 +1206,15 @@ static BOOL ReplaceAddressWithText(char **ppCommand, DWORD dwAddress, char *lpTe
 	dest = lpNewCommand;
 	src = *ppCommand;
 
-	CopyMemory(dest, src, address_start[0]);
-	CopyMemory(dest+address_start[0], lpText, text_len);
+	CopyMemory(dest, src, address_start[0]*sizeof(TCHAR));
+	CopyMemory(dest+address_start[0], lpText, text_len*sizeof(TCHAR));
 	dest += address_start[0]+text_len;
 	src += address_end[0];
 
 	for(i=1; i<address_count; i++)
 	{
-		CopyMemory(dest, src, address_start[i]-address_end[i-1]);
-		CopyMemory(dest+address_start[i]-address_end[i-1], lpText, text_len);
+		CopyMemory(dest, src, (address_start[i]-address_end[i-1])*sizeof(TCHAR));
+		CopyMemory(dest+address_start[i]-address_end[i-1], lpText, text_len*sizeof(TCHAR));
 		dest += address_start[i]-address_end[i-1]+text_len;
 		src += address_end[i]-address_end[i-1];
 	}
@@ -1237,90 +1228,90 @@ static BOOL ReplaceAddressWithText(char **ppCommand, DWORD dwAddress, char *lpTe
 	return TRUE;
 }
 
-static char *SkipCommandName(char *p)
+static TCHAR *SkipCommandName(TCHAR *p)
 {
-	char *pPrefix;
+	TCHAR *pPrefix;
 	int i;
 
 	switch(*p)
 	{
-	case 'L':
-	case 'l':
-		pPrefix = "LOCK";
+	case _T('L'):
+	case _T('l'):
+		pPrefix = _T("LOCK");
 
-		for(i=1; pPrefix[i] != '\0'; i++)
+		for(i=1; pPrefix[i] != _T('\0'); i++)
 		{
-			if(p[i] != pPrefix[i] && p[i] != pPrefix[i]-'A'+'a')
+			if(p[i] != pPrefix[i] && p[i] != pPrefix[i]-_T('A')+_T('a'))
 				break;
 		}
 
-		if(pPrefix[i] == '\0')
+		if(pPrefix[i] == _T('\0'))
 		{
-			if((p[i] < 'A' || p[i] > 'Z') && (p[i] < 'a' || p[i] > 'z') && (p[i] < '0' || p[i] > '9'))
+			if((p[i] < _T('A') || p[i] > _T('Z')) && (p[i] < _T('a') || p[i] > _T('z')) && (p[i] < _T('0') || p[i] > _T('9')))
 			{
 				p = &p[i];
-				while(*p == ' ')
+				while(*p == _T(' '))
 					p++;
 			}
 		}
 		break;
 
-	case 'R':
-	case 'r':
-		pPrefix = "REP";
+	case _T('R'):
+	case _T('r'):
+		pPrefix = _T("REP");
 
-		for(i=1; pPrefix[i] != '\0'; i++)
+		for(i=1; pPrefix[i] != _T('\0'); i++)
 		{
-			if(p[i] != pPrefix[i] && p[i] != pPrefix[i]-'A'+'a')
+			if(p[i] != pPrefix[i] && p[i] != pPrefix[i]-_T('A')+_T('a'))
 				break;
 		}
 
-		if(pPrefix[i] == '\0')
+		if(pPrefix[i] == _T('\0'))
 		{
-			if((p[i] == 'N' || p[i] == 'n') && (p[i+1] == 'E' || p[i+1] == 'e' || p[i+1] == 'Z' || p[i+1] == 'z'))
+			if((p[i] == _T('N') || p[i] == _T('n')) && (p[i+1] == _T('E') || p[i+1] == _T('e') || p[i+1] == _T('Z') || p[i+1] == _T('z')))
 				i += 2;
-			else if(p[i] == 'E' || p[i] == 'e' || p[i] == 'Z' || p[i] == 'z')
+			else if(p[i] == _T('E') || p[i] == _T('e') || p[i] == _T('Z') || p[i] == _T('z'))
 				i++;
 
-			if((p[i] < 'A' || p[i] > 'Z') && (p[i] < 'a' || p[i] > 'z') && (p[i] < '0' || p[i] > '9'))
+			if((p[i] < _T('A') || p[i] > _T('Z')) && (p[i] < _T('a') || p[i] > _T('z')) && (p[i] < _T('0') || p[i] > _T('9')))
 			{
 				p = &p[i];
-				while(*p == ' ')
+				while(*p == _T(' '))
 					p++;
 			}
 		}
 		break;
 	}
 
-	while((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') || (*p >= '0' && *p <= '9'))
+	while((*p >= _T('A') && *p <= _T('Z')) || (*p >= _T('a') && *p <= _T('z')) || (*p >= _T('0') && *p <= _T('9')))
 		p++;
 
-	while(*p == ' ')
+	while(*p == _T(' '))
 		p++;
 
 	return p;
 }
 
-static int DWORDToString(char szString[11], DWORD dw, BOOL bAddress, int hex_option)
+static int DWORDToString(TCHAR szString[11], DWORD dw, BOOL bAddress, int hex_option)
 {
-	char *p;
-	char szHex[9];
+	TCHAR *p;
+	TCHAR szHex[9];
 	int hex_len;
 
 	p = szString;
 
-	hex_len = wsprintf(szHex, bAddress?"%08X":"%X", dw);
+	hex_len = wsprintf(szHex, bAddress?_T("%08X"):_T("%X"), dw);
 
 	if(hex_option == 3)
 	{
-		*p++ = '0';
-		*p++ = 'x';
+		*p++ = _T('0');
+		*p++ = _T('x');
 	}
 
-	if(szHex[0] >= 'A' && szHex[0] <= 'F')
+	if(szHex[0] >= _T('A') && szHex[0] <= _T('F'))
 	{
 		if(hex_option == 1 || hex_option == 2 || hex_len < 8)
-			*p++ = '0';
+			*p++ = _T('0');
 	}
 
 	lstrcpy(p, szHex);
@@ -1328,8 +1319,8 @@ static int DWORDToString(char szString[11], DWORD dw, BOOL bAddress, int hex_opt
 
 	if(hex_option == 2)
 	{
-		*p++ = 'h';
-		*p = '\0';
+		*p++ = _T('h');
+		*p = _T('\0');
 	}
 
 	return p-szString;

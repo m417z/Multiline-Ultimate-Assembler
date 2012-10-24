@@ -36,6 +36,9 @@
     <ClCompile Include="tabctrl_ex.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="plugin.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="assembler_dlg.h">

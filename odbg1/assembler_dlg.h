@@ -2,6 +2,7 @@
 #define _ASSEMBLER_DLG_H_
 
 #include <windows.h>
+#include <tchar.h>
 #include "plugin.h"
 #include "raedit.h"
 #include "options_def.h"
@@ -23,8 +24,8 @@ typedef struct _asm_dialog_param {
 	// Find and replace
 	UINT uFindReplaceMsg;
 	HWND hFindReplaceWnd;
-	char szFindStr[FIND_REPLACE_TEXT_BUFFER];
-	char szReplaceStr[FIND_REPLACE_TEXT_BUFFER];
+	TCHAR szFindStr[FIND_REPLACE_TEXT_BUFFER];
+	TCHAR szReplaceStr[FIND_REPLACE_TEXT_BUFFER];
 	FINDREPLACE findreplace;
 } ASM_DIALOG_PARAM;
 
@@ -43,12 +44,11 @@ typedef struct _asm_thread_param {
 
 // Both Message window and Assembler dialog messages
 #define UWM_LOADCODE                    (WM_APP+4)
-#define UWM_LOADEXAMPLE                 (WM_APP+5)
-#define UWM_OPTIONSCHANGED              (WM_APP+6)
+#define UWM_OPTIONSCHANGED              (WM_APP+5)
 
 // Assembler dialog messages
-#define UWM_NOTIFY                      (WM_APP+7)
-#define UWM_ERRORMSG                    (WM_APP+8)
+#define UWM_NOTIFY                      (WM_APP+6)
+#define UWM_ERRORMSG                    (WM_APP+7)
 
 #define HILITE_ASM_CMD \
 	"aaa aad aam aas adc add and call cbw clc cld cli cmc cmp cmps cmpsb " \
@@ -140,12 +140,11 @@ typedef struct _asm_thread_param {
 #define GET_Y_LPARAM(lParam)	 ((int)(short)HIWORD(lParam))
 #endif
 
-char *AssemblerInit();
+TCHAR *AssemblerInit();
 void AssemblerExit();
 void AssemblerShowDlg();
 void AssemblerCloseDlg();
 void AssemblerLoadCode(DWORD dwAddress, DWORD dwSize);
-void AssemblerLoadExample();
 void AssemblerOptionsChanged();
 static DWORD WINAPI AssemblerThread(void *pParameter);
 static LRESULT CALLBACK AsmMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -164,7 +163,6 @@ static void DoFindCustom(ASM_DIALOG_PARAM *p_dialog_param, DWORD dwFlagsSet, DWO
 static void DoReplace(ASM_DIALOG_PARAM *p_dialog_param);
 static void DoReplaceAll(ASM_DIALOG_PARAM *p_dialog_param);
 static void OptionsChanged(HWND hWnd);
-static void LoadExample(HWND hWnd);
 static BOOL LoadCode(HWND hWnd, DWORD dwAddress, DWORD dwSize);
 static BOOL PatchCode(HWND hWnd);
 

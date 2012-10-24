@@ -7,14 +7,10 @@
 #include "options_dlg.h"
 #include "resource.h"
 
-#define DEF_VERSION   "2.0"
-#define DEF_COPYRIGHT "Copyright (C) 2009-2012 RaMMicHaeL"
-
 static BOOL OpenHelp();
 static int AboutMessageBox();
 
 HINSTANCE hDllInst;
-HWND hOllyWnd;
 OPTIONS options;
 
 BOOL APIENTRY DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
@@ -41,7 +37,7 @@ BOOL APIENTRY DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 // this name should be descriptive and correlate with the name of DLL.
 extc int _export cdecl ODBG_Plugindata(char shortname[32])
 {
-	lstrcpy(shortname, "Multiline Ultimate Assembler"); // Name of plugin
+	lstrcpy(shortname, DEF_PLUGINNAME); // Name of plugin
 	return PLUGIN_VERSION;
 }
 
@@ -63,7 +59,7 @@ extc int _export cdecl ODBG_Plugininit(int ollydbgversion, HWND hWnd, ulong *fea
 
 	// Keep handle of main OllyDbg window. This handle is necessary, for example,
 	// to display message box.
-	hOllyWnd = hWnd;
+	hwollymain = hWnd;
 
 	// Common controls
 	InitCommonControls();
@@ -178,7 +174,7 @@ extc void _export cdecl ODBG_Pluginaction(int origin, int action, void *item)
 		case 2:
 			// Menu item "Help"
 			if(!OpenHelp())
-				MessageBox(hOllyWnd, "Failed to open the \"multiasm.chm\" help file", NULL, MB_ICONHAND);
+				MessageBox(hwollymain, "Failed to open the \"multiasm.chm\" help file", NULL, MB_ICONHAND);
 			break;
 
 		case 3:
@@ -274,7 +270,7 @@ static BOOL OpenHelp()
 
 	lstrcat(szFilePath, "multiasm.chm");
 
-	return !((int)ShellExecute(hOllyWnd, NULL, szFilePath, NULL, NULL, SW_SHOWNORMAL) <= 32);
+	return !((int)ShellExecute(hwollymain, NULL, szFilePath, NULL, NULL, SW_SHOWNORMAL) <= 32);
 }
 
 static int AboutMessageBox()
@@ -284,7 +280,7 @@ static int AboutMessageBox()
 	ZeroMemory(&mbpMsgBoxParams, sizeof(MSGBOXPARAMS));
 
 	mbpMsgBoxParams.cbSize = sizeof(MSGBOXPARAMS);
-	mbpMsgBoxParams.hwndOwner = hOllyWnd;
+	mbpMsgBoxParams.hwndOwner = hwollymain;
 	mbpMsgBoxParams.hInstance = hDllInst;
 	mbpMsgBoxParams.lpszText = 
 		"Multiline Ultimate Assembler v" DEF_VERSION "\n"

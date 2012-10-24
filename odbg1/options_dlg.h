@@ -2,6 +2,7 @@
 #define _OPTIONS_DLG_H_
 
 #include <windows.h>
+#include <tchar.h>
 #include "options_def.h"
 #include "plugin.h"
 #include "resource.h"

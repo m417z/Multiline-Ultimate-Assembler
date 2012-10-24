@@ -2,6 +2,7 @@
 #define _READ_ASM_H_
 
 #include <windows.h>
+#include <tchar.h>
 #include "options_def.h"
 #include "plugin.h"
 
@@ -10,10 +11,10 @@
 typedef struct _disasm_cmd_node {
 	struct _disasm_cmd_node *next;
 	DWORD dwAddress;
-	char *lpCommand;
+	TCHAR *lpCommand;
 	DWORD dwConst[3];
-	char *lpComment;
-	char *lpLabel;
+	TCHAR *lpComment;
+	TCHAR *lpLabel;
 } DISASM_CMD_NODE;
 
 typedef struct _disasm_cmd_head {
@@ -23,36 +24,36 @@ typedef struct _disasm_cmd_head {
 
 // functions
 
-char *ReadAsm(DWORD dwAddress, DWORD dwSize, char *pLabelPerfix, char *lpError);
+TCHAR *ReadAsm(DWORD dwAddress, DWORD dwSize, TCHAR *pLabelPerfix, TCHAR *lpError);
 
 // 1
-static BOOL ProcessCode(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, char *lpError);
-static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bDecode, DISASM_CMD_HEAD *p_dasm_head, char *lpError);
+static BOOL ProcessCode(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError);
+static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bDecode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError);
 static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress, 
-	BYTE *bDecode, DWORD dwCommandType, DISASM_CMD_HEAD *p_dasm_head, char *lpError);
+	BYTE *bDecode, DWORD dwCommandType, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError);
 static BOOL ValidateUnicode(BYTE *p, DWORD dwSize, DWORD *pdwTextSize, BOOL *pbReadAsBinary);
 static BOOL ValidateAscii(BYTE *p, DWORD dwSize, DWORD *pdwTextSize, BOOL *pbReadAsBinary);
-static void ConvertUnicodeToText(BYTE *p, DWORD dwSize, BOOL bAsBinary, char *pText);
-static void ConvertAsciiToText(BYTE *p, DWORD dwSize, BOOL bAsBinary, char *pText);
+static void ConvertUnicodeToText(BYTE *p, DWORD dwSize, BOOL bAsBinary, TCHAR *pText);
+static void ConvertAsciiToText(BYTE *p, DWORD dwSize, BOOL bAsBinary, TCHAR *pText);
 
 // 2
 static void MarkLabels(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head);
 static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, t_module *module, 
-	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, char *lpError);
+	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError);
 static BOOL CreateAndSetLabels(DWORD dwAddress, DWORD dwSize, 
-	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, char *pLabelPerfix, char *lpError);
-static BOOL IsValidLabel(char *lpLabel, DISASM_CMD_HEAD *p_dasm_head, DISASM_CMD_NODE *dasm_cmd_target);
-static BOOL SetRVAAddresses(DWORD dwAddress, DWORD dwSize, t_module *module, DISASM_CMD_HEAD *p_dasm_head, char *lpError);
+	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *pLabelPerfix, TCHAR *lpError);
+static BOOL IsValidLabel(TCHAR *lpLabel, DISASM_CMD_HEAD *p_dasm_head, DISASM_CMD_NODE *dasm_cmd_target);
+static BOOL SetRVAAddresses(DWORD dwAddress, DWORD dwSize, t_module *module, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError);
 
 // 3
-static char *MakeText(DWORD dwAddress, t_module *module, DISASM_CMD_HEAD *p_dasm_head, char *lpError);
-static int CopyCommand(char *pBuffer, char *pCommand, int hex_option);
+static TCHAR *MakeText(DWORD dwAddress, t_module *module, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError);
+static int CopyCommand(TCHAR *pBuffer, TCHAR *pCommand, int hex_option);
 
 // Helper functions
-static int MakeRVAText(char szText[1+SHORTLEN+2+1+1], t_module *module);
-static BOOL ReplaceAddressWithText(char **ppCommand, DWORD dwAddress, char *lpText, char *lpError);
-static char *SkipCommandName(char *p);
-static int DWORDToString(char szString[11], DWORD dw, BOOL bAddress, int hex_option);
+static int MakeRVAText(TCHAR szText[1+SHORTNAME+2+1+1], t_module *module);
+static BOOL ReplaceAddressWithText(TCHAR **ppCommand, DWORD dwAddress, TCHAR *lpText, TCHAR *lpError);
+static TCHAR *SkipCommandName(TCHAR *p);
+static int DWORDToString(TCHAR szString[11], DWORD dw, BOOL bAddress, int hex_option);
 
 // Cleanup
 static void FreeDisasmCmdList(DISASM_CMD_HEAD *p_dasm_head);

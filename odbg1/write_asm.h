@@ -2,6 +2,7 @@
 #define _WRITE_ASM_H_
 
 #include <windows.h>
+#include <tchar.h>
 #include "options_def.h"
 #include "plugin.h"
 
@@ -10,7 +11,7 @@
 typedef struct _label_node {
 	struct _label_node *next;
 	DWORD dwAddress;
-	char *lpLabel;
+	TCHAR *lpLabel;
 } LABEL_NODE;
 
 typedef struct _label_head {
@@ -24,9 +25,9 @@ typedef struct _cmd_node {
 	struct _cmd_node *next;
 	BYTE *bCode;
 	DWORD dwCodeSize;
-	char *lpCommand;
-	char *lpComment;
-	char *lpResolvedCommandWithLabels;
+	TCHAR *lpCommand;
+	TCHAR *lpComment;
+	TCHAR *lpResolvedCommandWithLabels;
 } CMD_NODE;
 
 typedef struct _cmd_head {
@@ -62,49 +63,42 @@ typedef struct _cmd_block_head {
 
 // functions
 
-int WriteAsm(char *lpText, char *lpError);
+int WriteAsm(TCHAR *lpText, TCHAR *lpError);
 
 // 1
-static char *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, char *lpText, char *lpError);
-static int ParseAddress(char *lpText, DWORD *pdwAddress, DWORD *pdwBaseAddress, char *lpError);
-static BOOL NewCmdBlock(CMD_BLOCK_HEAD *p_cmd_block_head, DWORD dwAddress, char *lpError);
-static int ParseAnonLabel(char *lpText, DWORD dwAddress, ANON_LABEL_HEAD *p_anon_label_head, char *lpError);
-static int ParseLabel(char *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, char *lpError);
-static int ParseAsciiString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError);
-static int ParseUnicodeString(char *lpText, CMD_HEAD *p_cmd_head, char *lpError);
-static int ParseCommand(char *lpText, DWORD dwAddress, DWORD dwBaseAddress, CMD_HEAD *p_cmd_head, char *lpError);
-static int ResolveCommand(char *lpCommand, DWORD dwBaseAddress, char **ppNewCommand, char **ppComment, char *lpError);
-static int ReplaceLabelsWithAddress(char *lpCommand, DWORD dwReplaceAddress, char **ppNewCommand, char *lpError);
+static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpText, TCHAR *lpError);
+static int ParseAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD *pdwBaseAddress, TCHAR *lpError);
+static BOOL NewCmdBlock(CMD_BLOCK_HEAD *p_cmd_block_head, DWORD dwAddress, TCHAR *lpError);
+static int ParseAnonLabel(TCHAR *lpText, DWORD dwAddress, ANON_LABEL_HEAD *p_anon_label_head, TCHAR *lpError);
+static int ParseLabel(TCHAR *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, TCHAR *lpError);
+static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, TCHAR *lpError);
+static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, TCHAR *lpError);
+static int ParseCommand(TCHAR *lpText, DWORD dwAddress, DWORD dwBaseAddress, CMD_HEAD *p_cmd_head, TCHAR *lpError);
+static int ResolveCommand(TCHAR *lpCommand, DWORD dwBaseAddress, TCHAR **ppNewCommand, TCHAR **ppComment, TCHAR *lpError);
+static int ReplaceLabelsWithAddress(TCHAR *lpCommand, DWORD dwReplaceAddress, TCHAR **ppNewCommand, TCHAR *lpError);
 
-static int ParseRVAAddress(char *lpText, DWORD *pdwAddress, DWORD dwParentBaseAddress, DWORD *pdwBaseAddress, char *lpError);
-static int ParseDWORD(char *lpText, DWORD *pdw, char *lpError);
+static int ParseRVAAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD dwParentBaseAddress, DWORD *pdwBaseAddress, TCHAR *lpError);
+static int ParseDWORD(TCHAR *lpText, DWORD *pdw, TCHAR *lpError);
 
 // 2
-static char *ReplaceLabelsInCommands(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, char *lpError);
-static int ReplaceLabelsFromList(char *lpCommand, DWORD dwPrevAnonAddr, DWORD dwNextAnonAddr, 
-	LABEL_HEAD *p_label_head, char **ppNewCommand, char *lpError);
+static TCHAR *ReplaceLabelsInCommands(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpError);
+static int ReplaceLabelsFromList(TCHAR *lpCommand, DWORD dwPrevAnonAddr, DWORD dwNextAnonAddr, 
+	LABEL_HEAD *p_label_head, TCHAR **ppNewCommand, TCHAR *lpError);
 
 // 3
-static char *PatchCommands(CMD_BLOCK_HEAD *p_cmd_block_head, char *lpError);
-static char *SetComments(CMD_BLOCK_HEAD *p_cmd_block_head, char *lpError);
-static char *SetLabels(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, char *lpError);
+static TCHAR *PatchCommands(CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpError);
+static TCHAR *SetComments(CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpError);
+static TCHAR *SetLabels(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpError);
 
 // Helper functions
-static t_module *FindModuleByName(char *lpModule);
-static int AssembleShortest(char *lpCommand, DWORD dwAddress, t_asmmodel *model_ptr, char *lpError);
-static int AssembleWithGivenSize(char *lpCommand, DWORD dwAddress, DWORD dwSize, t_asmmodel *model_ptr, char *lpError);
-static int FixAsmCommand(char *lpCommand, char **ppFixedCommand, char *lpError);
-static int FixedAsmCorrectErrorSpot(char *lpCommand, char *pFixedCommand, int result);
-static BOOL FindNextHexNumberStartingWithALetter(char *lpCommand, char **ppHexNumberStart, char **ppHexNumberEnd);
-static BOOL ReplaceTextsWithAddresses(char *lpCommand, char **ppNewCommand, 
-	int text_count, int text_start[4], int text_end[4], DWORD dwAddress[4], char *lpError);
-static int ReplacedTextCorrectErrorSpot(char *lpCommand, char *lpReplacedCommand, int result);
-static char *NullTerminateLine(char *p);
-static char *SkipSpaces(char *p);
-static char *SkipDWORD(char *p);
-static char *SkipLabel(char *p);
-static char *SkipRVAAddress(char *p);
-static char *SkipCommandName(char *p);
+static BOOL ReplaceTextsWithAddresses(TCHAR *lpCommand, TCHAR **ppNewCommand, 
+	int text_count, int text_start[4], int text_end[4], DWORD dwAddress[4], TCHAR *lpError);
+static int ReplacedTextCorrectErrorSpot(TCHAR *lpCommand, TCHAR *lpReplacedCommand, int result);
+static TCHAR *NullTerminateLine(TCHAR *p);
+static TCHAR *SkipSpaces(TCHAR *p);
+static TCHAR *SkipDWORD(TCHAR *p);
+static TCHAR *SkipLabel(TCHAR *p);
+static TCHAR *SkipRVAAddress(TCHAR *p);
 
 // Cleanup function
 static void FreeLabelList(LABEL_HEAD *p_label_head);

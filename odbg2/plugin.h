@@ -1,14 +1,35 @@
-#ifndef _PLUGIN_EX_H_
-#define _PLUGIN_EX_H_
+#ifndef _PLUGIN_H_
+#define _PLUGIN_H_
 
+#include <windows.h>
+#include <tchar.h>
 #include "plugin_ollydbg2.h"
 
-#define DEF_PLUGINNAME        L"Multiline Ultimate Assembler"
-#define DEF_VERSION           L"2.0"
+#define DEF_PLUGINNAME        _T("Multiline Ultimate Assembler")
+#define DEF_VERSION           _T("2.1")
 
+// Config functions
 BOOL MyGetintfromini(wchar_t *key, int *p_val, int min, int max, int def);
 BOOL MyWriteinttoini(wchar_t *key, int val);
 int MyGetstringfromini(wchar_t *key, wchar_t *s, int length);
 int MyWritestringtoini(wchar_t *key, wchar_t *s);
 
-#endif // _PLUGIN_EX_H_
+// Assembler functions
+int AssembleShortest(TCHAR *lpCommand, DWORD dwAddress, BYTE *bBuffer, TCHAR *lpError);
+int AssembleWithGivenSize(TCHAR *lpCommand, DWORD dwAddress, DWORD dwSize, BYTE *bBuffer, TCHAR *lpError);
+
+// Memory functions
+BOOL SimpleReadMemory(void *buf, ulong addr, ulong size);
+BOOL SimpleWriteMemory(void *buf, ulong addr, ulong size);
+
+// Data functions
+void DeleteDataRange(ulong addr0, ulong addr1, int type);
+int QuickInsertName(ulong addr, int type, TCHAR *s);
+void MergeQuickData(void);
+
+// Misc.
+int FindName(ulong addr, int type, TCHAR *name);
+t_module *FindModuleByName(TCHAR *lpModule);
+void EnsureMemoryBackup(t_memory *pmem);
+
+#endif // _PLUGIN_H_

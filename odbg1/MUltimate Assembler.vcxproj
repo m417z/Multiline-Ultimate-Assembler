@@ -151,6 +151,7 @@
     <ClCompile Include="assembler_dlg_tabs.c" />
     <ClCompile Include="MUltimate Assembler.c" />
     <ClCompile Include="options_dlg.c" />
+    <ClCompile Include="plugin.c" />
     <ClCompile Include="read_asm.c" />
     <ClCompile Include="tabctrl_ex.c" />
     <ClCompile Include="write_asm.c" />

@@ -7,11 +7,11 @@ static HANDLE hAsmThread;
 static DWORD dwAsmThreadId;
 static HWND hAsmMsgWnd;
 
-WCHAR *AssemblerInit()
+TCHAR *AssemblerInit()
 {
 	HANDLE hThreadReadyEvent;
 	HANDLE hHandles[2];
-	WCHAR *pError;
+	TCHAR *pError;
 
 	hThreadReadyEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 	if(hThreadReadyEvent)
@@ -30,22 +30,22 @@ WCHAR *AssemblerInit()
 
 			case WAIT_OBJECT_0+1:
 				hAsmThread = NULL;
-				pError = L"Thread initialization failed";
+				pError = _T("Thread initialization failed");
 				break;
 
 			case WAIT_FAILED:
 			default:
-				pError = L"WaitForMultipleObjects() failed";
+				pError = _T("WaitForMultipleObjects() failed");
 				break;
 			}
 		}
 		else
-			pError = L"Could not create thread";
+			pError = _T("Could not create thread");
 
 		CloseHandle(hThreadReadyEvent);
 	}
 	else
-		pError = L"Could not create event";
+		pError = _T("Could not create event");
 
 	return pError;
 }
@@ -105,7 +105,7 @@ static DWORD WINAPI AssemblerThread(void *pParameter)
 	ZeroMemory(&wndclass, sizeof(WNDCLASS));
 	wndclass.lpfnWndProc = AsmMsgProc;
 	wndclass.hInstance = hDllInst;
-	wndclass.lpszClassName = L"Multiline Ultimate Assembler Message Window";
+	wndclass.lpszClassName = _T("Multiline Ultimate Assembler Message Window");
 
 	class_atom = RegisterClass(&wndclass);
 	if(!class_atom)
@@ -125,7 +125,7 @@ static DWORD WINAPI AssemblerThread(void *pParameter)
 	{
 		if(bRet == -1)
 		{
-			MessageBox(hwollymain, L"GetMessage() error", L"Multiline Ultimate Assembler error", MB_ICONHAND);
+			MessageBox(hwollymain, _T("GetMessage() error"), _T("Multiline Ultimate Assembler error"), MB_ICONHAND);
 			msg.wParam = 0;
 			break;
 		}
@@ -188,7 +188,7 @@ static LRESULT CALLBACK AsmMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 				(DLGPROC)DlgAsmProc, (LPARAM)&p_thread_param->dialog_param);
 			if(!hAsmWnd)
 			{
-				MessageBox(hwollymain, L"CreateDialog() error", L"Multiline Ultimate Assembler error", MB_ICONHAND);
+				MessageBox(hwollymain, _T("CreateDialog() error"), _T("Multiline Ultimate Assembler error"), MB_ICONHAND);
 				break;
 			}
 
@@ -479,14 +479,14 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 
 			case TCN_EX_ENDLABELEDIT:
 				SetWindowLongPtr(hWnd, DWLP_MSGRESULT, 
-					TabRenameEnd(GetDlgItem(hWnd, IDC_TABS), (WCHAR *)((UNMTABCTRLEX *)lParam)->lParam));
+					TabRenameEnd(GetDlgItem(hWnd, IDC_TABS), (TCHAR *)((UNMTABCTRLEX *)lParam)->lParam));
 				return TRUE;
 			}
 		}
 		break;
 
 	case UWM_ERRORMSG:
-		AsmDlgMessageBox(hWnd, (WCHAR *)lParam, NULL, wParam);
+		AsmDlgMessageBox(hWnd, (TCHAR *)lParam, NULL, wParam);
 		break;
 
 	case WM_COMMAND:
@@ -562,14 +562,14 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			break;
 
 		case ID_ACCEL_FINDNEXT:
-			if(*p_dialog_param->szFindStr != L'\0')
+			if(*p_dialog_param->szFindStr != _T('\0'))
 				DoFindCustom(p_dialog_param, FR_DOWN, 0);
 			else
 				ShowFindDialog(p_dialog_param);
 			break;
 
 		case ID_ACCEL_FINDPREV:
-			if(*p_dialog_param->szFindStr != L'\0')
+			if(*p_dialog_param->szFindStr != _T('\0'))
 				DoFindCustom(p_dialog_param, 0, FR_DOWN);
 			else
 				ShowFindDialog(p_dialog_param);
@@ -684,7 +684,7 @@ static void SetRAEditDesign(HWND hWnd, RAFONT *praFont)
 
 	lfLogFont.lfHeight = -12;
 	lfLogFont.lfCharSet = DEFAULT_CHARSET;
-	lstrcpy(lfLogFont.lfFaceName, L"Lucida Console");
+	lstrcpy(lfLogFont.lfFaceName, _T("Lucida Console"));
 	praFont->hFont = CreateFontIndirect(&lfLogFont);
 
 	lfLogFont.lfItalic = TRUE;
@@ -767,7 +767,7 @@ static void LoadWindowPos(HWND hWnd, HINSTANCE hInst, long *p_min_w, long *p_min
 
 	if(options.edit_savepos)
 	{
-		if(MyGetintfromini(L"pos_x", &x, 0, 0, 0) && MyGetintfromini(L"pos_y", &y, 0, 0, 0))
+		if(MyGetintfromini(_T("pos_x"), &x, 0, 0, 0) && MyGetintfromini(_T("pos_y"), &y, 0, 0, 0))
 		{
 			SystemParametersInfo(SPI_GETWORKAREA, 0, &rc, 0);
 
@@ -777,8 +777,8 @@ static void LoadWindowPos(HWND hWnd, HINSTANCE hInst, long *p_min_w, long *p_min
 			if(y < rc.top || y > rc.bottom)
 				y = rc.top;
 
-			MyGetintfromini(L"pos_w", &w, min_w, INT_MAX, cur_w);
-			MyGetintfromini(L"pos_h", &h, min_h, INT_MAX, cur_h);
+			MyGetintfromini(_T("pos_w"), &w, min_w, INT_MAX, cur_w);
+			MyGetintfromini(_T("pos_h"), &h, min_h, INT_MAX, cur_h);
 
 			SetWindowPos(hWnd, NULL, x, y, w, h, SWP_NOZORDER|SWP_NOACTIVATE|SWP_NOOWNERZORDER);
 		}
@@ -794,10 +794,10 @@ static void SaveWindowPos(HWND hWnd, HINSTANCE hInst)
 		wp.length = sizeof(WINDOWPLACEMENT);
 		GetWindowPlacement(hWnd, &wp);
 
-		MyWriteinttoini(L"pos_x", wp.rcNormalPosition.left);
-		MyWriteinttoini(L"pos_y", wp.rcNormalPosition.top);
-		MyWriteinttoini(L"pos_w", wp.rcNormalPosition.right-wp.rcNormalPosition.left);
-		MyWriteinttoini(L"pos_h", wp.rcNormalPosition.bottom-wp.rcNormalPosition.top);
+		MyWriteinttoini(_T("pos_x"), wp.rcNormalPosition.left);
+		MyWriteinttoini(_T("pos_y"), wp.rcNormalPosition.top);
+		MyWriteinttoini(_T("pos_w"), wp.rcNormalPosition.right-wp.rcNormalPosition.left);
+		MyWriteinttoini(_T("pos_h"), wp.rcNormalPosition.bottom-wp.rcNormalPosition.top);
 	}
 }
 
@@ -849,8 +849,8 @@ static void InitFindReplace(HWND hWnd, HINSTANCE hInst, ASM_DIALOG_PARAM *p_dial
 {
 	p_dialog_param->uFindReplaceMsg = RegisterWindowMessage(FINDMSGSTRING);
 	p_dialog_param->hFindReplaceWnd = NULL;
-	*p_dialog_param->szFindStr = L'\0';
-	*p_dialog_param->szReplaceStr = L'\0';
+	*p_dialog_param->szFindStr = _T('\0');
+	*p_dialog_param->szReplaceStr = _T('\0');
 
 	p_dialog_param->findreplace.lStructSize = sizeof(FINDREPLACE);
 	p_dialog_param->findreplace.hwndOwner = hWnd;
@@ -890,7 +890,7 @@ static void DoFindCustom(ASM_DIALOG_PARAM *p_dialog_param, DWORD dwFlagsSet, DWO
 	WPARAM wFlagsParam;
 	CHARRANGE selrange;
 	FINDTEXTEX findtextex;
-	WCHAR szInfoMsg[sizeof("Cannot find \"\"")-1+FIND_REPLACE_TEXT_BUFFER];
+	TCHAR szInfoMsg[sizeof("Cannot find \"\"")-1+FIND_REPLACE_TEXT_BUFFER];
 
 	p_findreplace = &p_dialog_param->findreplace;
 	hWnd = p_findreplace->hwndOwner;
@@ -922,8 +922,8 @@ static void DoFindCustom(ASM_DIALOG_PARAM *p_dialog_param, DWORD dwFlagsSet, DWO
 	}
 	else
 	{
-		wsprintf(szInfoMsg, L"Cannot find \"%s\"", p_findreplace->lpstrFindWhat);
-		AsmDlgMessageBox(hWnd, szInfoMsg, L"Find", MB_ICONASTERISK);
+		wsprintf(szInfoMsg, _T("Cannot find \"%s\""), p_findreplace->lpstrFindWhat);
+		AsmDlgMessageBox(hWnd, szInfoMsg, _T("Find"), MB_ICONASTERISK);
 	}
 }
 
@@ -964,7 +964,7 @@ static void DoReplaceAll(ASM_DIALOG_PARAM *p_dialog_param)
 	FINDTEXTEX findtextex;
 	CHARRANGE selrange;
 	UINT uReplacedCount;
-	WCHAR szInfoMsg[sizeof("4294967295 occurrences were replaced")];
+	TCHAR szInfoMsg[sizeof("4294967295 occurrences were replaced")];
 
 	p_findreplace = &p_dialog_param->findreplace;
 	hWnd = p_findreplace->hwndOwner;
@@ -1003,19 +1003,19 @@ static void DoReplaceAll(ASM_DIALOG_PARAM *p_dialog_param)
 	switch(uReplacedCount)
 	{
 	case 0:
-		lstrcpy(szInfoMsg, L"No occurrences were replaced");
+		lstrcpy(szInfoMsg, _T("No occurrences were replaced"));
 		break;
 
 	case 1:
-		lstrcpy(szInfoMsg, L"1 occurrence was replaced");
+		lstrcpy(szInfoMsg, _T("1 occurrence was replaced"));
 		break;
 
 	default:
-		wsprintf(szInfoMsg, L"%u occurrences were replaced", uReplacedCount);
+		wsprintf(szInfoMsg, _T("%u occurrences were replaced"), uReplacedCount);
 		break;
 	}
 
-	AsmDlgMessageBox(hWnd, szInfoMsg, L"Replace All", MB_ICONASTERISK);
+	AsmDlgMessageBox(hWnd, szInfoMsg, _T("Replace All"), MB_ICONASTERISK);
 }
 
 static void OptionsChanged(HWND hWnd)
@@ -1027,12 +1027,12 @@ static void OptionsChanged(HWND hWnd)
 
 static BOOL LoadCode(HWND hWnd, DWORD dwAddress, DWORD dwSize)
 {
-	WCHAR szLabelPerfix[32];
-	WCHAR szError[1024+1]; // safe to use for wsprintf
-	WCHAR *lpText;
+	TCHAR szLabelPerfix[32];
+	TCHAR szError[1024+1]; // safe to use for wsprintf
+	TCHAR *lpText;
 
 	if(!GetTabName(GetDlgItem(hWnd, IDC_TABS), szLabelPerfix, 32))
-		*szLabelPerfix = L'\0';
+		*szLabelPerfix = _T('\0');
 
 	Suspendallthreads();
 	lpText = ReadAsm(dwAddress, dwSize, szLabelPerfix, szError);
@@ -1052,23 +1052,23 @@ static BOOL LoadCode(HWND hWnd, DWORD dwAddress, DWORD dwSize)
 
 static BOOL PatchCode(HWND hWnd)
 {
-	WCHAR szError[1024+1]; // safe to use for wsprintf
-	WCHAR *lpText;
+	TCHAR szError[1024+1]; // safe to use for wsprintf
+	TCHAR *lpText;
 	DWORD dwTextSize;
 	int result;
 
 	if(run.status == STAT_IDLE)
 	{
-		AsmDlgMessageBox(hWnd, L"No process is loaded", NULL, MB_ICONASTERISK);
+		AsmDlgMessageBox(hWnd, _T("No process is loaded"), NULL, MB_ICONASTERISK);
 		return FALSE;
 	}
 
 	dwTextSize = SendDlgItemMessage(hWnd, IDC_ASSEMBLER, WM_GETTEXTLENGTH, 0, 0);
 
-	lpText = (WCHAR *)HeapAlloc(GetProcessHeap(), 0, (dwTextSize+1)*sizeof(WCHAR));
+	lpText = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, (dwTextSize+1)*sizeof(TCHAR));
 	if(!lpText)
 	{
-		AsmDlgMessageBox(hWnd, L"Allocation failed", NULL, MB_ICONHAND);
+		AsmDlgMessageBox(hWnd, _T("Allocation failed"), NULL, MB_ICONHAND);
 		return FALSE;
 	}
 
