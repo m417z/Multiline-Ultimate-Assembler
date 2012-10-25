@@ -11,6 +11,6 @@ LRESULT ShowOptionsDlg();
 static LRESULT CALLBACK DlgOptionsProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 static void OptionsToDlg(HWND hWnd);
 static void OptionsFromDlg(HWND hWnd);
-static void OptionsToIni();
+static void OptionsToIni(HINSTANCE hInst);
 
 #endif // _OPTIONS_DLG_H_

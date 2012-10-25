@@ -17,7 +17,17 @@
 #define SHORTNAME             SHORTLEN
 #endif // SHORTNAME
 
+#ifndef DAE_NOERR
+#define DAE_NOERR             0x00000000      // No error
+#endif // DAE_NOERR
+
 extern HWND hwollymain;
+
+// Config functions
+BOOL MyGetintfromini(HINSTANCE dllinst, TCHAR *key, int *p_val, int min, int max, int def);
+BOOL MyWriteinttoini(HINSTANCE dllinst, TCHAR *key, int val);
+int MyGetstringfromini(HINSTANCE dllinst, TCHAR *key, TCHAR *s, int length);
+BOOL MyWritestringtoini(HINSTANCE dllinst, TCHAR *key, TCHAR *s);
 
 // Assembler functions
 int AssembleShortest(TCHAR *lpCommand, DWORD dwAddress, BYTE *bBuffer, TCHAR *lpError);

@@ -83,16 +83,16 @@ extc int __cdecl ODBG2_Plugininit(void)
 	}
 
 	// Load options
-	MyGetintfromini(L"disasm_rva", &options.disasm_rva, 0, 0, 1);
-	MyGetintfromini(L"disasm_rva_reloconly", &options.disasm_rva_reloconly, 0, 0, 1);
-	MyGetintfromini(L"disasm_label", &options.disasm_label, 0, 0, 1);
-	MyGetintfromini(L"disasm_extjmp", &options.disasm_extjmp, 0, 0, 1);
-	MyGetintfromini(L"disasm_hex", &options.disasm_hex, 0, 3, 0);
-	MyGetintfromini(L"disasm_labelgen", &options.disasm_labelgen, 0, 2, 0);
-	MyGetintfromini(L"asm_comments", &options.asm_comments, 0, 0, 1);
-	MyGetintfromini(L"asm_labels", &options.asm_labels, 0, 0, 1);
-	MyGetintfromini(L"edit_savepos", &options.edit_savepos, 0, 0, 1);
-	MyGetintfromini(L"edit_tabwidth", &options.edit_tabwidth, 0, 2, 1);
+	MyGetintfromini(hDllInst, L"disasm_rva", &options.disasm_rva, 0, 0, 1);
+	MyGetintfromini(hDllInst, L"disasm_rva_reloconly", &options.disasm_rva_reloconly, 0, 0, 1);
+	MyGetintfromini(hDllInst, L"disasm_label", &options.disasm_label, 0, 0, 1);
+	MyGetintfromini(hDllInst, L"disasm_extjmp", &options.disasm_extjmp, 0, 0, 1);
+	MyGetintfromini(hDllInst, L"disasm_hex", &options.disasm_hex, 0, 3, 0);
+	MyGetintfromini(hDllInst, L"disasm_labelgen", &options.disasm_labelgen, 0, 2, 0);
+	MyGetintfromini(hDllInst, L"asm_comments", &options.asm_comments, 0, 0, 1);
+	MyGetintfromini(hDllInst, L"asm_labels", &options.asm_labels, 0, 0, 1);
+	MyGetintfromini(hDllInst, L"edit_savepos", &options.edit_savepos, 0, 0, 1);
+	MyGetintfromini(hDllInst, L"edit_tabwidth", &options.edit_tabwidth, 0, 2, 1);
 
 	return 0;
 }

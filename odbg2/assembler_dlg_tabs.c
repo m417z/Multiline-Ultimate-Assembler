@@ -2,16 +2,16 @@
 
 static HWND hPostErrorWnd;
 static UINT uPostErrorMsg;
-static WCHAR szTabFilesPath[MAX_PATH];
-static WCHAR szConfigFilePath[MAX_PATH];
-static WCHAR szLibraryFilePath[MAX_PATH];
+static TCHAR szTabFilesPath[MAX_PATH];
+static TCHAR szConfigFilePath[MAX_PATH];
+static TCHAR szLibraryFilePath[MAX_PATH];
 static FILETIME ftConfigLastWriteTime;
 static FILETIME ftCurrentTabLastWriteTime;
 static UINT nTabsCreatedCounter;
 
 void InitTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd, HINSTANCE hInst, HWND hErrorWnd, UINT uErrorMsg)
 {
-	WCHAR szTabsRelativeFilePath[MAX_PATH];
+	TCHAR szTabsRelativeFilePath[MAX_PATH];
 	DWORD dwPathLen;
 	int nTabsLoaded;
 	int nLastTab;
@@ -20,10 +20,10 @@ void InitTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd, HINSTANCE hInst, HWND hErrorWn
 	uPostErrorMsg = uErrorMsg;
 
 	// Get the folder with our tab files, and create it if it does not exist
-	if(!MyGetstringfromini(L"tabs_path", szTabsRelativeFilePath, MAX_PATH))
+	if(!MyGetstringfromini(hInst, _T("tabs_path"), szTabsRelativeFilePath, MAX_PATH))
 	{
-		lstrcpy(szTabsRelativeFilePath, L".\\multiasm");
-		MyWritestringtoini(L"tabs_path", szTabsRelativeFilePath);
+		lstrcpy(szTabsRelativeFilePath, _T(".\\multiasm"));
+		MyWritestringtoini(hInst, _T("tabs_path"), szTabsRelativeFilePath);
 	}
 
 	dwPathLen = PathRelativeToModuleDir(hInst, szTabsRelativeFilePath, szTabFilesPath, TRUE);
@@ -31,17 +31,17 @@ void InitTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd, HINSTANCE hInst, HWND hErrorWn
 	if(dwPathLen == 0 || dwPathLen+sizeof("4294967295.asm") > MAX_PATH || // and "tabs.ini" and "lib\\"
 		!MakeSureDirectoryExists(szTabFilesPath))
 	{
-		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)L"Could not use specified directory, using system temp dir");
+		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)_T("Could not use specified directory, using system temp dir"));
 		GetTempPath(MAX_PATH, szTabFilesPath);
 	}
 
 	lstrcpy(szConfigFilePath, szTabFilesPath);
-	lstrcat(szConfigFilePath, L"tabs.ini");
+	lstrcat(szConfigFilePath, _T("tabs.ini"));
 
 	GetConfigLastWriteTime(&ftConfigLastWriteTime);
 
 	lstrcpy(szLibraryFilePath, szTabFilesPath);
-	lstrcat(szLibraryFilePath, L"lib\\");
+	lstrcat(szLibraryFilePath, _T("lib\\"));
 
 	// Load our tabs from ini
 	nTabsLoaded = InitLoadTabs(hTabCtrlWnd);
@@ -54,9 +54,9 @@ void InitTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd, HINSTANCE hInst, HWND hErrorWn
 	}
 	else
 	{
-		nTabsCreatedCounter = ReadIntFromPrivateIni(L"tabs_counter", 0);
+		nTabsCreatedCounter = ReadIntFromPrivateIni(_T("tabs_counter"), 0);
 
-		nLastTab = ReadIntFromPrivateIni(L"tabs_last_open", 0);
+		nLastTab = ReadIntFromPrivateIni(_T("tabs_last_open"), 0);
 		if(nLastTab > 0 && nLastTab < nTabsLoaded)
 			TabCtrl_SetCurSel(hTabCtrlWnd, nLastTab);
 
@@ -66,9 +66,9 @@ void InitTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd, HINSTANCE hInst, HWND hErrorWn
 
 int InitLoadTabs(HWND hTabCtrlWnd)
 {
-	WCHAR szStringKey[32];
+	TCHAR szStringKey[32];
 	TCITEM_CUSTOM tci;
-	WCHAR szTabLabel[MAX_PATH];
+	TCHAR szTabLabel[MAX_PATH];
 	int nMaxLabelLen;
 	int nTabCount, nTabInvalidCount;
 	int i;
@@ -83,10 +83,10 @@ int InitLoadTabs(HWND hTabCtrlWnd)
 	tci.header.pszText = szTabLabel;
 	ZeroMemory(&tci.extra, sizeof(TCITEM_EXTRA));
 
-	wsprintf(szStringKey, L"tabs_file[%d]", nTabCount+nTabInvalidCount);
+	wsprintf(szStringKey, _T("tabs_file[%d]"), nTabCount+nTabInvalidCount);
 	ReadStringFromPrivateIni(szStringKey, NULL, szTabLabel, nMaxLabelLen+1);
 
-	while(*szTabLabel != L'\0')
+	while(*szTabLabel != _T('\0'))
 	{
 		MakeTabLabelValid(szTabLabel);
 
@@ -94,7 +94,7 @@ int InitLoadTabs(HWND hTabCtrlWnd)
 		{
 			if(nTabInvalidCount > 0)
 			{
-				wsprintf(szStringKey, L"tabs_file[%d]", nTabCount);
+				wsprintf(szStringKey, _T("tabs_file[%d]"), nTabCount);
 				WriteStringToPrivateIni(szStringKey, szTabLabel);
 			}
 
@@ -104,13 +104,13 @@ int InitLoadTabs(HWND hTabCtrlWnd)
 		else
 			nTabInvalidCount++;
 
-		wsprintf(szStringKey, L"tabs_file[%d]", nTabCount+nTabInvalidCount);
+		wsprintf(szStringKey, _T("tabs_file[%d]"), nTabCount+nTabInvalidCount);
 		ReadStringFromPrivateIni(szStringKey, NULL, szTabLabel, nMaxLabelLen+1);
 	}
 
 	for(i=0; i<nTabInvalidCount; i++)
 	{
-		wsprintf(szStringKey, L"tabs_file[%d]", nTabCount+i);
+		wsprintf(szStringKey, _T("tabs_file[%d]"), nTabCount+i);
 		WriteStringToPrivateIni(szStringKey, NULL);
 	}
 
@@ -120,14 +120,14 @@ int InitLoadTabs(HWND hTabCtrlWnd)
 void SyncTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 {
 	FILETIME ftWriteTimeCompare;
-	WCHAR szStringKey[32];
+	TCHAR szStringKey[32];
 	TCITEM_CUSTOM tci;
-	WCHAR szTabLabel[MAX_PATH];
+	TCHAR szTabLabel[MAX_PATH];
 	int nMaxLabelLen;
 	int nTabCount, nTabInvalidCount;
 	int nTabIndex;
 	BOOL bTabChanged;
-	WCHAR szFileName[MAX_PATH];
+	TCHAR szFileName[MAX_PATH];
 	int i;
 
 	bTabChanged = FALSE;
@@ -137,7 +137,7 @@ void SyncTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 	if(ftWriteTimeCompare.dwLowDateTime != ftConfigLastWriteTime.dwLowDateTime || 
 		ftWriteTimeCompare.dwHighDateTime != ftConfigLastWriteTime.dwHighDateTime)
 	{
-		nTabsCreatedCounter = ReadIntFromPrivateIni(L"tabs_counter", 0);
+		nTabsCreatedCounter = ReadIntFromPrivateIni(_T("tabs_counter"), 0);
 
 		nMaxLabelLen = (MAX_PATH-1) - lstrlen(szTabFilesPath) - (sizeof(".asm")-1);
 		nTabCount = 0;
@@ -147,10 +147,10 @@ void SyncTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 		tci.header.pszText = szTabLabel;
 		ZeroMemory(&tci.extra, sizeof(TCITEM_EXTRA));
 
-		wsprintf(szStringKey, L"tabs_file[%d]", nTabCount+nTabInvalidCount);
+		wsprintf(szStringKey, _T("tabs_file[%d]"), nTabCount+nTabInvalidCount);
 		ReadStringFromPrivateIni(szStringKey, NULL, szTabLabel, nMaxLabelLen+1);
 
-		while(*szTabLabel != L'\0')
+		while(*szTabLabel != _T('\0'))
 		{
 			MakeTabLabelValid(szTabLabel);
 
@@ -159,7 +159,7 @@ void SyncTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 			{
 				if(nTabInvalidCount > 0)
 				{
-					wsprintf(szStringKey, L"tabs_file[%d]", nTabCount);
+					wsprintf(szStringKey, _T("tabs_file[%d]"), nTabCount);
 					WriteStringToPrivateIni(szStringKey, szTabLabel);
 				}
 
@@ -173,13 +173,13 @@ void SyncTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 			else
 				nTabInvalidCount++;
 
-			wsprintf(szStringKey, L"tabs_file[%d]", nTabCount+nTabInvalidCount);
+			wsprintf(szStringKey, _T("tabs_file[%d]"), nTabCount+nTabInvalidCount);
 			ReadStringFromPrivateIni(szStringKey, NULL, szTabLabel, nMaxLabelLen+1);
 		}
 
 		for(i=0; i<nTabInvalidCount; i++)
 		{
-			wsprintf(szStringKey, L"tabs_file[%d]", nTabCount+i);
+			wsprintf(szStringKey, _T("tabs_file[%d]"), nTabCount+i);
 			WriteStringToPrivateIni(szStringKey, NULL);
 		}
 
@@ -205,7 +205,7 @@ void SyncTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 			}
 		}
 
-		WriteIntToPrivateIni(L"tabs_last_open", nTabIndex);
+		WriteIntToPrivateIni(_T("tabs_last_open"), nTabIndex);
 
 		//GetConfigLastWriteTime(&ftConfigLastWriteTime); // done at WriteIntToPrivateIni
 	}
@@ -221,15 +221,15 @@ void SyncTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 	}
 }
 
-void NewTab(HWND hTabCtrlWnd, HWND hAsmEditWnd, WCHAR *pTabLabel)
+void NewTab(HWND hTabCtrlWnd, HWND hAsmEditWnd, TCHAR *pTabLabel)
 {
-	WCHAR szFileName[MAX_PATH];
+	TCHAR szFileName[MAX_PATH];
 	int nFilePathLen;
-	WCHAR szTabLabel[MAX_PATH];
+	TCHAR szTabLabel[MAX_PATH];
 	int nLabelLen, nMaxLabelLen;
 	TCITEM_CUSTOM tci;
 	int nTabCount;
-	WCHAR szStringKey[32];
+	TCHAR szStringKey[32];
 	UINT i;
 
 	lstrcpy(szFileName, szTabFilesPath);
@@ -245,31 +245,31 @@ void NewTab(HWND hTabCtrlWnd, HWND hAsmEditWnd, WCHAR *pTabLabel)
 			lstrcpy(szTabLabel, pTabLabel);
 
 			lstrcpy(szFileName+nFilePathLen, szTabLabel);
-			lstrcat(szFileName+nFilePathLen, L".asm");
+			lstrcat(szFileName+nFilePathLen, _T(".asm"));
 
 			for(i=2; GetFileAttributes(szFileName) != INVALID_FILE_ATTRIBUTES || FindTabByLabel(hTabCtrlWnd, szTabLabel) != -1; i++)
 			{
-				if(nLabelLen+wsprintf(szTabLabel+nLabelLen, L" (%u)", i) > nMaxLabelLen)
+				if(nLabelLen+wsprintf(szTabLabel+nLabelLen, _T(" (%u)"), i) > nMaxLabelLen)
 				{
-					szFileName[nFilePathLen] = L'\0';
+					szFileName[nFilePathLen] = _T('\0');
 					break;
 				}
 
 				lstrcpy(szFileName+nFilePathLen, szTabLabel);
-				lstrcat(szFileName+nFilePathLen, L".asm");
+				lstrcat(szFileName+nFilePathLen, _T(".asm"));
 			}
 		}
 	}
 
-	if(szFileName[nFilePathLen] == L'\0')
+	if(szFileName[nFilePathLen] == _T('\0'))
 	{
 		do
 		{
 			nTabsCreatedCounter++;
-			wsprintf(szTabLabel, L"%u", nTabsCreatedCounter);
+			wsprintf(szTabLabel, _T("%u"), nTabsCreatedCounter);
 
 			lstrcpy(szFileName+nFilePathLen, szTabLabel);
-			lstrcat(szFileName+nFilePathLen, L".asm");
+			lstrcat(szFileName+nFilePathLen, _T(".asm"));
 		}
 		while(GetFileAttributes(szFileName) != INVALID_FILE_ATTRIBUTES || FindTabByLabel(hTabCtrlWnd, szTabLabel) != -1);
 	}
@@ -283,14 +283,14 @@ void NewTab(HWND hTabCtrlWnd, HWND hAsmEditWnd, WCHAR *pTabLabel)
 	TabCtrl_InsertItem(hTabCtrlWnd, nTabCount, &tci);
 	TabCtrl_SetCurSel(hTabCtrlWnd, nTabCount);
 
-	SendMessage(hAsmEditWnd, WM_SETTEXT, 0, (LPARAM)L"");
+	SendMessage(hAsmEditWnd, WM_SETTEXT, 0, (LPARAM)_T(""));
 
 	ZeroMemory(&ftCurrentTabLastWriteTime, sizeof(FILETIME));
 
-	WriteIntToPrivateIni(L"tabs_counter", nTabsCreatedCounter);
-	WriteIntToPrivateIni(L"tabs_last_open", nTabCount);
+	WriteIntToPrivateIni(_T("tabs_counter"), nTabsCreatedCounter);
+	WriteIntToPrivateIni(_T("tabs_last_open"), nTabCount);
 
-	wsprintf(szStringKey, L"tabs_file[%d]", nTabCount);
+	wsprintf(szStringKey, _T("tabs_file[%d]"), nTabCount);
 	WriteStringToPrivateIni(szStringKey, szTabLabel);
 }
 
@@ -334,7 +334,7 @@ void NextTab(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 	}
 }
 
-BOOL GetTabName(HWND hTabCtrlWnd, WCHAR *pText, int nTextBuffer)
+BOOL GetTabName(HWND hTabCtrlWnd, TCHAR *pText, int nTextBuffer)
 {
 	int nCurrentTabIndex;
 	TCITEM_CUSTOM tci;
@@ -375,10 +375,10 @@ BOOL CloseTabOnPoint(HWND hTabCtrlWnd, HWND hAsmEditWnd, POINT *ppt)
 void CloseTabByIndex(HWND hTabCtrlWnd, HWND hAsmEditWnd, int nTabIndex)
 {
 	BOOL bClosingCurrent;
-	WCHAR szFileName[MAX_PATH];
+	TCHAR szFileName[MAX_PATH];
 	int nTabCount;
 	TCITEM_CUSTOM tci;
-	WCHAR szStringKey[32];
+	TCHAR szStringKey[32];
 	int i;
 
 	if(nTabIndex == -1)
@@ -392,7 +392,7 @@ void CloseTabByIndex(HWND hTabCtrlWnd, HWND hAsmEditWnd, int nTabIndex)
 	GetTabFileName(hTabCtrlWnd, nTabIndex, szFileName);
 	if(GetFileAttributes(szFileName) != INVALID_FILE_ATTRIBUTES)
 		if(!DeleteFile(szFileName))
-			PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)L"Failed to delete file");
+			PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)_T("Failed to delete file"));
 
 	TabCtrl_DeleteItem(hTabCtrlWnd, nTabIndex);
 
@@ -406,11 +406,11 @@ void CloseTabByIndex(HWND hTabCtrlWnd, HWND hAsmEditWnd, int nTabIndex)
 	{
 		TabCtrl_GetItem(hTabCtrlWnd, i, &tci);
 
-		wsprintf(szStringKey, L"tabs_file[%d]", i);
+		wsprintf(szStringKey, _T("tabs_file[%d]"), i);
 		WriteStringToPrivateIni(szStringKey, szFileName);
 	}
 
-	wsprintf(szStringKey, L"tabs_file[%d]", i);
+	wsprintf(szStringKey, _T("tabs_file[%d]"), i);
 	WriteStringToPrivateIni(szStringKey, NULL);
 
 	if(bClosingCurrent)
@@ -435,8 +435,8 @@ void CloseTabByIndex(HWND hTabCtrlWnd, HWND hAsmEditWnd, int nTabIndex)
 void CloseAllTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 {
 	int nTabCount, nErrorCount;
-	WCHAR szFileName[MAX_PATH];
-	WCHAR szStringKey[32];
+	TCHAR szFileName[MAX_PATH];
+	TCHAR szStringKey[32];
 	int i;
 
 	nTabCount = TabCtrl_GetItemCount(hTabCtrlWnd);
@@ -449,12 +449,12 @@ void CloseAllTabs(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 			if(!DeleteFile(szFileName))
 				nErrorCount++;
 
-		wsprintf(szStringKey, L"tabs_file[%d]", i);
+		wsprintf(szStringKey, _T("tabs_file[%d]"), i);
 		WriteStringToPrivateIni(szStringKey, NULL);
 	}
 
 	if(nErrorCount > 0)
-		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)L"Failed to delete one or more of the files");
+		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)_T("Failed to delete one or more of the files"));
 
 	TabCtrl_DeleteAllItems(hTabCtrlWnd);
 
@@ -529,7 +529,7 @@ void OnTabChanged(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 	SendMessage(hAsmEditWnd, EM_LINESCROLL, 0, tci.extra.first_visible_line);
 	SendMessage(hAsmEditWnd, EM_SCROLLCARET, 0, 0);
 
-	WriteIntToPrivateIni(L"tabs_last_open", TabCtrl_GetCurSel(hTabCtrlWnd));
+	WriteIntToPrivateIni(_T("tabs_last_open"), TabCtrl_GetCurSel(hTabCtrlWnd));
 }
 
 void OnTabFileUpdated(HWND hTabCtrlWnd, HWND hAsmEditWnd)
@@ -555,16 +555,16 @@ void TabRenameStart(HWND hTabCtrlWnd)
 	TabCtrl_Ex_EditLabel(hTabCtrlWnd, nMaxLabelLen);
 }
 
-BOOL TabRenameEnd(HWND hTabCtrlWnd, WCHAR *pNewLabel)
+BOOL TabRenameEnd(HWND hTabCtrlWnd, TCHAR *pNewLabel)
 {
 	int nCurrentTabIndex;
-	WCHAR szOldTabLabel[MAX_PATH];
-	WCHAR szFileName[MAX_PATH];
-	WCHAR szOldFileName[MAX_PATH];
-	WCHAR szStringKey[32];
+	TCHAR szOldTabLabel[MAX_PATH];
+	TCHAR szFileName[MAX_PATH];
+	TCHAR szOldFileName[MAX_PATH];
+	TCHAR szStringKey[32];
 	TCITEM_CUSTOM tci;
 
-	if(*pNewLabel == L'\0')
+	if(*pNewLabel == _T('\0'))
 		return FALSE;
 
 	MakeTabLabelValid(pNewLabel);
@@ -581,17 +581,17 @@ BOOL TabRenameEnd(HWND hTabCtrlWnd, WCHAR *pNewLabel)
 
 	if(FindTabByLabel(hTabCtrlWnd, pNewLabel) != -1)
 	{
-		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONHAND, (LPARAM)L"Such tab already exists");
+		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONHAND, (LPARAM)_T("Such tab already exists"));
 		return FALSE;
 	}
 
 	lstrcpy(szFileName, szTabFilesPath);
 	lstrcat(szFileName, pNewLabel);
-	lstrcat(szFileName, L".asm");
+	lstrcat(szFileName, _T(".asm"));
 
 	if(lstrcmpi(szOldTabLabel, pNewLabel) != 0 && GetFileAttributes(szFileName) != INVALID_FILE_ATTRIBUTES)
 	{
-		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONHAND, (LPARAM)L"Such file already exists");
+		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONHAND, (LPARAM)_T("Such file already exists"));
 		return FALSE;
 	}
 
@@ -599,11 +599,11 @@ BOOL TabRenameEnd(HWND hTabCtrlWnd, WCHAR *pNewLabel)
 
 	if(GetFileAttributes(szOldFileName) != INVALID_FILE_ATTRIBUTES && !MoveFile(szOldFileName, szFileName))
 	{
-		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONHAND, (LPARAM)L"Failed to rename file");
+		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONHAND, (LPARAM)_T("Failed to rename file"));
 		return FALSE;
 	}
 
-	wsprintf(szStringKey, L"tabs_file[%d]", TabCtrl_GetCurSel(hTabCtrlWnd));
+	wsprintf(szStringKey, _T("tabs_file[%d]"), TabCtrl_GetCurSel(hTabCtrlWnd));
 	WriteStringToPrivateIni(szStringKey, pNewLabel);
 
 	return TRUE;
@@ -612,12 +612,12 @@ BOOL TabRenameEnd(HWND hTabCtrlWnd, WCHAR *pNewLabel)
 BOOL OnTabDrag(HWND hTabCtrlWnd, int nDragFromId, int nDropToId)
 {
 	TCITEM_CUSTOM tci;
-	WCHAR szTabLabel[MAX_PATH];
+	TCHAR szTabLabel[MAX_PATH];
 	int nTabIndex, nTabCount;
-	WCHAR szStringKey[32];
+	TCHAR szStringKey[32];
 	int i;
 
-	WriteIntToPrivateIni(L"tabs_last_open", nDropToId);
+	WriteIntToPrivateIni(_T("tabs_last_open"), nDropToId);
 
 	tci.header.mask = TCIF_TEXT;
 	tci.header.pszText = szTabLabel;
@@ -638,7 +638,7 @@ BOOL OnTabDrag(HWND hTabCtrlWnd, int nDragFromId, int nDropToId)
 	{
 		TabCtrl_GetItem(hTabCtrlWnd, nTabIndex, &tci);
 
-		wsprintf(szStringKey, L"tabs_file[%d]", nTabIndex);
+		wsprintf(szStringKey, _T("tabs_file[%d]"), nTabIndex);
 		WriteStringToPrivateIni(szStringKey, szTabLabel);
 
 		nTabIndex++;
@@ -649,11 +649,11 @@ BOOL OnTabDrag(HWND hTabCtrlWnd, int nDragFromId, int nDropToId)
 
 BOOL LoadFileOfTab(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 {
-	WCHAR szFileName[MAX_PATH];
+	TCHAR szFileName[MAX_PATH];
 	HANDLE hFile;
 	EDITSTREAM es;
 
-	SendMessage(hAsmEditWnd, WM_SETTEXT, 0, (LPARAM)L"");
+	SendMessage(hAsmEditWnd, WM_SETTEXT, 0, (LPARAM)_T(""));
 
 	GetTabFileName(hTabCtrlWnd, -1, szFileName);
 
@@ -661,7 +661,7 @@ BOOL LoadFileOfTab(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 	if(hFile == INVALID_HANDLE_VALUE)
 	{
 		ZeroMemory(&ftCurrentTabLastWriteTime, sizeof(FILETIME));
-		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)L"Could not read content of file");
+		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)_T("Could not read content of file"));
 		return FALSE;
 	}
 
@@ -682,7 +682,7 @@ BOOL LoadFileOfTab(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 
 BOOL SaveFileOfTab(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 {
-	WCHAR szFileName[MAX_PATH];
+	TCHAR szFileName[MAX_PATH];
 	HANDLE hFile;
 	EDITSTREAM es;
 
@@ -691,7 +691,7 @@ BOOL SaveFileOfTab(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 
 	if(!MakeSureDirectoryExists(szTabFilesPath))
 	{
-		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)L"Could not create directory");
+		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)_T("Could not create directory"));
 		return FALSE;
 	}
 
@@ -700,7 +700,7 @@ BOOL SaveFileOfTab(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 	hFile = CreateFile(szFileName, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hFile == INVALID_HANDLE_VALUE)
 	{
-		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)L"Could not save content to file");
+		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)_T("Could not save content to file"));
 		return FALSE;
 	}
 
@@ -721,19 +721,19 @@ BOOL SaveFileOfTab(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 
 BOOL LoadFileFromLibrary(HWND hTabCtrlWnd, HWND hAsmEditWnd, HWND hWnd, HINSTANCE hInst)
 {
-	WCHAR *pOfnBuffer;
+	TCHAR *pOfnBuffer;
 	OPENFILENAME ofn;
-	WCHAR szFilePath[MAX_PATH];
-	WCHAR *pFileNameSrc, *pFileNameDst, *pFileNameExt;
+	TCHAR szFilePath[MAX_PATH];
+	TCHAR *pFileNameSrc, *pFileNameDst, *pFileNameExt;
 	HANDLE hFile;
 	EDITSTREAM es;
 	BOOL bAtLeastOneSucceeded;
 	BOOL bMultipleFiles, bAtLeastOneFailed;
 
-	pOfnBuffer = (WCHAR *)HeapAlloc(GetProcessHeap(), 0, 1024*10*sizeof(WCHAR));
+	pOfnBuffer = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, 1024*10*sizeof(TCHAR));
 	if(!pOfnBuffer)
 	{
-		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONHAND, (LPARAM)L"Memory allocation failed");
+		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONHAND, (LPARAM)_T("Memory allocation failed"));
 		return FALSE;
 	}
 
@@ -743,31 +743,31 @@ BOOL LoadFileFromLibrary(HWND hTabCtrlWnd, HWND hAsmEditWnd, HWND hWnd, HINSTANC
 	ofn.hwndOwner = hWnd;
 	ofn.hInstance = hInst;
 	ofn.lpstrFilter = 
-		L"Assembler files (*.asm)\0*.asm\0"
-		L"All files (*.*)\0*.*\0";
+		_T("Assembler files (*.asm)\0*.asm\0")
+		_T("All files (*.*)\0*.*\0");
 	ofn.lpstrFile = pOfnBuffer;
 	ofn.nMaxFile = 1024*10;
-	ofn.lpstrTitle = L"Load code from file";
+	ofn.lpstrTitle = _T("Load code from file");
 	ofn.Flags = OFN_FILEMUSTEXIST|OFN_HIDEREADONLY|OFN_ALLOWMULTISELECT|OFN_EXPLORER;
-	ofn.lpstrDefExt = L"asm";
+	ofn.lpstrDefExt = _T("asm");
 
 	if(MakeSureDirectoryExists(szLibraryFilePath))
 		ofn.lpstrInitialDir = szLibraryFilePath;
 
-	*pOfnBuffer = L'\0';
+	*pOfnBuffer = _T('\0');
 
 	bAtLeastOneSucceeded = FALSE;
 
 	if(GetOpenFileName(&ofn))
 	{
 		pFileNameSrc = pOfnBuffer + ofn.nFileOffset;
-		bMultipleFiles = (pFileNameSrc[-1] == L'\0');
-		pFileNameSrc[-1] = L'\0';
+		bMultipleFiles = (pFileNameSrc[-1] == _T('\0'));
+		pFileNameSrc[-1] = _T('\0');
 
 		lstrcpy(szFilePath, pOfnBuffer);
 
 		pFileNameDst = szFilePath + ofn.nFileOffset;
-		pFileNameDst[-1] = L'\\';
+		pFileNameDst[-1] = _T('\\');
 
 		bAtLeastOneFailed = FALSE;
 
@@ -787,9 +787,9 @@ BOOL LoadFileFromLibrary(HWND hTabCtrlWnd, HWND hAsmEditWnd, HWND hWnd, HINSTANC
 				pFileNameExt = pFileNameDst + lstrlen(pFileNameDst);
 				for(pFileNameExt--; pFileNameExt > pFileNameDst; pFileNameExt--)
 				{
-					if(*pFileNameExt == L'.')
+					if(*pFileNameExt == _T('.'))
 					{
-						*pFileNameExt = L'\0';
+						*pFileNameExt = _T('\0');
 						break;
 					}
 				}
@@ -808,7 +808,7 @@ BOOL LoadFileFromLibrary(HWND hTabCtrlWnd, HWND hAsmEditWnd, HWND hWnd, HINSTANC
 			else
 				bAtLeastOneFailed = TRUE;
 		}
-		while(*pFileNameSrc != L'\0');
+		while(*pFileNameSrc != _T('\0'));
 
 		if(bMultipleFiles)
 		{
@@ -819,13 +819,13 @@ BOOL LoadFileFromLibrary(HWND hTabCtrlWnd, HWND hAsmEditWnd, HWND hWnd, HINSTANC
 		if(bAtLeastOneFailed)
 		{
 			PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, 
-				(LPARAM)(bMultipleFiles?L"Could not read content of at least one of the files":L"Could not read content of file"));
+				(LPARAM)(bMultipleFiles?_T("Could not read content of at least one of the files"):_T("Could not read content of file")));
 		}
 	}
 	else if(CommDlgExtendedError() == FNERR_BUFFERTOOSMALL)
 	{
 		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONHAND, 
-			(LPARAM)L"Our buffer is too small for your gigantic assembly collection :(");
+			(LPARAM)_T("Our buffer is too small for your gigantic assembly collection :("));
 	}
 
 	HeapFree(GetProcessHeap(), 0, pOfnBuffer);
@@ -836,7 +836,7 @@ BOOL LoadFileFromLibrary(HWND hTabCtrlWnd, HWND hAsmEditWnd, HWND hWnd, HINSTANC
 BOOL SaveFileToLibrary(HWND hTabCtrlWnd, HWND hAsmEditWnd, HWND hWnd, HINSTANCE hInst)
 {
 	TCITEM_CUSTOM tci;
-	WCHAR szFileName[MAX_PATH];
+	TCHAR szFileName[MAX_PATH];
 	OPENFILENAME ofn;
 	HANDLE hFile;
 	EDITSTREAM es;
@@ -853,13 +853,13 @@ BOOL SaveFileToLibrary(HWND hTabCtrlWnd, HWND hAsmEditWnd, HWND hWnd, HINSTANCE 
 	ofn.hwndOwner = hWnd;
 	ofn.hInstance = hInst;
 	ofn.lpstrFilter = 
-		L"Assembler files (*.asm)\0*.asm\0"
-		L"All files (*.*)\0*.*\0";
+		_T("Assembler files (*.asm)\0*.asm\0")
+		_T("All files (*.*)\0*.*\0");
 	ofn.lpstrFile = szFileName;
 	ofn.nMaxFile = MAX_PATH;
-	ofn.lpstrTitle = L"Save code to file";
+	ofn.lpstrTitle = _T("Save code to file");
 	ofn.Flags = OFN_OVERWRITEPROMPT|OFN_HIDEREADONLY;
-	ofn.lpstrDefExt = L"asm";
+	ofn.lpstrDefExt = _T("asm");
 
 	if(MakeSureDirectoryExists(szLibraryFilePath))
 		ofn.lpstrInitialDir = szLibraryFilePath;
@@ -870,7 +870,7 @@ BOOL SaveFileToLibrary(HWND hTabCtrlWnd, HWND hAsmEditWnd, HWND hWnd, HINSTANCE 
 	hFile = CreateFile(szFileName, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hFile == INVALID_HANDLE_VALUE)
 	{
-		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)L"Could not save content to file");
+		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)_T("Could not save content to file"));
 		return FALSE;
 	}
 
@@ -887,25 +887,25 @@ BOOL SaveFileToLibrary(HWND hTabCtrlWnd, HWND hAsmEditWnd, HWND hWnd, HINSTANCE 
 
 // General tab functions
 
-static void MakeTabLabelValid(WCHAR *pLabel)
+static void MakeTabLabelValid(TCHAR *pLabel)
 {
-	WCHAR *pForbidden = L"\\/:*?\"<>|";
+	TCHAR *pForbidden = _T("\\/:*?\"<>|");
 	int i, j;
 
-	for(i=0; pLabel[i] != L'\0'; i++)
+	for(i=0; pLabel[i] != _T('\0'); i++)
 	{
-		for(j=0; pForbidden[j] != L'\0'; j++)
+		for(j=0; pForbidden[j] != _T('\0'); j++)
 		{
 			if(pLabel[i] == pForbidden[j])
 			{
-				pLabel[i] = L'_';
+				pLabel[i] = _T('_');
 				break;
 			}
 		}
 	}
 }
 
-static void GetTabFileName(HWND hTabCtrlWnd, int nTabIndex, WCHAR *pFileName)
+static void GetTabFileName(HWND hTabCtrlWnd, int nTabIndex, TCHAR *pFileName)
 {
 	int nFilePathLen;
 	TCITEM_CUSTOM tci;
@@ -922,14 +922,14 @@ static void GetTabFileName(HWND hTabCtrlWnd, int nTabIndex, WCHAR *pFileName)
 
 	TabCtrl_GetItem(hTabCtrlWnd, nTabIndex, &tci);
 
-	lstrcat(pFileName+nFilePathLen, L".asm");
+	lstrcat(pFileName+nFilePathLen, _T(".asm"));
 }
 
-static int FindTabByLabel(HWND hTabCtrlWnd, WCHAR *pLabel)
+static int FindTabByLabel(HWND hTabCtrlWnd, TCHAR *pLabel)
 {
 	int tabs_count;
 	int nTabIndex;
-	WCHAR szTabLabel[MAX_PATH];
+	TCHAR szTabLabel[MAX_PATH];
 	TCITEM_CUSTOM tci;
 
 	tabs_count = TabCtrl_GetItemCount(hTabCtrlWnd);
@@ -951,7 +951,7 @@ static int FindTabByLabel(HWND hTabCtrlWnd, WCHAR *pLabel)
 static void MoveTab(HWND hTabCtrlWnd, int nFromIndex, int nToIndex)
 {
 	TCITEM_CUSTOM tci;
-	WCHAR szTabLabel[MAX_PATH];
+	TCHAR szTabLabel[MAX_PATH];
 	int nCurrentTabIndex;
 
 	nCurrentTabIndex = TabCtrl_GetCurSel(hTabCtrlWnd);
@@ -983,37 +983,37 @@ static DWORD CALLBACK StreamOutProc(DWORD_PTR dwCookie, LPBYTE lpbBuff, LONG cb,
 
 // Config functions
 
-static UINT ReadIntFromPrivateIni(WCHAR *pKeyName, UINT nDefault)
+static UINT ReadIntFromPrivateIni(TCHAR *pKeyName, UINT nDefault)
 {
-	return GetPrivateProfileInt(L"tabs", pKeyName, nDefault, szConfigFilePath);
+	return GetPrivateProfileInt(_T("tabs"), pKeyName, nDefault, szConfigFilePath);
 }
 
-static BOOL WriteIntToPrivateIni(WCHAR *pKeyName, UINT nValue)
+static BOOL WriteIntToPrivateIni(TCHAR *pKeyName, UINT nValue)
 {
-	WCHAR pStrInt[sizeof("4294967295")];
+	TCHAR pStrInt[sizeof("4294967295")];
 
 	if(!MakeSureDirectoryExists(szConfigFilePath))
 		return FALSE;
 
-	wsprintf(pStrInt, L"%u", nValue);
-	if(!WritePrivateProfileString(L"tabs", pKeyName, pStrInt, szConfigFilePath))
+	wsprintf(pStrInt, _T("%u"), nValue);
+	if(!WritePrivateProfileString(_T("tabs"), pKeyName, pStrInt, szConfigFilePath))
 		return FALSE;
 
 	GetConfigLastWriteTime(&ftConfigLastWriteTime);
 	return TRUE;
 }
 
-static DWORD ReadStringFromPrivateIni(WCHAR *pKeyName, WCHAR *pDefault, WCHAR *pReturnedString, DWORD dwStringSize)
+static DWORD ReadStringFromPrivateIni(TCHAR *pKeyName, TCHAR *pDefault, TCHAR *pReturnedString, DWORD dwStringSize)
 {
-	return GetPrivateProfileString(L"tabs", pKeyName, pDefault, pReturnedString, dwStringSize, szConfigFilePath);
+	return GetPrivateProfileString(_T("tabs"), pKeyName, pDefault, pReturnedString, dwStringSize, szConfigFilePath);
 }
 
-static BOOL WriteStringToPrivateIni(WCHAR *pKeyName, WCHAR *pValue)
+static BOOL WriteStringToPrivateIni(TCHAR *pKeyName, TCHAR *pValue)
 {
 	if(!MakeSureDirectoryExists(szConfigFilePath))
 		return FALSE;
 
-	if(!WritePrivateProfileString(L"tabs", pKeyName, pValue, szConfigFilePath))
+	if(!WritePrivateProfileString(_T("tabs"), pKeyName, pValue, szConfigFilePath))
 		return FALSE;
 
 	GetConfigLastWriteTime(&ftConfigLastWriteTime);
@@ -1027,26 +1027,26 @@ static BOOL GetConfigLastWriteTime(FILETIME *pftLastWriteTime)
 
 // General
 
-static BOOL MakeSureDirectoryExists(WCHAR *pPathName)
+static BOOL MakeSureDirectoryExists(TCHAR *pPathName)
 {
-	WCHAR szPathBuffer[MAX_PATH];
+	TCHAR szPathBuffer[MAX_PATH];
 	DWORD dwBufferLen;
-	WCHAR *pFileName, *pPathAfterDrive;
-	WCHAR *p;
+	TCHAR *pFileName, *pPathAfterDrive;
+	TCHAR *p;
 	DWORD dwAttributes;
-	WCHAR chTemp;
+	TCHAR chTemp;
 
 	dwBufferLen = GetFullPathName(pPathName, MAX_PATH, szPathBuffer, &pFileName);
 	if(dwBufferLen == 0 || dwBufferLen > MAX_PATH-1)
 		return FALSE;
 
-	if(szPathBuffer[0] == L'\\' && szPathBuffer[1] == L'\\')
+	if(szPathBuffer[0] == _T('\\') && szPathBuffer[1] == _T('\\'))
 	{
 		p = &szPathBuffer[2];
 
-		while(*p != L'\\')
+		while(*p != _T('\\'))
 		{
-			if(*p == L'\0')
+			if(*p == _T('\0'))
 				return FALSE;
 
 			p++;
@@ -1055,8 +1055,8 @@ static BOOL MakeSureDirectoryExists(WCHAR *pPathName)
 		pPathAfterDrive = p;
 	}
 	else if(
-		((szPathBuffer[0] >= L'A' && szPathBuffer[0] <= L'Z') || (szPathBuffer[0] >= L'a' && szPathBuffer[0] <= L'z')) && 
-		szPathBuffer[1] == L':' && szPathBuffer[2] == L'\\'
+		((szPathBuffer[0] >= _T('A') && szPathBuffer[0] <= _T('Z')) || (szPathBuffer[0] >= _T('a') && szPathBuffer[0] <= _T('z'))) && 
+		szPathBuffer[1] == _T(':') && szPathBuffer[2] == _T('\\')
 	)
 		pPathAfterDrive = &szPathBuffer[2];
 	else
@@ -1064,15 +1064,15 @@ static BOOL MakeSureDirectoryExists(WCHAR *pPathName)
 
 	if(pFileName)
 	{
-		if(pFileName <= szPathBuffer || pFileName[-1] != L'\\')
+		if(pFileName <= szPathBuffer || pFileName[-1] != _T('\\'))
 			return FALSE;
 
-		pFileName[0] = L'\0';
+		pFileName[0] = _T('\0');
 		p = &pFileName[-1];
 	}
 	else
 	{
-		if(szPathBuffer[dwBufferLen-1] != L'\\')
+		if(szPathBuffer[dwBufferLen-1] != _T('\\'))
 			return FALSE;
 
 		p = &szPathBuffer[dwBufferLen-1];
@@ -1084,17 +1084,17 @@ static BOOL MakeSureDirectoryExists(WCHAR *pPathName)
 
 	do
 	{
-		*p = L'\0';
+		*p = _T('\0');
 		p--;
 
 		if(p < pPathAfterDrive)
 			return FALSE;
 
-		while(*p != L'\\')
+		while(*p != _T('\\'))
 			p--;
 
 		chTemp = p[1];
-		p[1] = L'\0';
+		p[1] = _T('\0');
 
 		dwAttributes = GetFileAttributes(szPathBuffer);
 
@@ -1108,26 +1108,26 @@ static BOOL MakeSureDirectoryExists(WCHAR *pPathName)
 	do
 	{
 		p += lstrlen(p);
-		*p = L'\\';
+		*p = _T('\\');
 
 		chTemp = p[1];
-		p[1] = L'\0';
+		p[1] = _T('\0');
 
 		if(!CreateDirectory(szPathBuffer, NULL))
 			return FALSE;
 
 		p[1] = chTemp;
 	}
-	while(p[1] != L'\0');
+	while(p[1] != _T('\0'));
 
 	return TRUE;
 }
 
-static DWORD PathRelativeToModuleDir(HMODULE hModule, WCHAR *pRelativePath, WCHAR *pResult, BOOL bPathAddBackslash)
+static DWORD PathRelativeToModuleDir(HMODULE hModule, TCHAR *pRelativePath, TCHAR *pResult, BOOL bPathAddBackslash)
 {
-	WCHAR szPathBuffer[MAX_PATH];
+	TCHAR szPathBuffer[MAX_PATH];
 	DWORD dwBufferLen;
-	WCHAR *pFilePart;
+	TCHAR *pFilePart;
 
 	dwBufferLen = GetModuleFileName(hModule, szPathBuffer, MAX_PATH);
 	if(dwBufferLen == 0)
@@ -1140,10 +1140,10 @@ static DWORD PathRelativeToModuleDir(HMODULE hModule, WCHAR *pRelativePath, WCHA
 		if(dwBufferLen == 0)
 			return 0;
 	}
-	while(szPathBuffer[dwBufferLen] != L'\\');
+	while(szPathBuffer[dwBufferLen] != _T('\\'));
 
 	dwBufferLen++;
-	szPathBuffer[dwBufferLen] = L'\0';
+	szPathBuffer[dwBufferLen] = _T('\0');
 
 	dwBufferLen += lstrlen(pRelativePath);
 	if(dwBufferLen > MAX_PATH-1)
@@ -1155,20 +1155,20 @@ static DWORD PathRelativeToModuleDir(HMODULE hModule, WCHAR *pRelativePath, WCHA
 	if(dwBufferLen == 0 || dwBufferLen > MAX_PATH-1)
 		return 0;
 
-	if(bPathAddBackslash && pResult[dwBufferLen-1] != L'\\')
+	if(bPathAddBackslash && pResult[dwBufferLen-1] != _T('\\'))
 	{
 		if(dwBufferLen == MAX_PATH-1)
 			return 0;
 
-		pResult[dwBufferLen] = L'\\';
-		pResult[dwBufferLen+1] = L'\0';
+		pResult[dwBufferLen] = _T('\\');
+		pResult[dwBufferLen+1] = _T('\0');
 		dwBufferLen++;
 	}
 
 	return dwBufferLen;
 }
 
-static BOOL GetFileLastWriteTime(WCHAR *pFilePath, FILETIME *pftLastWriteTime)
+static BOOL GetFileLastWriteTime(TCHAR *pFilePath, FILETIME *pftLastWriteTime)
 {
 	HANDLE hFind;
 	WIN32_FIND_DATA find_data;

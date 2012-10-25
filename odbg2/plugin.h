@@ -9,10 +9,10 @@
 #define DEF_VERSION           _T("2.1")
 
 // Config functions
-BOOL MyGetintfromini(wchar_t *key, int *p_val, int min, int max, int def);
-BOOL MyWriteinttoini(wchar_t *key, int val);
-int MyGetstringfromini(wchar_t *key, wchar_t *s, int length);
-int MyWritestringtoini(wchar_t *key, wchar_t *s);
+BOOL MyGetintfromini(HINSTANCE dllinst, TCHAR *key, int *p_val, int min, int max, int def);
+BOOL MyWriteinttoini(HINSTANCE dllinst, TCHAR *key, int val);
+int MyGetstringfromini(HINSTANCE dllinst, TCHAR *key, TCHAR *s, int length);
+BOOL MyWritestringtoini(HINSTANCE dllinst, TCHAR *key, TCHAR *s);
 
 // Assembler functions
 int AssembleShortest(TCHAR *lpCommand, DWORD dwAddress, BYTE *bBuffer, TCHAR *lpError);

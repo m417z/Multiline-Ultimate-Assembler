@@ -2,8 +2,62 @@
 
 HWND hwollymain;
 
-// Assembler functions
+// Config functions
 
+BOOL MyGetintfromini(HINSTANCE dllinst, TCHAR *key, int *p_val, int min, int max, int def)
+{
+	int val;
+
+	val = Pluginreadintfromini(dllinst, key, -1);
+	if(val = -1)
+	{
+		*p_val = def;
+
+		return FALSE;
+	}
+
+	if(min && max && (val < min || val > max))
+		*p_val = def;
+	else
+		*p_val = val;
+
+	return TRUE;
+}
+
+BOOL MyWriteinttoini(HINSTANCE dllinst, TCHAR *key, int val)
+{
+	return Pluginwriteinttoini(dllinst, key, val) != 0;
+}
+
+int MyGetstringfromini(HINSTANCE dllinst, TCHAR *key, TCHAR *s, int length)
+{
+	char buf[256];
+	int len;
+
+	if(length >= 256)
+		return Pluginreadstringfromini(dllinst, key, s, "");
+
+	len = Pluginreadstringfromini(dllinst, key, buf, "");
+	if(len > length-1)
+		len = length-1;
+
+	lstrcpyn(s, buf, len+1);
+
+	return len;
+}
+
+BOOL MyWritestringtoini(HINSTANCE dllinst, TCHAR *key, TCHAR *s)
+{
+	return Pluginwritestringtoini(dllinst, key, s) != 0;
+}
+
+// Assembler functions
+/*TODO
+ulong SimpleDisasm(uchar *cmd, ulong cmdsize, ulong ip, uchar *dec, t_disasm *disasm, BOOL bSizeOnly)
+{
+	return Disasm(cmd, cmdsize, ip, dec, disasm, bSizeOnly?DISASM_SIZE:DISASM_FILE, 0);
+}
+*/
 int AssembleShortest(TCHAR *lpCommand, DWORD dwAddress, BYTE *bBuffer, TCHAR *lpError)
 {
 	char *lpFixedCommand, *lpCommandToAssemble;

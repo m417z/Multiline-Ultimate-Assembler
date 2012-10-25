@@ -46,7 +46,7 @@ static LRESULT CALLBACK DlgOptionsProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 
 		case IDOK:
 			OptionsFromDlg(hWnd);
-			OptionsToIni();
+			OptionsToIni(hDllInst);
 			EndDialog(hWnd, 1);
 			break;
 
@@ -108,16 +108,16 @@ static void OptionsFromDlg(HWND hWnd)
 	options.edit_tabwidth = SendDlgItemMessage(hWnd, IDC_EDIT_TABWIDTH, CB_GETCURSEL, 0, 0);
 }
 
-static void OptionsToIni()
+static void OptionsToIni(HINSTANCE hInst)
 {
-	MyWriteinttoini(_T("disasm_rva"), options.disasm_rva);
-	MyWriteinttoini(_T("disasm_rva_reloconly"), options.disasm_rva_reloconly);
-	MyWriteinttoini(_T("disasm_label"), options.disasm_label);
-	MyWriteinttoini(_T("disasm_extjmp"), options.disasm_extjmp);
-	MyWriteinttoini(_T("disasm_hex"), options.disasm_hex);
-	MyWriteinttoini(_T("disasm_labelgen"), options.disasm_labelgen);
-	MyWriteinttoini(_T("asm_comments"), options.asm_comments);
-	MyWriteinttoini(_T("asm_labels"), options.asm_labels);
-	MyWriteinttoini(_T("edit_savepos"), options.edit_savepos);
-	MyWriteinttoini(_T("edit_tabwidth"), options.edit_tabwidth);
+	MyWriteinttoini(hInst, _T("disasm_rva"), options.disasm_rva);
+	MyWriteinttoini(hInst, _T("disasm_rva_reloconly"), options.disasm_rva_reloconly);
+	MyWriteinttoini(hInst, _T("disasm_label"), options.disasm_label);
+	MyWriteinttoini(hInst, _T("disasm_extjmp"), options.disasm_extjmp);
+	MyWriteinttoini(hInst, _T("disasm_hex"), options.disasm_hex);
+	MyWriteinttoini(hInst, _T("disasm_labelgen"), options.disasm_labelgen);
+	MyWriteinttoini(hInst, _T("asm_comments"), options.asm_comments);
+	MyWriteinttoini(hInst, _T("asm_labels"), options.asm_labels);
+	MyWriteinttoini(hInst, _T("edit_savepos"), options.edit_savepos);
+	MyWriteinttoini(hInst, _T("edit_tabwidth"), options.edit_tabwidth);
 }

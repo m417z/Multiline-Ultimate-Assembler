@@ -767,10 +767,7 @@ static void LoadWindowPos(HWND hWnd, HINSTANCE hInst, long *p_min_w, long *p_min
 
 	if(options.edit_savepos)
 	{
-		x = Pluginreadintfromini(hInst, _T("pos_x"), 0xDEADBEEF);
-		y = Pluginreadintfromini(hInst, _T("pos_y"), 0xDEADBEEF);
-
-		if(x != 0xDEADBEEF && y != 0xDEADBEEF) // No better way afaik :(
+		if(MyGetintfromini(hInst, _T("pos_x"), &x, 0, 0, 0) && MyGetintfromini(hInst, _T("pos_y"), &y, 0, 0, 0))
 		{
 			SystemParametersInfo(SPI_GETWORKAREA, 0, &rc, 0);
 
@@ -780,18 +777,8 @@ static void LoadWindowPos(HWND hWnd, HINSTANCE hInst, long *p_min_w, long *p_min
 			if(y < rc.top || y > rc.bottom)
 				y = rc.top;
 
-			w = Pluginreadintfromini(hInst, _T("pos_w"), 0xDEADBEEF);
-			h = Pluginreadintfromini(hInst, _T("pos_h"), 0xDEADBEEF);
-
-			if(w == 0xDEADBEEF)
-				w = cur_w;
-			else if(w < min_w)
-				w = min_w;
-
-			if(h == 0xDEADBEEF)
-				h = cur_h;
-			else if(h < min_h)
-				h = min_h;
+			MyGetintfromini(hInst, _T("pos_w"), &w, min_w, INT_MAX, cur_w);
+			MyGetintfromini(hInst, _T("pos_h"), &h, min_h, INT_MAX, cur_h);
 
 			SetWindowPos(hWnd, NULL, x, y, w, h, SWP_NOZORDER|SWP_NOACTIVATE|SWP_NOOWNERZORDER);
 		}
@@ -807,10 +794,10 @@ static void SaveWindowPos(HWND hWnd, HINSTANCE hInst)
 		wp.length = sizeof(WINDOWPLACEMENT);
 		GetWindowPlacement(hWnd, &wp);
 
-		Pluginwriteinttoini(hInst, _T("pos_x"), wp.rcNormalPosition.left);
-		Pluginwriteinttoini(hInst, _T("pos_y"), wp.rcNormalPosition.top);
-		Pluginwriteinttoini(hInst, _T("pos_w"), wp.rcNormalPosition.right-wp.rcNormalPosition.left);
-		Pluginwriteinttoini(hInst, _T("pos_h"), wp.rcNormalPosition.bottom-wp.rcNormalPosition.top);
+		MyWriteinttoini(hInst, _T("pos_x"), wp.rcNormalPosition.left);
+		MyWriteinttoini(hInst, _T("pos_y"), wp.rcNormalPosition.top);
+		MyWriteinttoini(hInst, _T("pos_w"), wp.rcNormalPosition.right-wp.rcNormalPosition.left);
+		MyWriteinttoini(hInst, _T("pos_h"), wp.rcNormalPosition.bottom-wp.rcNormalPosition.top);
 	}
 }
 

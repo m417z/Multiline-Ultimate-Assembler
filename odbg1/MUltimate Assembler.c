@@ -86,25 +86,16 @@ extc int _export cdecl ODBG_Plugininit(int ollydbgversion, HWND hWnd, ulong *fea
 	Addtolist(0, -1, "  " DEF_COPYRIGHT);
 
 	// Load options
-	options.disasm_rva = Pluginreadintfromini(hDllInst, "disasm_rva", 1);
-	options.disasm_rva_reloconly = Pluginreadintfromini(hDllInst, "disasm_rva_reloconly", 1);
-	options.disasm_label = Pluginreadintfromini(hDllInst, "disasm_label", 1);
-	options.disasm_extjmp = Pluginreadintfromini(hDllInst, "disasm_extjmp", 1);
-	options.disasm_hex = Pluginreadintfromini(hDllInst, "disasm_hex", 0);
-	options.disasm_labelgen = Pluginreadintfromini(hDllInst, "disasm_labelgen", 0);
-	options.asm_comments = Pluginreadintfromini(hDllInst, "asm_comments", 1);
-	options.asm_labels = Pluginreadintfromini(hDllInst, "asm_labels", 1);
-	options.edit_savepos = Pluginreadintfromini(hDllInst, "edit_savepos", 1);
-	options.edit_tabwidth = Pluginreadintfromini(hDllInst, "edit_tabwidth", 1);
-
-	if(options.disasm_hex < 0 || options.disasm_hex > 3)
-		options.disasm_hex = 0;
-
-	if(options.disasm_labelgen < 0 || options.disasm_labelgen > 2)
-		options.disasm_labelgen = 0;
-
-	if(options.edit_tabwidth < 0 || options.edit_tabwidth > 2)
-		options.edit_tabwidth = 1;
+	MyGetintfromini(hDllInst, "disasm_rva", &options.disasm_rva, 0, 0, 1);
+	MyGetintfromini(hDllInst, "disasm_rva_reloconly", &options.disasm_rva_reloconly, 0, 0, 1);
+	MyGetintfromini(hDllInst, "disasm_label", &options.disasm_label, 0, 0, 1);
+	MyGetintfromini(hDllInst, "disasm_extjmp", &options.disasm_extjmp, 0, 0, 1);
+	MyGetintfromini(hDllInst, "disasm_hex", &options.disasm_hex, 0, 3, 0);
+	MyGetintfromini(hDllInst, "disasm_labelgen", &options.disasm_labelgen, 0, 2, 0);
+	MyGetintfromini(hDllInst, "asm_comments", &options.asm_comments, 0, 0, 1);
+	MyGetintfromini(hDllInst, "asm_labels", &options.asm_labels, 0, 0, 1);
+	MyGetintfromini(hDllInst, "edit_savepos", &options.edit_savepos, 0, 0, 1);
+	MyGetintfromini(hDllInst, "edit_tabwidth", &options.edit_tabwidth, 0, 2, 1);
 
 	return 0;
 }

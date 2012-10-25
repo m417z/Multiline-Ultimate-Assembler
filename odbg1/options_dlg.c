@@ -110,14 +110,14 @@ static void OptionsFromDlg(HWND hWnd)
 
 static void OptionsToIni(HINSTANCE hInst)
 {
-	Pluginwriteinttoini(hInst, _T("disasm_rva"), options.disasm_rva);
-	Pluginwriteinttoini(hInst, _T("disasm_rva_reloconly"), options.disasm_rva_reloconly);
-	Pluginwriteinttoini(hInst, _T("disasm_label"), options.disasm_label);
-	Pluginwriteinttoini(hInst, _T("disasm_extjmp"), options.disasm_extjmp);
-	Pluginwriteinttoini(hInst, _T("disasm_hex"), options.disasm_hex);
-	Pluginwriteinttoini(hInst, _T("disasm_labelgen"), options.disasm_labelgen);
-	Pluginwriteinttoini(hInst, _T("asm_comments"), options.asm_comments);
-	Pluginwriteinttoini(hInst, _T("asm_labels"), options.asm_labels);
-	Pluginwriteinttoini(hInst, _T("edit_savepos"), options.edit_savepos);
-	Pluginwriteinttoini(hInst, _T("edit_tabwidth"), options.edit_tabwidth);
+	MyWriteinttoini(hInst, _T("disasm_rva"), options.disasm_rva);
+	MyWriteinttoini(hInst, _T("disasm_rva_reloconly"), options.disasm_rva_reloconly);
+	MyWriteinttoini(hInst, _T("disasm_label"), options.disasm_label);
+	MyWriteinttoini(hInst, _T("disasm_extjmp"), options.disasm_extjmp);
+	MyWriteinttoini(hInst, _T("disasm_hex"), options.disasm_hex);
+	MyWriteinttoini(hInst, _T("disasm_labelgen"), options.disasm_labelgen);
+	MyWriteinttoini(hInst, _T("asm_comments"), options.asm_comments);
+	MyWriteinttoini(hInst, _T("asm_labels"), options.asm_labels);
+	MyWriteinttoini(hInst, _T("edit_savepos"), options.edit_savepos);
+	MyWriteinttoini(hInst, _T("edit_tabwidth"), options.edit_tabwidth);
 }
