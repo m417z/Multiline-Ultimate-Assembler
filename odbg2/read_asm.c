@@ -186,7 +186,7 @@ static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bD
 	t_disasm td;
 
 	// Disasm
-	dwCommandSize = Disasm(pCode, dwSize, dwAddress, bDecode, &td, DA_TEXT, NULL, NULL);
+	dwCommandSize = SimpleDisasm(pCode, dwSize, dwAddress, bDecode, &td, FALSE);
 
 	if(td.errors != DAE_NOERR)
 	{
@@ -249,7 +249,7 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 	int i;
 
 	// Check size of data
-	dwCommandSize = Disasm(pCode, dwSize, dwAddress, bDecode, &td, 0, NULL, NULL);
+	dwCommandSize = SimpleDisasm(pCode, dwSize, dwAddress, bDecode, &td, TRUE);
 
 	if(td.errors != DAE_NOERR)
 	{
@@ -743,8 +743,7 @@ static BOOL CreateAndSetLabels(DWORD dwAddress, DWORD dwSize,
 
 		if(pCode[i] == 2)
 		{
-			if(!Decodeaddress(dwAddress+i, 0, DM_SYMBOL|DM_JUMPIMP, pLabel, TEXTLEN, NULL) || 
-				!IsValidLabel(pLabel, p_dasm_head, dasm_cmd))
+			if(!FindSymbolicName(dwAddress+i, pLabel) || !IsValidLabel(pLabel, p_dasm_head, dasm_cmd))
 			{
 				switch(options.disasm_labelgen)
 				{
@@ -1092,16 +1091,18 @@ static int CopyCommand(TCHAR *pBuffer, TCHAR *pCommand, int hex_option)
 
 static int MakeRVAText(TCHAR szText[1+SHORTNAME+2+1+1], t_module *module)
 {
+	TCHAR *pModName;
 	BOOL bQuoted;
 	TCHAR *p;
 	TCHAR c;
 	int i;
 
+	pModName = module->modname;
 	bQuoted = FALSE;
 
-	for(i=0; i<SHORTNAME && module->modname[i] != _T('\0'); i++)
+	for(i=0; i<SHORTNAME && pModName[i] != _T('\0'); i++)
 	{
-		c = module->modname[i];
+		c = pModName[i];
 		if(
 			(c < _T('0') || c > _T('9')) && 
 			(c < _T('A') || c > _T('Z')) && 
@@ -1121,8 +1122,8 @@ static int MakeRVAText(TCHAR szText[1+SHORTNAME+2+1+1], t_module *module)
 	if(bQuoted)
 		*p++ = _T('"');
 
-	for(i=0; i<SHORTNAME && module->modname[i] != _T('\0'); i++)
-		*p++ = module->modname[i];
+	for(i=0; i<SHORTNAME && pModName[i] != _T('\0'); i++)
+		*p++ = pModName[i];
 
 	if(bQuoted)
 		*p++ = _T('"');

@@ -131,7 +131,7 @@ static BOOL ProcessCode(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_H
 			break;
 
 		// Text
-		case DEC_STRING:
+		case DEC_ASCII:
 		case DEC_UNICODE:
 		// Some other stuff
 		default:
@@ -179,7 +179,7 @@ static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bD
 	t_disasm td;
 
 	// Disasm
-	dwCommandSize = Disasm(pCode, dwSize, dwAddress, bDecode, &td, DISASM_FILE, 0);
+	dwCommandSize = SimpleDisasm(pCode, dwSize, dwAddress, bDecode, &td, FALSE);
 
 	if(td.error)
 	{
@@ -234,7 +234,7 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 	int i;
 
 	// Check size of data
-	dwCommandSize = Disasm(pCode, dwSize, dwAddress, bDecode, &td, DISASM_SIZE, 0);
+	dwCommandSize = SimpleDisasm(pCode, dwSize, dwAddress, bDecode, &td, TRUE);
 
 	if(td.error)
 	{
@@ -252,10 +252,10 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 			dwCommandType = DEC_UNKNOWN;
 		break;
 
-	case DEC_STRING:
+	case DEC_ASCII:
 	default:
 		if(ValidateAscii(pCode, dwCommandSize, &dwTextSize, &bReadAsBinary))
-			dwCommandType = DEC_STRING;
+			dwCommandType = DEC_ASCII;
 		else
 			dwCommandType = DEC_UNKNOWN;
 		break;
@@ -290,7 +290,7 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 		ConvertUnicodeToText(pCode, dwCommandSize, bReadAsBinary, dasm_cmd->lpCommand);
 		break;
 
-	case DEC_STRING:
+	case DEC_ASCII:
 		ConvertAsciiToText(pCode, dwCommandSize, bReadAsBinary, dasm_cmd->lpCommand);
 		break;
 	}
@@ -600,8 +600,8 @@ static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, t_module *module,
 	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
 	DISASM_CMD_NODE *dasm_cmd;
-	t_jdest *jddata;
-	int njddata;
+	t_jmp *jmpdata;
+	int njmpdata;
 	DWORD dwCodeBase, dwCodeSize;
 	DWORD dwFromAddr, dwToAddr;
 	BYTE *bDecode;
@@ -612,23 +612,23 @@ static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, t_module *module,
 	int comment_length;
 	int i;
 
-	if(!module || !module->jddata)
+	if(!module)
 		return TRUE;
 
-	jddata = module->jddata;
-	njddata = module->njddata;
+	jmpdata = module->jddata;
+	njmpdata = module->njddata;
 	dwCodeBase = module->codebase;
 	dwCodeSize = module->codesize;
 
-	for(i=0; i<njddata; i++)
+	for(i=0; i<njmpdata; i++)
 	{
-		dwFromAddr = jddata[i].from+dwCodeBase;
-		dwToAddr = jddata[i].to+dwCodeBase;
+		dwFromAddr = jmpdata[i].from+dwCodeBase;
+		dwToAddr = jmpdata[i].to+dwCodeBase;
 
 		if(
 			(dwFromAddr < dwAddress || dwFromAddr >= dwAddress+dwSize) && 
 			dwToAddr >= dwAddress && dwToAddr < dwAddress+dwSize && 
-			(jddata[i].type == JT_JUMP || jddata[i].type == JT_COND || jddata[i].type == 3 /* call */) && 
+			(jmpdata[i].type == JT_JUMP || jmpdata[i].type == JT_COND || jmpdata[i].type == JT_CALL) && 
 			pCode[dwToAddr-dwAddress] != 0
 		)
 		{
@@ -726,7 +726,7 @@ static BOOL CreateAndSetLabels(DWORD dwAddress, DWORD dwSize,
 
 		if(pCode[i] == 2)
 		{
-			if(!Findsymbolicname(dwAddress+i, pLabel) || !IsValidLabel(pLabel, p_dasm_head, dasm_cmd))
+			if(!FindSymbolicName(dwAddress+i, pLabel) || !IsValidLabel(pLabel, p_dasm_head, dasm_cmd))
 			{
 				switch(options.disasm_labelgen)
 				{
@@ -1074,16 +1074,18 @@ static int CopyCommand(TCHAR *pBuffer, TCHAR *pCommand, int hex_option)
 
 static int MakeRVAText(TCHAR szText[1+SHORTNAME+2+1+1], t_module *module)
 {
+	TCHAR *pModName;
 	BOOL bQuoted;
 	TCHAR *p;
 	TCHAR c;
 	int i;
 
+	pModName = module->name;
 	bQuoted = FALSE;
 
-	for(i=0; i<SHORTNAME && module->name[i] != _T('\0'); i++)
+	for(i=0; i<SHORTNAME && pModName[i] != _T('\0'); i++)
 	{
-		c = module->name[i];
+		c = pModName[i];
 		if(
 			(c < _T('0') || c > _T('9')) && 
 			(c < _T('A') || c > _T('Z')) && 
@@ -1103,8 +1105,8 @@ static int MakeRVAText(TCHAR szText[1+SHORTNAME+2+1+1], t_module *module)
 	if(bQuoted)
 		*p++ = _T('"');
 
-	for(i=0; i<SHORTNAME && module->name[i] != _T('\0'); i++)
-		*p++ = module->name[i];
+	for(i=0; i<SHORTNAME && pModName[i] != _T('\0'); i++)
+		*p++ = pModName[i];
 
 	if(bQuoted)
 		*p++ = _T('"');

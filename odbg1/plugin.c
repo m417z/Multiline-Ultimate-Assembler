@@ -52,12 +52,12 @@ BOOL MyWritestringtoini(HINSTANCE dllinst, TCHAR *key, TCHAR *s)
 }
 
 // Assembler functions
-/*TODO
+
 ulong SimpleDisasm(uchar *cmd, ulong cmdsize, ulong ip, uchar *dec, t_disasm *disasm, BOOL bSizeOnly)
 {
 	return Disasm(cmd, cmdsize, ip, dec, disasm, bSizeOnly?DISASM_SIZE:DISASM_FILE, 0);
 }
-*/
+
 int AssembleShortest(TCHAR *lpCommand, DWORD dwAddress, BYTE *bBuffer, TCHAR *lpError)
 {
 	char *lpFixedCommand, *lpCommandToAssemble;
@@ -453,6 +453,11 @@ int FindName(ulong addr, int type, TCHAR *name)
 	return Findname(addr, type, name);
 }
 
+int FindSymbolicName(ulong addr, TCHAR *fname)
+{
+	return Findsymbolicname(addr, fname);
+}
+
 t_module *FindModuleByName(TCHAR *lpModule)
 {
 	int module_len;
@@ -514,4 +519,9 @@ void EnsureMemoryBackup(t_memory *pmem)
 
 		Dumpbackup(&dump, BKUP_CREATE);
 	}
+}
+
+t_status GetStatus()
+{
+	return Getstatus();
 }

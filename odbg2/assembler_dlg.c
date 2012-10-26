@@ -1057,7 +1057,7 @@ static BOOL PatchCode(HWND hWnd)
 	DWORD dwTextSize;
 	int result;
 
-	if(run.status == STAT_IDLE)
+	if(GetStatus() == STAT_IDLE)
 	{
 		AsmDlgMessageBox(hWnd, _T("No process is loaded"), NULL, MB_ICONASTERISK);
 		return FALSE;

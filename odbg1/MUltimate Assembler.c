@@ -7,8 +7,10 @@
 #include "options_dlg.h"
 #include "resource.h"
 
-static BOOL OpenHelp();
-static int AboutMessageBox();
+static TCHAR *PluginInit(HINSTANCE hInst);
+static void PluginExit();
+static BOOL OpenHelp(HWND hWnd, HINSTANCE hInst);
+static int AboutMessageBox(HWND hWnd, HINSTANCE hInst);
 
 HINSTANCE hDllInst;
 OPTIONS options;
@@ -61,19 +63,10 @@ extc int _export cdecl ODBG_Plugininit(int ollydbgversion, HWND hWnd, ulong *fea
 	// to display message box.
 	hwollymain = hWnd;
 
-	// Common controls
-	InitCommonControls();
-
-	// Install RAEdit control
-	InstallRAEdit(hDllInst, FALSE);
-
 	// Init assembler thread, etc.
-	pError = AssemblerInit();
-
+	pError = PluginInit(hDllInst);
 	if(pError)
 	{
-		UnInstallRAEdit();
-
 		MessageBox(hWnd, pError, "Multiline Ultimate Assembler error", MB_ICONHAND);
 		return -1;
 	}
@@ -84,18 +77,6 @@ extc int _export cdecl ODBG_Plugininit(int ollydbgversion, HWND hWnd, ulong *fea
 	// by two characters, bears copyright notice.
 	Addtolist(0, 0, "Multiline Ultimate Assembler v" DEF_VERSION);
 	Addtolist(0, -1, "  " DEF_COPYRIGHT);
-
-	// Load options
-	MyGetintfromini(hDllInst, "disasm_rva", &options.disasm_rva, 0, 0, 1);
-	MyGetintfromini(hDllInst, "disasm_rva_reloconly", &options.disasm_rva_reloconly, 0, 0, 1);
-	MyGetintfromini(hDllInst, "disasm_label", &options.disasm_label, 0, 0, 1);
-	MyGetintfromini(hDllInst, "disasm_extjmp", &options.disasm_extjmp, 0, 0, 1);
-	MyGetintfromini(hDllInst, "disasm_hex", &options.disasm_hex, 0, 3, 0);
-	MyGetintfromini(hDllInst, "disasm_labelgen", &options.disasm_labelgen, 0, 2, 0);
-	MyGetintfromini(hDllInst, "asm_comments", &options.asm_comments, 0, 0, 1);
-	MyGetintfromini(hDllInst, "asm_labels", &options.asm_labels, 0, 0, 1);
-	MyGetintfromini(hDllInst, "edit_savepos", &options.edit_savepos, 0, 0, 1);
-	MyGetintfromini(hDllInst, "edit_tabwidth", &options.edit_tabwidth, 0, 2, 1);
 
 	return 0;
 }
@@ -164,13 +145,13 @@ extc void _export cdecl ODBG_Pluginaction(int origin, int action, void *item)
 
 		case 2:
 			// Menu item "Help"
-			if(!OpenHelp())
+			if(!OpenHelp(hwollymain, hDllInst))
 				MessageBox(hwollymain, "Failed to open the \"multiasm.chm\" help file", NULL, MB_ICONHAND);
 			break;
 
 		case 3:
 			// Menu item "About", displays plugin info.
-			AboutMessageBox();
+			AboutMessageBox(hwollymain, hDllInst);
 			break;
 		}
 		break;
@@ -229,17 +210,59 @@ extc int _export cdecl ODBG_Pluginclose(void)
 // window classes, files, memory and so on.
 extc void _export cdecl ODBG_Plugindestroy(void)
 {
+	PluginExit();
+}
+
+// Functions
+
+static TCHAR *PluginInit(HINSTANCE hInst)
+{
+	INITCOMMONCONTROLSEX icex;
+	TCHAR *pError;
+
+	// Ensure that the common control DLL is loaded.
+	icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+	icex.dwICC = ICC_TAB_CLASSES;
+	InitCommonControlsEx(&icex);
+
+	// Install RAEdit control
+	InstallRAEdit(hInst, FALSE);
+
+	// Init assembler thread, etc.
+	pError = AssemblerInit();
+	if(pError)
+	{
+		UnInstallRAEdit();
+		return pError;
+	}
+
+	// Load options
+	MyGetintfromini(hInst, _T("disasm_rva"), &options.disasm_rva, 0, 0, 1);
+	MyGetintfromini(hInst, _T("disasm_rva_reloconly"), &options.disasm_rva_reloconly, 0, 0, 1);
+	MyGetintfromini(hInst, _T("disasm_label"), &options.disasm_label, 0, 0, 1);
+	MyGetintfromini(hInst, _T("disasm_extjmp"), &options.disasm_extjmp, 0, 0, 1);
+	MyGetintfromini(hInst, _T("disasm_hex"), &options.disasm_hex, 0, 3, 0);
+	MyGetintfromini(hInst, _T("disasm_labelgen"), &options.disasm_labelgen, 0, 2, 0);
+	MyGetintfromini(hInst, _T("asm_comments"), &options.asm_comments, 0, 0, 1);
+	MyGetintfromini(hInst, _T("asm_labels"), &options.asm_labels, 0, 0, 1);
+	MyGetintfromini(hInst, _T("edit_savepos"), &options.edit_savepos, 0, 0, 1);
+	MyGetintfromini(hInst, _T("edit_tabwidth"), &options.edit_tabwidth, 0, 2, 1);
+
+	return NULL;
+}
+
+static void PluginExit()
+{
 	AssemblerExit();
 	UnInstallRAEdit();
 }
 
-// Functions
-static BOOL OpenHelp()
+static BOOL OpenHelp(HWND hWnd, HINSTANCE hInst)
 {
-	char szFilePath[MAX_PATH];
+	TCHAR szFilePath[MAX_PATH];
 	DWORD dwPathLen;
 
-	dwPathLen = GetModuleFileName(hDllInst, szFilePath, MAX_PATH);
+	dwPathLen = GetModuleFileName(hInst, szFilePath, MAX_PATH);
 	if(dwPathLen == 0)
 		return FALSE;
 
@@ -250,36 +273,36 @@ static BOOL OpenHelp()
 		if(dwPathLen == 0)
 			return FALSE;
 	}
-	while(szFilePath[dwPathLen] != L'\\');
+	while(szFilePath[dwPathLen] != _T('\\'));
 
 	dwPathLen++;
-	szFilePath[dwPathLen] = L'\0';
+	szFilePath[dwPathLen] = _T('\0');
 
 	dwPathLen += sizeof("multiasm.chm")-1;
 	if(dwPathLen > MAX_PATH-1)
 		return FALSE;
 
-	lstrcat(szFilePath, "multiasm.chm");
+	lstrcat(szFilePath, _T("multiasm.chm"));
 
-	return !((int)ShellExecute(hwollymain, NULL, szFilePath, NULL, NULL, SW_SHOWNORMAL) <= 32);
+	return !((int)ShellExecute(hWnd, NULL, szFilePath, NULL, NULL, SW_SHOWNORMAL) <= 32);
 }
 
-static int AboutMessageBox()
+static int AboutMessageBox(HWND hWnd, HINSTANCE hInst)
 {
 	MSGBOXPARAMS mbpMsgBoxParams;
 
 	ZeroMemory(&mbpMsgBoxParams, sizeof(MSGBOXPARAMS));
 
 	mbpMsgBoxParams.cbSize = sizeof(MSGBOXPARAMS);
-	mbpMsgBoxParams.hwndOwner = hwollymain;
-	mbpMsgBoxParams.hInstance = hDllInst;
+	mbpMsgBoxParams.hwndOwner = hWnd;
+	mbpMsgBoxParams.hInstance = hInst;
 	mbpMsgBoxParams.lpszText = 
-		"Multiline Ultimate Assembler v" DEF_VERSION "\n"
-		"By RaMMicHaeL\n"
-		"http://rammichael.com/\n"
-		"\n"
-		"Compiled on: " TEXT(__DATE__);
-	mbpMsgBoxParams.lpszCaption = "About";
+		_T("Multiline Ultimate Assembler v") DEF_VERSION _T("\n")
+		_T("By RaMMicHaeL\n")
+		_T("http://rammichael.com/\n")
+		_T("\n")
+		_T("Compiled on: ") _T(__DATE__);
+	mbpMsgBoxParams.lpszCaption = _T("About");
 	mbpMsgBoxParams.dwStyle = MB_USERICON;
 	mbpMsgBoxParams.lpszIcon = MAKEINTRESOURCE(IDI_MAIN);
 
