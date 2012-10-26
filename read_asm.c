@@ -119,6 +119,12 @@ static BOOL ProcessCode(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_H
 		// Unknown is treated as command
 		case DEC_UNKNOWN:
 		// Supported data
+#if PLUGIN_VERSION_MAJOR == 1
+		case DEC_BYTE:
+		case DEC_WORD:
+		case DEC_DWORD:
+		case DEC_BYTESW:
+#elif PLUGIN_VERSION_MAJOR == 2
 		case DEC_FILLDATA:
 		case DEC_INT:
 		case DEC_SWITCH:
@@ -128,6 +134,7 @@ static BOOL ProcessCode(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_H
 		case DEC_FLOAT:
 		case DEC_GUID:
 		case DEC_FILLING:
+#endif // PLUGIN_VERSION_MAJOR
 		// Command
 		case DEC_COMMAND:
 		case DEC_JMPDEST:
@@ -137,9 +144,11 @@ static BOOL ProcessCode(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_H
 
 		// Text
 		case DEC_ASCII:
-		case DEC_ASCCNT:
 		case DEC_UNICODE:
+#if PLUGIN_VERSION_MAJOR == 2
+		case DEC_ASCCNT:
 		case DEC_UNICNT:
+#endif // PLUGIN_VERSION_MAJOR
 		// Some other stuff
 		default:
 			dwCommandSize = ProcessData(pCode, dwSize, dwAddress, bDecode, dwCommandType, p_dasm_head, lpError);
@@ -188,7 +197,11 @@ static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bD
 	// Disasm
 	dwCommandSize = SimpleDisasm(pCode, dwSize, dwAddress, bDecode, &td, FALSE);
 
+#if PLUGIN_VERSION_MAJOR == 1
+	if(td.error)
+#elif PLUGIN_VERSION_MAJOR == 2
 	if(td.errors != DAE_NOERR)
+#endif // PLUGIN_VERSION_MAJOR
 	{
 		wsprintf(lpError, _T("Disasm failed on address 0x%08X"), dwAddress);
 		return 0;
@@ -213,6 +226,11 @@ static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bD
 
 	lstrcpy(dasm_cmd->lpCommand, td.result);
 
+#if PLUGIN_VERSION_MAJOR == 1
+	dasm_cmd->dwConst[0] = td.jmpconst;
+	dasm_cmd->dwConst[1] = td.adrconst;
+	dasm_cmd->dwConst[2] = td.immconst;
+#elif PLUGIN_VERSION_MAJOR == 2
 	if(td.memfixup != -1)
 		dasm_cmd->dwConst[0] = *(DWORD *)(pCode+td.memfixup);
 	else
@@ -224,6 +242,7 @@ static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bD
 		dasm_cmd->dwConst[1] = 0;
 
 	dasm_cmd->dwConst[2] = td.jmpaddr;
+#endif // PLUGIN_VERSION_MAJOR
 
 	dasm_cmd->dwAddress = 0;
 
@@ -251,7 +270,11 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 	// Check size of data
 	dwCommandSize = SimpleDisasm(pCode, dwSize, dwAddress, bDecode, &td, TRUE);
 
+#if PLUGIN_VERSION_MAJOR == 1
+	if(td.error)
+#elif PLUGIN_VERSION_MAJOR == 2
 	if(td.errors != DAE_NOERR)
+#endif // PLUGIN_VERSION_MAJOR
 	{
 		wsprintf(lpError, _T("Disasm failed on address 0x%08X"), dwAddress);
 		return 0;
@@ -261,7 +284,9 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 	switch(dwCommandType)
 	{
 	case DEC_UNICODE:
+#if PLUGIN_VERSION_MAJOR == 2
 	case DEC_UNICNT:
+#endif // PLUGIN_VERSION_MAJOR
 		if(ValidateUnicode(pCode, dwCommandSize, &dwTextSize, &bReadAsBinary))
 			dwCommandType = DEC_UNICODE;
 		else
@@ -269,7 +294,9 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 		break;
 
 	case DEC_ASCII:
+#if PLUGIN_VERSION_MAJOR == 2
 	case DEC_ASCCNT:
+#endif // PLUGIN_VERSION_MAJOR
 	default:
 		if(ValidateAscii(pCode, dwCommandSize, &dwTextSize, &bReadAsBinary))
 			dwCommandType = DEC_ASCII;
@@ -632,15 +659,26 @@ static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, t_module *module,
 	if(!module)
 		return TRUE;
 
+#if PLUGIN_VERSION_MAJOR == 1
+	jmpdata = module->jddata;
+	njmpdata = module->njddata;
+#elif PLUGIN_VERSION_MAJOR == 2
 	jmpdata = module->jumps.jmpdata;
 	njmpdata = module->jumps.njmp;
+#endif // PLUGIN_VERSION_MAJOR
+
 	dwCodeBase = module->codebase;
 	dwCodeSize = module->codesize;
 
 	for(i=0; i<njmpdata; i++)
 	{
+#if PLUGIN_VERSION_MAJOR == 1
+		dwFromAddr = jmpdata[i].from+dwCodeBase;
+		dwToAddr = jmpdata[i].to+dwCodeBase;
+#elif PLUGIN_VERSION_MAJOR == 2
 		dwFromAddr = jmpdata[i].from;
 		dwToAddr = jmpdata[i].dest;
+#endif // PLUGIN_VERSION_MAJOR
 
 		if(
 			(dwFromAddr < dwAddress || dwFromAddr >= dwAddress+dwSize) && 
@@ -860,7 +898,11 @@ static BOOL SetRVAAddresses(DWORD dwAddress, DWORD dwSize, t_module *module, DIS
 	TCHAR *pRVAAddress;
 	int i, j;
 
+#if PLUGIN_VERSION_MAJOR == 1
+	if(!module || (options.disasm_rva_reloconly && !module->reloctable))
+#elif PLUGIN_VERSION_MAJOR == 2
 	if(!module || (options.disasm_rva_reloconly && !module->relocbase))
+#endif // PLUGIN_VERSION_MAJOR
 		return TRUE;
 
 	szRVAText[0] = _T('$');
@@ -914,7 +956,11 @@ static TCHAR *MakeText(DWORD dwAddress, t_module *module, DISASM_CMD_HEAD *p_das
 		return NULL;
 	}
 
+#if PLUGIN_VERSION_MAJOR == 1
+	bRVAAddresses = (options.disasm_rva && module && (!options.disasm_rva_reloconly || module->reloctable));
+#elif PLUGIN_VERSION_MAJOR == 2
 	bRVAAddresses = (options.disasm_rva && module && (!options.disasm_rva_reloconly || module->relocbase));
+#endif // PLUGIN_VERSION_MAJOR
 	if(bRVAAddresses)
 		MakeRVAText(szRVAText, module);
 
@@ -1097,7 +1143,12 @@ static int MakeRVAText(TCHAR szText[1+SHORTNAME+2+1+1], t_module *module)
 	TCHAR c;
 	int i;
 
+#if PLUGIN_VERSION_MAJOR == 1
+	pModName = module->name;
+#elif PLUGIN_VERSION_MAJOR == 2
 	pModName = module->modname;
+#endif // PLUGIN_VERSION_MAJOR
+
 	bQuoted = FALSE;
 
 	for(i=0; i<SHORTNAME && pModName[i] != _T('\0'); i++)

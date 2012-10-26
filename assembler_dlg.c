@@ -1034,9 +1034,15 @@ static BOOL LoadCode(HWND hWnd, DWORD dwAddress, DWORD dwSize)
 	if(!GetTabName(GetDlgItem(hWnd, IDC_TABS), szLabelPerfix, 32))
 		*szLabelPerfix = _T('\0');
 
+#if PLUGIN_VERSION_MAJOR == 2
 	Suspendallthreads();
+#endif // PLUGIN_VERSION_MAJOR
+
 	lpText = ReadAsm(dwAddress, dwSize, szLabelPerfix, szError);
+
+#if PLUGIN_VERSION_MAJOR == 2
 	Resumeallthreads();
+#endif // PLUGIN_VERSION_MAJOR
 
 	if(!lpText)
 	{
@@ -1074,9 +1080,15 @@ static BOOL PatchCode(HWND hWnd)
 
 	SendDlgItemMessage(hWnd, IDC_ASSEMBLER, WM_GETTEXT, dwTextSize+1, (LPARAM)lpText);
 
+#if PLUGIN_VERSION_MAJOR == 2
 	Suspendallthreads();
+#endif // PLUGIN_VERSION_MAJOR
+
 	result = WriteAsm(lpText, szError);
+
+#if PLUGIN_VERSION_MAJOR == 2
 	Resumeallthreads();
+#endif // PLUGIN_VERSION_MAJOR
 
 	HeapFree(GetProcessHeap(), 0, lpText);
 

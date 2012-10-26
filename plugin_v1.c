@@ -2,6 +2,11 @@
 
 HWND hwollymain;
 
+static int FixAsmCommand(char *lpCommand, char **ppFixedCommand, char *lpError);
+static char *SkipCommandName(char *p);
+static int FixedAsmCorrectErrorSpot(char *lpCommand, char *pFixedCommand, int result);
+static BOOL FindNextHexNumberStartingWithALetter(char *lpCommand, char **ppHexNumberStart, char **ppHexNumberEnd);
+
 // Config functions
 
 BOOL MyGetintfromini(HINSTANCE dllinst, TCHAR *key, int *p_val, int min, int max, int def)
@@ -9,7 +14,7 @@ BOOL MyGetintfromini(HINSTANCE dllinst, TCHAR *key, int *p_val, int min, int max
 	int val;
 
 	val = Pluginreadintfromini(dllinst, key, -1);
-	if(val = -1)
+	if(val == -1)
 	{
 		*p_val = def;
 

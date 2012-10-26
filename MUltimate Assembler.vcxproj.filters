@@ -36,7 +36,10 @@
     <ClCompile Include="tabctrl_ex.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="plugin.c">
+    <ClCompile Include="plugin_v2.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="plugin_v1.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -51,6 +54,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="options_dlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="plugin.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="raedit.h">
@@ -68,10 +74,10 @@
     <ClInclude Include="tabctrl_ex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="plugin_ollydbg2.h">
+    <ClInclude Include="plugin_immdbg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="plugin.h">
+    <ClInclude Include="plugin_ollydbg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -3,10 +3,47 @@
 
 #include <windows.h>
 #include <tchar.h>
-#include "plugin_ollydbg2.h"
 
 #define DEF_PLUGINNAME        _T("Multiline Ultimate Assembler")
 #define DEF_VERSION           _T("2.1")
+#define DEF_COPYRIGHT         _T("Copyright (C) 2009-2012 RaMMicHaeL")
+
+#if PLUGIN_VERSION_MAJOR == 1
+
+#ifdef IMMDBG
+#include "plugin_immdbg.h"
+#else // if !IMMDBG
+#include "plugin_ollydbg.h"
+#endif // IMMDBG
+
+#ifndef JT_CALL
+#define JT_CALL               3 // Local (intramodular) call
+#endif // JT_CALL
+
+// v1 -> v2 helpers
+// {
+#ifndef SHORTNAME
+#define SHORTNAME             SHORTLEN
+#endif // SHORTNAME
+
+#ifndef DEC_ASCII
+#define DEC_ASCII             DEC_STRING
+#endif // DEC_ASCII
+
+#ifndef STAT_IDLE
+#define STAT_IDLE             STAT_NONE
+#endif // STAT_IDLE
+
+typedef t_jdest t_jmp;
+// } // v1 -> v2 helpers
+
+extern HWND hwollymain;
+
+#elif PLUGIN_VERSION_MAJOR == 2
+
+#include "plugin_ollydbg2.h"
+
+#endif // PLUGIN_VERSION_MAJOR
 
 // Config functions
 BOOL MyGetintfromini(HINSTANCE dllinst, TCHAR *key, int *p_val, int min, int max, int def);
