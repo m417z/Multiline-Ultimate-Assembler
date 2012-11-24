@@ -889,7 +889,10 @@ static void DoFindCustom(ASM_DIALOG_PARAM *p_dialog_param, DWORD dwFlagsSet, DWO
 	HWND hWnd;
 	WPARAM wFlagsParam;
 	CHARRANGE selrange;
-	FINDTEXTEX findtextex;
+	FINDTEXTEXA findtextex;
+#ifdef UNICODE
+	char szAnsiFindStr[FIND_REPLACE_TEXT_BUFFER];
+#endif
 	TCHAR szInfoMsg[sizeof("Cannot find \"\"")-1+FIND_REPLACE_TEXT_BUFFER];
 
 	p_findreplace = &p_dialog_param->findreplace;
@@ -912,7 +915,12 @@ static void DoFindCustom(ASM_DIALOG_PARAM *p_dialog_param, DWORD dwFlagsSet, DWO
 		findtextex.chrg.cpMax = 0;
 	}
 
+#ifdef UNICODE
+	WideCharToMultiByte(CP_ACP, 0, p_findreplace->lpstrFindWhat, -1, szAnsiFindStr, FIND_REPLACE_TEXT_BUFFER, NULL, NULL);
+	findtextex.lpstrText = szAnsiFindStr;
+#else // !UNICODE
 	findtextex.lpstrText = p_findreplace->lpstrFindWhat;
+#endif // UNICODE
 
 	if(findtextex.chrg.cpMin >= 0 && 
 		SendDlgItemMessage(hWnd, IDC_ASSEMBLER, EM_FINDTEXTEX, wFlagsParam, (LPARAM)&findtextex) != -1)
@@ -933,7 +941,10 @@ static void DoReplace(ASM_DIALOG_PARAM *p_dialog_param)
 	HWND hWnd;
 	WPARAM wFlagsParam;
 	CHARRANGE selrange;
-	FINDTEXTEX findtextex;
+	FINDTEXTEXA findtextex;
+#ifdef UNICODE
+	char szAnsiFindStr[FIND_REPLACE_TEXT_BUFFER];
+#endif
 
 	p_findreplace = &p_dialog_param->findreplace;
 	hWnd = p_findreplace->hwndOwner;
@@ -945,7 +956,12 @@ static void DoReplace(ASM_DIALOG_PARAM *p_dialog_param)
 	findtextex.chrg.cpMin = selrange.cpMin;
 	findtextex.chrg.cpMax = selrange.cpMin;
 
+#ifdef UNICODE
+	WideCharToMultiByte(CP_ACP, 0, p_findreplace->lpstrFindWhat, -1, szAnsiFindStr, FIND_REPLACE_TEXT_BUFFER, NULL, NULL);
+	findtextex.lpstrText = szAnsiFindStr;
+#else // !UNICODE
 	findtextex.lpstrText = p_findreplace->lpstrFindWhat;
+#endif // UNICODE
 
 	if(SendDlgItemMessage(hWnd, IDC_ASSEMBLER, EM_FINDTEXTEX, wFlagsParam, (LPARAM)&findtextex) != -1)
 	{
@@ -961,7 +977,10 @@ static void DoReplaceAll(ASM_DIALOG_PARAM *p_dialog_param)
 	FINDREPLACE *p_findreplace;
 	HWND hWnd;
 	WPARAM wFlagsParam;
-	FINDTEXTEX findtextex;
+	FINDTEXTEXA findtextex;
+#ifdef UNICODE
+	char szAnsiFindStr[FIND_REPLACE_TEXT_BUFFER];
+#endif
 	CHARRANGE selrange;
 	UINT uReplacedCount;
 	TCHAR szInfoMsg[sizeof("4294967295 occurrences were replaced")];
@@ -973,7 +992,13 @@ static void DoReplaceAll(ASM_DIALOG_PARAM *p_dialog_param)
 
 	findtextex.chrg.cpMin = 0;
 	findtextex.chrg.cpMax = -1;
+
+#ifdef UNICODE
+	WideCharToMultiByte(CP_ACP, 0, p_findreplace->lpstrFindWhat, -1, szAnsiFindStr, FIND_REPLACE_TEXT_BUFFER, NULL, NULL);
+	findtextex.lpstrText = szAnsiFindStr;
+#else // !UNICODE
 	findtextex.lpstrText = p_findreplace->lpstrFindWhat;
+#endif // UNICODE
 
 	uReplacedCount = 0;
 
