@@ -1,8 +1,3 @@
-#ifndef _PLUGIN_OLLYDBG2_H_
-#define _PLUGIN_OLLYDBG2_H_
-
-#include <windows.h>
-
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 //                        OLLYDBG 2 PLUGIN HEADER FILE                        //
@@ -23,7 +18,10 @@
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 
-#define PLUGIN_VERSION 0x02010000      // Version 2.01.0000 of plugin interface
+#ifndef __ODBG_PLUGIN_H
+#define __ODBG_PLUGIN_H
+
+#define PLUGIN_VERSION 0x02010001      // Version 2.01.0001 of plugin interface
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -71,7 +69,7 @@
 //////////////////// PREFERRED SETTINGS AND FIXES FOR MINGW ////////////////////
 
 #ifdef __MINGW32__
-  #pragma pack(1)                      // Force byte alignment of structures
+  #pragma pack(push, 1)                // Force byte alignment of structures
   #ifndef __CHAR_UNSIGNED__            // Verify that character is unsigned
     #error Please set default char type to unsigned (option -funsigned-char)
   #endif
@@ -423,6 +421,8 @@ stdapi (int)     Pluginpackedrecord(t_uddsave *psave,ulong tag,
                    ulong size,void *data);
 stdapi (void)    Pluginmodulechanged(ulong addr);
 stdapi (int)     Plugingetuniquedatatype(void);
+stdapi (int)     Plugintempbreakpoint(ulong addr,ulong type,int forceint3);
+stdapi (void)    Pluginshowoptions(struct t_control *options);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -552,7 +552,8 @@ stdapi (int)     Optostring(wchar_t *s,int op);
 #define K_RTLOG        159             // Set run trace log condition
 // Global shortcuts: Options.
 #define K_OPTIONS      170             // Open Options dialog
-#define K_SHORTCUTS    171             // Open Shortcut editor
+#define K_PLUGOPTIONS  171             // Open Plugin options dialog
+#define K_SHORTCUTS    172             // Open Shortcut editor
 // Global shortcuts: Windows functions.
 #define K_TOPMOST      180             // Toggle topmost status of main window
 #define K_CASCADE      181             // Cascade MDI windows
@@ -568,7 +569,7 @@ stdapi (int)     Optostring(wchar_t *s,int op);
 // Generic table shortcuts.
 #define K_PREVFRAME    200             // Go to previous frame in table
 #define K_NEXTFRAME    201             // Go to next frame in table
-#define K_ACTUALIZE    202             // Actualize table
+#define K_UPDATE       202             // Update table
 #define K_COPY         203             // Copy to clipboard
 #define K_COPYALL      204             // Copy whole table to clipboard
 #define K_CUT          205             // Cut to clipboard
@@ -884,6 +885,9 @@ typedef struct t_menu {                // Menu descriptor
   };
 } t_menu;
 
+stdapi (int)     Callmenufunction(struct t_table *pt,t_menu *pm,
+                   MENUFUNC *menufunc,ulong index);
+
 
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////// MAIN OLLYDBG WINDOW //////////////////////////////
@@ -1158,6 +1162,7 @@ typedef struct sd_pred {               // Descriptor of predicted data
 #define   MEM_DEFHEAP  0x00800000      // Contains default heap
 #define   MEM_HEAP     0x01000000      // Contains non-default heap
 #define   MEM_NATIVE   0x02000000      // Contains JIT-compiled native code
+#define   MEM_GAP      0x08000000      // Free or reserved space
 #define MEM_SECTION    0x10000000      // Section of the executable file
 #define MEM_GUARDED    0x40000000      // NT only: guarded memory block
 #define MEM_TEMPGUARD  0x80000000      // NT only: temporarily guarded block
@@ -1449,7 +1454,7 @@ typedef long TABFUNC(struct t_table *,HWND,UINT,WPARAM,LPARAM);
 typedef int  UPDATEFUNC(struct t_table *);
 typedef int  DRAWFUNC(wchar_t *,uchar *,int *,struct t_table *,
   t_sorthdr *,int,void *);
-typedef void TABSELFUNC(struct t_table *pt,int selected,int reason);
+typedef void TABSELFUNC(struct t_table *,int,int);
 
 typedef struct t_table {               // Window with sorted data and bar
   // These variables must be filled before table window is created.
@@ -1489,6 +1494,7 @@ typedef struct t_table {               // Window with sorted data and bar
 #define GWL_USR_TABLE  0               // Offset to pointer to t_table
 
 // Custom messages.
+#define WM_USER_CREATE (WM_USER+100)   // Table window is created
 #define WM_USER_HSCR   (WM_USER+101)   // Update horizontal scroll
 #define WM_USER_VSCR   (WM_USER+102)   // Update vertical scroll
 #define WM_USER_MOUSE  (WM_USER+103)   // Mouse moves, set custom cursor
@@ -1540,6 +1546,7 @@ stdapi (int)     Maketableareavisible(t_table *pt,int column,
                    int x0,int y0,int x1,int y1);
 stdapi (int)     Movetableselection(t_table *pt,int n);
 stdapi (int)     Settableselection(t_table *pt,int selected);
+stdapi (int)     Removetableselection(t_table *pt);
 stdapi (void)    Updatetable(t_table *pt,int force);
 stdapi (void)    Delayedtableredraw(t_table *pt);
 stdapi (void)    Setautoupdate(t_table *pt,int autoupdate);
@@ -1571,8 +1578,8 @@ typedef struct t_block {               // Block descriptor
   int            minp1;                // Min size of 1st subblock, pixels
   int            maxc1;                // Max size of 1st subblock, chars, or 0
   struct t_block *blk2;                // Bottom/right subblock, NULL if leaf
-  int            minp2;                // Min size of 2st subblock, pixels
-  int            maxc2;                // Max size of 2st subblock, chars, or 0
+  int            minp2;                // Min size of 2nd subblock, pixels
+  int            maxc2;                // Max size of 2nd subblock, chars, or 0
   t_table        *table;               // Descriptor of table window
   wchar_t        tabname[SHORTNAME];   // Tab (tab window only)
   wchar_t        title[TEXTLEN];       // Title (tab window) or speech name
@@ -1582,7 +1589,7 @@ typedef struct t_block {               // Block descriptor
 typedef struct t_frame {               // Descriptor of frame or tab window
   // These variables must be filled before frame window is created.
   wchar_t        name[SHORTNAME];      // Name used to save/restore position
-  int            herebit;              // Frame presence bit, one of WIN_xxx
+  int            herebit;              // Must be 0 for plugins
   int            mode;                 // Combination of bits TABLE_xxx
   t_block        *block;               // Pointer to block tree
   t_menu         *menu;                // Menu descriptor (tab window only)
@@ -3570,6 +3577,8 @@ typedef struct t_hexstr {              // Data for hex/text search
   uchar          mask[HEXLEN];         // Mask, 0 bits are masked
 } t_hexstr;
 
+typedef int  BROWSECODEFUNC(int,void *,ulong *,wchar_t *);
+
 stdapi (t_control *) Findcontrol(HWND hw);
 stdapi (int)     Defaultactions(HWND hparent,t_control *pctr,
                    WPARAM wp,LPARAM lp);
@@ -3630,7 +3639,78 @@ stdapi (int)     Hardlogbreakpoint(HWND hparent,ulong addr,int fnindex,
                    int x,int y,int fi,int mode);
 stdapi (void)    Setrtcond(HWND hparent,int x,int y,int fi);
 stdapi (void)    Setrtprot(HWND hparent,int x,int y,int fi);
+stdapi (ulong)   Browsecodelocations(HWND hparent,wchar_t *title,
+                   BROWSECODEFUNC *bccallback,void *data);
 stdapi (int)     Fillcombowithcodepages(HWND hw,int select);
+
+
+////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////// PLUGIN OPTIONS ////////////////////////////////
+
+#define OPT_TITLE      9001            // Pane title
+#define OPT_1          9011            // First automatical control
+#define OPT_2          9012            // Second automatical control
+#define OPT_3          9013            // Third automatical control
+#define OPT_4          9014            // Fourth automatical control
+#define OPT_5          9015            // Fifth automatical control
+#define OPT_6          9016            // Sixth automatical control
+#define OPT_7          9017            // Seventh automatical control
+#define OPT_8          9018            // Eighth automatical control
+#define OPT_9          9019            // Ninth automatical control
+#define OPT_10         9020            // Tenth automatical control
+#define OPT_11         9021            // Eleventh automatical control
+#define OPT_12         9022            // Twelfth automatical control
+#define OPT_13         9023            // Thirteen automatical control
+#define OPT_14         9024            // Fourteen automatical control
+#define OPT_15         9025            // Fifteen automatical control
+#define OPT_16         9026            // Sixteen automatical control
+#define OPT_17         9027            // Seventeen automatical control
+#define OPT_18         9028            // Eighteen automatical control
+#define OPT_19         9029            // Nineteen automatical control
+#define OPT_20         9030            // Twentieth automatical control
+#define OPT_21         9031            // Twenty-first automatical control
+#define OPT_22         9032            // Twenty-second automatical control
+#define OPT_23         9033            // Twenty-third automatical control
+#define OPT_24         9034            // Twenty-fourth automatical control
+#define OPT_W1         9101            // First automatical autowarn control
+#define OPT_W2         9102            // Second automatical autowarn control
+#define OPT_W3         9103            // Third automatical autowarn control
+#define OPT_W4         9104            // Fourth automatical autowarn control
+#define OPT_W5         9105            // Fifth automatical autowarn control
+#define OPT_W6         9106            // Sixth automatical autowarn control
+#define OPT_W7         9107            // Seventh automatical autowarn control
+#define OPT_W8         9108            // Eighth automatical autowarn control
+#define OPT_W9         9109            // Ninth automatical autowarn control
+#define OPT_W10        9110            // Tenth automatical autowarn control
+#define OPT_W11        9111            // Eleventh automatical autowarn control
+#define OPT_W12        9112            // Twelfth automatical autowarn control
+#define OPT_S1         9121            // First autowarn-if-turned-on control
+#define OPT_S2         9122            // Second autowarn-if-turned-on control
+#define OPT_S3         9123            // Third autowarn-if-turned-on control
+#define OPT_S4         9124            // Fourth autowarn-if-turned-on control
+#define OPT_S5         9125            // Fifth autowarn-if-turned-on control
+#define OPT_S6         9126            // Sixth autowarn-if-turned-on control
+#define OPT_S7         9127            // Seventh autowarn-if-turned-on control
+#define OPT_S8         9128            // Eighth autowarn-if-turned-on control
+#define OPT_S9         9129            // Ninth autowarn-if-turned-on control
+#define OPT_S10        9130            // Tenth autowarn-if-turned-on control
+#define OPT_S11        9131            // Eleventh autowarn-if-turned-on control
+#define OPT_S12        9132            // Twelfth autowarn-if-turned-on control
+#define OPT_X1         9141            // First autowarn-if-all-on control
+#define OPT_X2         9142            // Second autowarn-if-all-on control
+#define OPT_X3         9143            // Third autowarn-if-all-on control
+#define OPT_X4         9144            // Fourth autowarn-if-all-on control
+#define OPT_X5         9145            // Fifth autowarn-if-all-on control
+#define OPT_X6         9146            // Sixth autowarn-if-all-on control
+#define OPT_X7         9147            // Seventh autowarn-if-all-on control
+#define OPT_X8         9148            // Eighth autowarn-if-all-on control
+#define OPT_X9         9149            // Ninth autowarn-if-all-on control
+#define OPT_X10        9150            // Tenth autowarn-if-all-on control
+#define OPT_X11        9151            // Eleventh autowarn-if-all-on control
+#define OPT_X12        9152            // Twelfth autowarn-if-all-on control
+
+#define OPT_CUSTMIN    9500            // Custom controls by plugins
+#define OPT_CUSTMAX    9999            // End of custom area
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -3757,7 +3837,7 @@ varapi (void)    Addtolist(ulong addr,int color,wchar_t *format,...);
 #define CDS_TITLES     0x00000001      // Prepend window name and column titles
 #define CDS_NOGRAPH    0x00000002      // Replace graphical symbols by spaces
 
-typedef void DUMPSELFUNC(struct t_dump *,int mode);
+typedef void DUMPSELFUNC(struct t_dump *,int);
 
 typedef struct t_dump {                // Descriptor of dump data and window
   ulong          base;                 // Start of memory block or file
@@ -3883,7 +3963,7 @@ typedef struct t_patch {
 // Actions that must be performed if breakpoint of type BP_ONESHOT or BP_TEMP
 // is hit.
 #define BA_PERMANENT   0x00000001      // Permanent INT3 BP_TEMP on system call
-//#define BA_PLUGIN      0x80000000      // Pass notification to plugin
+#define BA_PLUGIN      0x80000000      // Pass notification to plugin
 
 typedef struct t_bpoint {              // INT3 breakpoints
   ulong          addr;                 // Address of breakpoint
@@ -4316,32 +4396,46 @@ oddata (t_table) srccode;              // Source code
 #define PN_PREMOD      5               // New module is reported by Windows
 #define PN_NEWMOD      6               // New module is added to the table
 #define PN_ENDMOD      7               // Module is removed from the memory
+#define PN_STATUS      8               // Execution status has changed
 #define PN_REMOVE      16              // OllyDbg removes analysis from range
+#define PN_RUN         24              // User continues code execution
 
-pentry (int)     ODBG2_Pluginquery(int ollydbgversion,ulong *features,
-                   wchar_t pluginname[SHORTNAME],
-                   wchar_t pluginversion[SHORTNAME]);
-pentry (int)     ODBG2_Plugininit(void);
-pentry (void)    ODBG2_Pluginanalyse(t_module *pmod);
-#ifdef DEBUG_EVENT                     // Requires <winnt.h>
-pentry (void)    ODBG2_Pluginmainloop(DEBUG_EVENT *debugevent);
-#endif
-pentry (void)    ODBG2_Pluginnotify(int code,void *data,
-                   ulong parm1,ulong parm2);
-pentry (void)    ODBG2_Pluginexception(t_run *prun,t_thread *pthr,t_reg *preg);
-pentry (int)     ODBG2_Plugindump(t_dump *pd,wchar_t *s,uchar *mask,int n,
-                   int *select,ulong addr,int column);
-pentry (t_menu *) ODBG2_Pluginmenu(wchar_t *type);
-pentry (void)    ODBG2_Pluginsaveudd(t_uddsave *psave,t_module *pmod,
-                   int ismainmodule);
-pentry (void)    ODBG2_Pluginuddrecord(t_module *pmod,int ismainmodule,
-                   ulong tag,ulong size,void *data);
-pentry (void)    ODBG2_Pluginreset(void);
-pentry (int)     ODBG2_Pluginclose(void);
-pentry (void)    ODBG2_Plugindestroy(void);
+// Flags returned by ODBG2_Pluginexception().
+#define PE_IGNORED     0x00000000      // Plugin does not process exception
+#define PE_CONTINUE    0x00000001      // Exception by plugin, continue
+#define PE_STEP        0x00000002      // Exception by plugin, execute command
+#define PE_PAUSE       0x00000004      // Exception by plugin, pause program
+
+pentry (int)         ODBG2_Pluginquery(int ollydbgversion,ulong *features,
+                       wchar_t pluginname[SHORTNAME],
+                       wchar_t pluginversion[SHORTNAME]);
+pentry (int)         ODBG2_Plugininit(void);
+pentry (void)        ODBG2_Pluginanalyse(t_module *pmod);
+pentry (void)        ODBG2_Pluginmainloop(DEBUG_EVENT *debugevent);
+pentry (int)         ODBG2_Pluginexception(t_run *prun,const t_disasm *da,
+                       t_thread *pthr,t_reg *preg,wchar_t *message);
+pentry (void)        ODBG2_Plugintempbreakpoint(ulong addr,
+                       const t_disasm *da,t_thread *pthr,t_reg *preg);
+pentry (void)        ODBG2_Pluginnotify(int code,void *data,
+                       ulong parm1,ulong parm2);
+pentry (int)         ODBG2_Plugindump(t_dump *pd,wchar_t *s,uchar *mask,
+                       int n,int *select,ulong addr,int column);
+pentry (t_menu *)    ODBG2_Pluginmenu(wchar_t *type);
+pentry (t_control *) ODBG2_Pluginoptions(UINT msg,WPARAM wp,LPARAM lp);
+pentry (void)        ODBG2_Pluginsaveudd(t_uddsave *psave,t_module *pmod,
+                       int ismainmodule);
+pentry (void)        ODBG2_Pluginuddrecord(t_module *pmod,int ismainmodule,
+                       ulong tag,ulong size,void *data);
+pentry (void)        ODBG2_Pluginreset(void);
+pentry (int)         ODBG2_Pluginclose(void);
+pentry (void)        ODBG2_Plugindestroy(void);
 
 #ifdef _MSC_VER
   #pragma pack(pop)
 #endif
 
-#endif // _PLUGIN_OLLYDBG2_H_
+#ifdef __MINGW32__
+  #pragma pack(pop)
+#endif
+
+#endif                                 // __ODBG_PLUGIN_H
