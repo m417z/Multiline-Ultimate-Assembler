@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <tchar.h>
 #include <commctrl.h>
 #include "plugin.h"
 #include "raedit.h"
