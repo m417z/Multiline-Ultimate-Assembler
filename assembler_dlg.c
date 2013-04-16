@@ -175,12 +175,12 @@ static LRESULT CALLBACK AsmMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 	{
 	case WM_CREATE:
 		SetEvent(p_thread_param->hThreadReadyEvent);
-		break;
+		return 0;
 
 	case UWM_SHOWASMDLG:
 	case UWM_LOADCODE:
 		if(p_thread_param->bQuitThread)
-			break;
+			return 0;
 
 		if(!p_thread_param->hAsmWnd)
 		{
@@ -189,7 +189,7 @@ static LRESULT CALLBACK AsmMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			if(!hAsmWnd)
 			{
 				MessageBox(hwollymain, _T("CreateDialog() error"), _T("Multiline Ultimate Assembler error"), MB_ICONHAND);
-				break;
+				return 0;
 			}
 
 			p_thread_param->hAsmWnd = hAsmWnd;
@@ -220,28 +220,28 @@ static LRESULT CALLBACK AsmMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 					SetFocus(hPopupWnd);
 			}
 		}
-		break;
+		return 0;
 
 	case UWM_CLOSEASMDLG:
 		hAsmWnd = p_thread_param->hAsmWnd;
 
 		if(hAsmWnd)
 			PostMessage(hAsmWnd, WM_CLOSE, 0, 0);
-		break;
+		return 0;
 
 	case UWM_OPTIONSCHANGED:
 		hAsmWnd = p_thread_param->hAsmWnd;
 
 		if(hAsmWnd)
 			PostMessage(hAsmWnd, uMsg, wParam, lParam);
-		break;
+		return 0;
 
 	case UWM_ASMDLGDESTROYED:
 		p_thread_param->hAsmWnd = NULL;
 
 		if(p_thread_param->bQuitThread)
 			DestroyWindow(hWnd);
-		break;
+		return 0;
 
 	case UWM_QUITTHREAD:
 		p_thread_param->bQuitThread = TRUE;
@@ -251,16 +251,17 @@ static LRESULT CALLBACK AsmMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			PostMessage(hAsmWnd, WM_CLOSE, 0, 0);
 		else
 			DestroyWindow(hWnd);
-		break;
+		return 0;
 
 	case WM_DESTROY:
 		hAsmMsgWnd = NULL;
 
 		PostQuitMessage(0);
-		break;
-	}
+		return 0;
 
-	return DefWindowProc(hWnd, uMsg, wParam, lParam);
+	default:
+		return DefWindowProc(hWnd, uMsg, wParam, lParam);
+	}
 }
 
 static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
