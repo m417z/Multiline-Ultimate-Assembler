@@ -749,6 +749,7 @@ static void LoadWindowPos(HWND hWnd, HINSTANCE hInst, long *p_min_w, long *p_min
 	long min_w, min_h;
 	int x, y, w, h;
 	RECT rc;
+	WINDOWPLACEMENT wp;
 
 	GetWindowRect(hWnd, &rc);
 	cur_w = rc.right-rc.left;
@@ -781,7 +782,15 @@ static void LoadWindowPos(HWND hWnd, HINSTANCE hInst, long *p_min_w, long *p_min
 			MyGetintfromini(hInst, _T("pos_w"), &w, min_w, INT_MAX, cur_w);
 			MyGetintfromini(hInst, _T("pos_h"), &h, min_h, INT_MAX, cur_h);
 
-			SetWindowPos(hWnd, NULL, x, y, w, h, SWP_NOZORDER|SWP_NOACTIVATE|SWP_NOOWNERZORDER);
+			wp.length = sizeof(WINDOWPLACEMENT);
+			wp.flags = 0;
+			wp.showCmd = IsWindowVisible(hWnd) ? SW_SHOW : SW_HIDE;
+			wp.rcNormalPosition.left = x;
+			wp.rcNormalPosition.top = y;
+			wp.rcNormalPosition.right = x+w;
+			wp.rcNormalPosition.bottom = y+h;
+
+			SetWindowPlacement(hWnd, &wp);
 		}
 	}
 }
