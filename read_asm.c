@@ -630,8 +630,8 @@ static void MarkLabels(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_HE
 			if(dasm_cmd->dwConst[i])
 			{
 				if(
-					dasm_cmd->dwConst[i]-dwAddress >= 0 && 
-					dasm_cmd->dwConst[i]-dwAddress < dwSize && 
+					dasm_cmd->dwConst[i] >= dwAddress && 
+					dasm_cmd->dwConst[i] < dwAddress+dwSize && 
 					pCode[dasm_cmd->dwConst[i]-dwAddress] == 1
 				)
 					pCode[dasm_cmd->dwConst[i]-dwAddress] = 2;
