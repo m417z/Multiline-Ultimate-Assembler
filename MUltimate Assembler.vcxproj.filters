@@ -80,6 +80,9 @@
     <ClInclude Include="plugin_ollydbg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="plugin_ollydbg2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="rsrc.rc">

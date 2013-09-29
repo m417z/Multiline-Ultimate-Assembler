@@ -1518,6 +1518,7 @@ static int ParseRVAAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD dwParentBaseA
 	t_module *module;
 	DWORD dwBaseAddress;
 	DWORD dwAddress;
+	t_dump *ptd;
 	int result;
 	TCHAR c;
 
@@ -1605,18 +1606,31 @@ static int ParseRVAAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD dwParentBaseA
 
 	if(pModuleName)
 	{
-		c = *pModuleNameEnd;
-		*pModuleNameEnd = _T('\0');
-
-		module = FindModuleByName(pModuleName);
-		if(!module)
+		if(pModuleNameEnd != pModuleName)
 		{
-			wsprintf(lpError, _T("There is no module \"%s\""), pModuleName);
-			*pModuleNameEnd = c;
-			return -(pModuleName-lpText);
-		}
+			c = *pModuleNameEnd;
+			*pModuleNameEnd = _T('\0');
 
-		*pModuleNameEnd = c;
+			module = FindModuleByName(pModuleName);
+			if(!module)
+			{
+				wsprintf(lpError, _T("There is no module \"%s\""), pModuleName);
+				*pModuleNameEnd = c;
+				return -(pModuleName-lpText);
+			}
+
+			*pModuleNameEnd = c;
+		}
+		else
+		{
+			ptd = GetCpuDisasmDump();
+			module = Findmodule(ptd->base);
+			if(!module)
+			{
+				wsprintf(lpError, _T("Can't identify the module currently loaded in the CPU disassembler"));
+				return -(pModuleName-lpText);
+			}
+		}
 
 		dwBaseAddress = module->base;
 	}

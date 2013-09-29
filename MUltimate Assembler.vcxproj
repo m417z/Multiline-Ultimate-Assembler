@@ -216,6 +216,7 @@
     <ClInclude Include="plugin.h" />
     <ClInclude Include="plugin_immdbg.h" />
     <ClInclude Include="plugin_ollydbg.h" />
+    <ClInclude Include="plugin_ollydbg2.h" />
     <ClInclude Include="raedit.h" />
     <ClInclude Include="read_asm.h" />
     <ClInclude Include="resource.h" />

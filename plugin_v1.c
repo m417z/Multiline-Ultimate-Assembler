@@ -530,3 +530,8 @@ t_status GetStatus()
 {
 	return Getstatus();
 }
+
+t_dump *GetCpuDisasmDump()
+{
+	return (t_dump *)Plugingetvalue(VAL_CPUDASM);
+}

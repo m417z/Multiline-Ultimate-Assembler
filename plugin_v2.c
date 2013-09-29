@@ -143,3 +143,8 @@ t_status GetStatus()
 {
 	return run.status;
 }
+
+t_dump *GetCpuDisasmDump()
+{
+	return Getcpudisasmdump();
+}

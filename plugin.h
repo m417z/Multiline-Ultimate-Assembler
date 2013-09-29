@@ -71,5 +71,6 @@ int FindSymbolicName(ulong addr, TCHAR *fname);
 t_module *FindModuleByName(TCHAR *lpModule);
 void EnsureMemoryBackup(t_memory *pmem);
 t_status GetStatus();
+t_dump *GetCpuDisasmDump();
 
 #endif // _PLUGIN_H_
