@@ -5,8 +5,8 @@
 #include <tchar.h>
 
 #define DEF_PLUGINNAME        _T("Multiline Ultimate Assembler")
-#define DEF_VERSION           _T("2.1.1")
-#define DEF_COPYRIGHT         _T("Copyright (C) 2009-2012 RaMMicHaeL")
+#define DEF_VERSION           _T("2.1.2")
+#define DEF_COPYRIGHT         _T("Copyright (C) 2009-2013 RaMMicHaeL")
 
 #if PLUGIN_VERSION_MAJOR == 1
 
