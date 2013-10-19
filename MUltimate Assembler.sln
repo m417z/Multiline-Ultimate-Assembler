@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MUltimate Assembler", "MUltimate Assembler.vcxproj", "{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}"
 EndProject
 Global
