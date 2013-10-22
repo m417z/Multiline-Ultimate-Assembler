@@ -771,14 +771,6 @@ static void LoadWindowPos(HWND hWnd, HINSTANCE hInst, long *p_min_w, long *p_min
 	{
 		if(MyGetintfromini(hInst, _T("pos_x"), &x, 0, 0, 0) && MyGetintfromini(hInst, _T("pos_y"), &y, 0, 0, 0))
 		{
-			SystemParametersInfo(SPI_GETWORKAREA, 0, &rc, 0);
-
-			if(x < rc.left || x > rc.right)
-				x = rc.left;
-
-			if(y < rc.top || y > rc.bottom)
-				y = rc.top;
-
 			MyGetintfromini(hInst, _T("pos_w"), &w, min_w, INT_MAX, cur_w);
 			MyGetintfromini(hInst, _T("pos_h"), &h, min_h, INT_MAX, cur_h);
 
