@@ -1117,14 +1117,28 @@ static int CopyCommand(TCHAR *pBuffer, TCHAR *pCommand, int hex_option)
 		{
 			*p_dest++ = *p++;
 
-			if(*p != _T('$'))
+			switch(*p)
 			{
-				do {
-					*p_dest++ = *p++;
-				} while(*p != _T('.'));
-			}
+			case _T('$'):
+				*p_dest++ = *p++;
+				break;
 
-			*p_dest++ = *p++;
+			case _T('"'):
+				*p_dest++ = *p++;
+
+				while(*p != _T('"'))
+					*p_dest++ = *p++;
+
+				*p_dest++ = *p++;
+				break;
+
+			default:
+				while(*p != _T('.'))
+					*p_dest++ = *p++;
+
+				*p_dest++ = *p++;
+				break;
+			}
 		}
 		else
 			*p_dest++ = *p++;
@@ -1245,11 +1259,30 @@ static BOOL ReplaceAddressWithText(TCHAR **ppCommand, DWORD dwAddress, TCHAR *lp
 		}
 		else if(*p == _T('$'))
 		{
-			do {
-				p++;
-			} while(*p != _T('.'));
-
 			p++;
+
+			switch(*p)
+			{
+			case _T('$'):
+				p++;
+				break;
+
+			case _T('"'):
+				p++;
+
+				while(*p != _T('"'))
+					p++;
+
+				p++;
+				break;
+
+			default:
+				while(*p != _T('.'))
+					p++;
+
+				p++;
+				break;
+			}
 		}
 		else
 			p++;
