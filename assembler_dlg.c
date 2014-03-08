@@ -576,6 +576,10 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 				ShowFindDialog(p_dialog_param);
 			break;
 
+		case ID_ACCEL_FOCUS_OLLYDBG:
+			SetFocus(hwollymain);
+			break;
+
 		case IDOK:
 			SaveFileOfTab(GetDlgItem(hWnd, IDC_TABS), GetDlgItem(hWnd, IDC_ASSEMBLER));
 			PatchCode(hWnd);
