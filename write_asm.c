@@ -44,10 +44,12 @@ int WriteAsm(TCHAR *lpText, TCHAR *lpError)
 static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpText, TCHAR *lpError)
 {
 	CMD_BLOCK_NODE *cmd_block_node;
-	CMD_NODE *cmd_node;
 	TCHAR *p, *lpNextLine;
 	DWORD dwAddress, dwEndAddress;
 	DWORD dwBaseAddress;
+	DWORD dwSize;
+	UINT nSpecialCmd;
+	DWORD dwAlignValue;
 	int result;
 
 	for(p = lpText; p != NULL; p = lpNextLine)
@@ -89,30 +91,60 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 				break;
 
 			case _T('@'): // label
+				dwAlignValue = 0;
+
 				if(p[1] == _T('@'))
 					result = ParseAnonLabel(p, dwAddress, &cmd_block_node->anon_label_head, lpError);
 				else
-					result = ParseLabel(p, dwAddress, p_label_head, lpError);
+					result = ParseLabel(p, dwAddress, p_label_head, &dwAlignValue, lpError);
 
 				if(result <= 0)
 					return p+(-result);
+
+				if(dwAlignValue != 0)
+				{
+					if(!InsertAlignBytes(p, dwAddress, dwAlignValue, &cmd_block_node->cmd_head, &dwSize, lpError))
+						return p;
+
+					cmd_block_node->dwSize += dwSize;
+					dwAddress += dwSize;
+				}
+				break;
+
+			case _T('!'): // special command
+				result = ParseSpecialCommand(p, &nSpecialCmd, lpError);
+				if(result <= 0)
+					return p+(-result);
+
+				switch(nSpecialCmd)
+				{
+				case SPECIAL_CMD_ALIGN:
+					result = ParseAlignSpecialCommand(p, result, &dwAlignValue, lpError);
+					if(result <= 0)
+						return p+(-result);
+
+					if(!InsertAlignBytes(p, dwAddress, dwAlignValue, &cmd_block_node->cmd_head, &dwSize, lpError))
+						return p;
+
+					cmd_block_node->dwSize += dwSize;
+					dwAddress += dwSize;
+					break;
+				}
 				break;
 
 			default: // an asm command or a string
 				if(*p == _T('\"'))
-					result = ParseAsciiString(p, &cmd_block_node->cmd_head, lpError);
+					result = ParseAsciiString(p, &cmd_block_node->cmd_head, &dwSize, lpError);
 				else if(*p == _T('L') && p[1] == _T('\"'))
-					result = ParseUnicodeString(p, &cmd_block_node->cmd_head, lpError);
+					result = ParseUnicodeString(p, &cmd_block_node->cmd_head, &dwSize, lpError);
 				else
-					result = ParseCommand(p, dwAddress, dwBaseAddress, &cmd_block_node->cmd_head, lpError);
+					result = ParseCommand(p, dwAddress, dwBaseAddress, &cmd_block_node->cmd_head, &dwSize, lpError);
 
 				if(result <= 0)
 					return p+(-result);
 
-				cmd_node = cmd_block_node->cmd_head.last; // the new cmd node
-
-				cmd_block_node->dwSize += cmd_node->dwCodeSize;
-				dwAddress += cmd_node->dwCodeSize;
+				cmd_block_node->dwSize += dwSize;
+				dwAddress += dwSize;
 				break;
 			}
 
@@ -284,11 +316,13 @@ static int ParseAnonLabel(TCHAR *lpText, DWORD dwAddress, ANON_LABEL_HEAD *p_ano
 	return p-lpText;
 }
 
-static int ParseLabel(TCHAR *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, TCHAR *lpError)
+static int ParseLabel(TCHAR *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, DWORD *pdwAlignValue, TCHAR *lpError)
 {
 	LABEL_NODE *label_node;
 	TCHAR *p;
 	TCHAR *lpLabel, *lpLabelEnd;
+	DWORD dwAlignValue;
+	int result;
 
 	p = lpText;
 
@@ -323,6 +357,19 @@ static int ParseLabel(TCHAR *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, 
 		p++;
 
 	lpLabelEnd = p;
+
+	if(*p == _T('@'))
+	{
+		p++;
+
+		result = ParseDWORD(p, &dwAlignValue, lpError);
+		if(result <= 0)
+			return -(p-lpText)+result;
+
+		p += result;
+	}
+	else
+		dwAlignValue = 0;
 
 	p = SkipSpaces(p);
 
@@ -360,10 +407,12 @@ static int ParseLabel(TCHAR *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, 
 	p_label_head->last->next = label_node;
 	p_label_head->last = label_node;
 
+	*pdwAlignValue = dwAlignValue;
+
 	return p-lpText;
 }
 
-static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, TCHAR *lpError)
+static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeInBytes, TCHAR *lpError)
 {
 #ifdef UNICODE
 	CMD_NODE *cmd_node;
@@ -835,10 +884,12 @@ static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, TCHAR *lpError)
 	p_cmd_head->last->next = cmd_node;
 	p_cmd_head->last = cmd_node;
 
+	*pdwSizeInBytes = dwStringLength;
+
 	return p-lpText;
 }
 
-static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, TCHAR *lpError)
+static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeInBytes, TCHAR *lpError)
 {
 #ifdef UNICODE
 	CMD_NODE *cmd_node;
@@ -1326,10 +1377,12 @@ static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, TCHAR *lpErro
 	p_cmd_head->last->next = cmd_node;
 	p_cmd_head->last = cmd_node;
 
+	*pdwSizeInBytes = dwStringLength*sizeof(WCHAR);
+
 	return p-lpText;
 }
 
-static int ParseCommand(TCHAR *lpText, DWORD dwAddress, DWORD dwBaseAddress, CMD_HEAD *p_cmd_head, TCHAR *lpError)
+static int ParseCommand(TCHAR *lpText, DWORD dwAddress, DWORD dwBaseAddress, CMD_HEAD *p_cmd_head, DWORD *pdwSizeInBytes, TCHAR *lpError)
 {
 	CMD_NODE *cmd_node;
 	TCHAR *p;
@@ -1425,6 +1478,8 @@ static int ParseCommand(TCHAR *lpText, DWORD dwAddress, DWORD dwBaseAddress, CMD
 
 	p_cmd_head->last->next = cmd_node;
 	p_cmd_head->last = cmd_node;
+
+	*pdwSizeInBytes = nCodeLength;
 
 	return p-lpText;
 }
@@ -1556,6 +1611,143 @@ static int ReplaceLabelsWithAddress(TCHAR *lpCommand, DWORD dwReplaceAddress, TC
 		return 0;
 
 	return 1;
+}
+
+static int ParseSpecialCommand(TCHAR *lpText, UINT *pnSpecialCmd, TCHAR *lpError)
+{
+	TCHAR *p;
+	TCHAR *pCommandStart;
+	UINT nSpecialCmd;
+
+	p = lpText;
+
+	if(*p != _T('!'))
+	{
+		lstrcpy(lpError, _T("Could not parse special command, '!' expected"));
+		return -(p-lpText);
+	}
+
+	p++;
+	pCommandStart = p;
+
+	if(memcmp(p, _T("align"), (sizeof("align")-1)*sizeof(TCHAR)) == 0)
+	{
+		p += sizeof("align")-1;
+
+		nSpecialCmd = SPECIAL_CMD_ALIGN;
+	}
+	else
+	{
+		lstrcpy(lpError, _T("Unknown special command"));
+		return -(pCommandStart-lpText);
+	}
+	
+	if(
+		*p != _T(' ') && 
+		*p != _T('\t') && 
+		*p != _T(';') && 
+		*p != _T('\0')
+	)
+	{
+		lstrcpy(lpError, _T("Unknown special command"));
+		return -(pCommandStart-lpText);
+	}
+
+	*pnSpecialCmd = nSpecialCmd;
+
+	return p-lpText;
+}
+
+static int ParseAlignSpecialCommand(TCHAR *lpText, int nArgsOffset, DWORD *pdwAlignValue, TCHAR *lpError)
+{
+	TCHAR *p;
+	TCHAR *pAfterWhiteSpace;
+	DWORD dwAlignValue;
+	int result;
+
+	p = lpText + nArgsOffset;
+
+	pAfterWhiteSpace = SkipSpaces(p);
+	if(pAfterWhiteSpace == p)
+	{
+		lstrcpy(lpError, _T("Could not parse command, whitespace expected"));
+		return -(p-lpText);
+	}
+
+	p = pAfterWhiteSpace;
+
+	result = ParseDWORD(p, &dwAlignValue, lpError);
+	if(result <= 0)
+		return -(p-lpText)+result;
+
+	p += result;
+	p = SkipSpaces(p);
+
+	if(*p != '\0' && *p != ';')
+	{
+		lstrcpy(lpError, _T("Unexpected input after end of command"));
+		return -(p-lpText);
+	}
+
+	*pdwAlignValue = dwAlignValue;
+
+	return p-lpText;
+}
+
+static BOOL InsertAlignBytes(TCHAR *lpText, DWORD dwAddress, DWORD dwAlignValue, CMD_HEAD *p_cmd_head, DWORD *pdwSizeInBytes, TCHAR *lpError)
+{
+	DWORD dwAlignedAddress;
+	DWORD dwSizeInBytes;
+	CMD_NODE *cmd_node;
+
+	if(dwAlignValue <= 1)
+	{
+		lstrcpy(lpError, _T("The align value must be greater than 1"));
+		return FALSE;
+	}
+
+	if(!IsDWORDPowerOfTwo(dwAlignValue))
+	{
+		lstrcpy(lpError, _T("The align value must be a power of 2"));
+		return FALSE;
+	}
+
+	dwAlignedAddress = (dwAddress + (dwAlignValue - 1)) & ~(dwAlignValue - 1);
+	dwSizeInBytes = dwAlignedAddress - dwAddress;
+
+	if(dwSizeInBytes > 0)
+	{
+		// Allocate
+		cmd_node = (CMD_NODE *)HeapAlloc(GetProcessHeap(), 0, sizeof(CMD_NODE));
+		if(!cmd_node)
+		{
+			lstrcpy(lpError, _T("Allocation failed"));
+			return FALSE;
+		}
+
+		cmd_node->bCode = (BYTE *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwSizeInBytes);
+		if(!cmd_node->bCode)
+		{
+			HeapFree(GetProcessHeap(), 0, cmd_node);
+
+			lstrcpy(lpError, _T("Allocation failed"));
+			return FALSE;
+		}
+
+		cmd_node->dwCodeSize = dwSizeInBytes;
+		cmd_node->lpCommand = lpText;
+		cmd_node->lpComment = NULL;
+		cmd_node->lpResolvedCommandWithLabels = NULL;
+
+		cmd_node->next = NULL;
+
+		p_cmd_head->last->next = cmd_node;
+		p_cmd_head->last = cmd_node;
+	}
+
+	*pdwSizeInBytes = dwSizeInBytes;
+
+	return TRUE;
 }
 
 static int ParseRVAAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD dwParentBaseAddress, DWORD *pdwBaseAddress, TCHAR *lpError)
@@ -2310,6 +2502,11 @@ static TCHAR *SkipRVAAddress(TCHAR *p)
 	}
 
 	return p;
+}
+
+static BOOL IsDWORDPowerOfTwo(DWORD dw)
+{
+	return (dw != 0) && ((dw & (dw - 1)) == 0);
 }
 
 static void FreeLabelList(LABEL_HEAD *p_label_head)
