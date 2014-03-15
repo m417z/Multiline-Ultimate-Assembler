@@ -67,7 +67,7 @@ int WriteAsm(TCHAR *lpText, TCHAR *lpError);
 
 // 1
 static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpText, TCHAR *lpError);
-static int ParseAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD *pdwBaseAddress, TCHAR *lpError);
+static int ParseAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD *pdwEndAddress, DWORD *pdwBaseAddress, TCHAR *lpError);
 static BOOL NewCmdBlock(CMD_BLOCK_HEAD *p_cmd_block_head, DWORD dwAddress, TCHAR *lpError);
 static int ParseAnonLabel(TCHAR *lpText, DWORD dwAddress, ANON_LABEL_HEAD *p_anon_label_head, TCHAR *lpError);
 static int ParseLabel(TCHAR *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, TCHAR *lpError);

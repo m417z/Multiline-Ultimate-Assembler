@@ -46,7 +46,7 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 	CMD_BLOCK_NODE *cmd_block_node;
 	CMD_NODE *cmd_node;
 	TCHAR *p, *lpNextLine;
-	DWORD dwAddress;
+	DWORD dwAddress, dwEndAddress;
 	DWORD dwBaseAddress;
 	int result;
 
@@ -78,7 +78,7 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 			switch(*p)
 			{
 			case _T('<'): // address
-				result = ParseAddress(p, &dwAddress, &dwBaseAddress, lpError);
+				result = ParseAddress(p, &dwAddress, &dwEndAddress, &dwBaseAddress, lpError);
 				if(result <= 0)
 					return p+(-result);
 
@@ -116,6 +116,12 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 				break;
 			}
 
+			if(dwEndAddress != 0 && dwAddress > dwEndAddress)
+			{
+				wsprintf(lpError, _T("End of command exceeds the block end address (%08X > %08X)"), dwAddress, dwEndAddress);
+				return p;
+			}
+
 			p += result;
 			p = SkipSpaces(p);
 		}
@@ -124,10 +130,11 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 	return NULL;
 }
 
-static int ParseAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD *pdwBaseAddress, TCHAR *lpError)
+static int ParseAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD *pdwEndAddress, DWORD *pdwBaseAddress, TCHAR *lpError)
 {
 	TCHAR *p;
-	DWORD dwAddress;
+	DWORD dwAddress, dwBaseAddress;
+	DWORD dwEndAddress, dwEndBaseAddress;
 	int result;
 
 	p = lpText;
@@ -141,13 +148,14 @@ static int ParseAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD *pdwBaseAddress,
 	p++;
 	p = SkipSpaces(p);
 
+	// Start address
 	if(*p == _T('$'))
 	{
-		result = ParseRVAAddress(p, &dwAddress, *pdwBaseAddress, pdwBaseAddress, lpError);
+		result = ParseRVAAddress(p, &dwAddress, *pdwBaseAddress, &dwBaseAddress, lpError);
 	}
 	else
 	{
-		*pdwBaseAddress = 0;
+		dwBaseAddress = 0;
 		result = ParseDWORD(p, &dwAddress, lpError);
 	}
 
@@ -156,6 +164,43 @@ static int ParseAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD *pdwBaseAddress,
 
 	p += result;
 	p = SkipSpaces(p);
+
+	if(p[0] == _T('.') && p[1] == _T('.'))
+	{
+		p += 2;
+		p = SkipSpaces(p);
+
+		// End address
+		if(*p == _T('$'))
+		{
+			result = ParseRVAAddress(p, &dwEndAddress, *pdwBaseAddress, &dwEndBaseAddress, lpError);
+		}
+		else
+		{
+			dwEndBaseAddress = 0;
+			result = ParseDWORD(p, &dwEndAddress, lpError);
+		}
+
+		if(result <= 0)
+			return -(p-lpText)+result;
+
+		if(dwBaseAddress != dwEndBaseAddress)
+		{
+			lstrcpy(lpError, _T("The RVA base address of both the start address and the end address must match"));
+			return -(p-lpText);
+		}
+
+		if(dwEndAddress <= dwAddress)
+		{
+			lstrcpy(lpError, _T("The end address must be greater than the start address"));
+			return -(p-lpText);
+		}
+
+		p += result;
+		p = SkipSpaces(p);
+	}
+	else
+		dwEndAddress = 0;
 
 	if(*p != _T('>'))
 	{
@@ -166,6 +211,8 @@ static int ParseAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD *pdwBaseAddress,
 	p++;
 
 	*pdwAddress = dwAddress;
+	*pdwEndAddress = dwEndAddress;
+	*pdwBaseAddress = dwBaseAddress;
 
 	return p-lpText;
 }
