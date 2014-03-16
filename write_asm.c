@@ -49,7 +49,7 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 	DWORD dwBaseAddress;
 	DWORD dwSize;
 	UINT nSpecialCmd;
-	DWORD dwAlignValue;
+	DWORD dwPaddingSize;
 	int result;
 
 	for(p = lpText; p != NULL; p = lpNextLine)
@@ -91,23 +91,23 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 				break;
 
 			case _T('@'): // label
-				dwAlignValue = 0;
+				dwPaddingSize = 0;
 
 				if(p[1] == _T('@'))
 					result = ParseAnonLabel(p, dwAddress, &cmd_block_node->anon_label_head, lpError);
 				else
-					result = ParseLabel(p, dwAddress, p_label_head, &dwAlignValue, lpError);
+					result = ParseLabel(p, dwAddress, p_label_head, &dwPaddingSize, lpError);
 
 				if(result <= 0)
 					return p+(-result);
 
-				if(dwAlignValue != 0)
+				if(dwPaddingSize > 0)
 				{
-					if(!InsertAlignBytes(p, dwAddress, dwAlignValue, &cmd_block_node->cmd_head, &dwSize, lpError))
+					if(!InsertPaddingBytes(p, dwPaddingSize, &cmd_block_node->cmd_head, lpError))
 						return p;
 
-					cmd_block_node->dwSize += dwSize;
-					dwAddress += dwSize;
+					cmd_block_node->dwSize += dwPaddingSize;
+					dwAddress += dwPaddingSize;
 				}
 				break;
 
@@ -119,15 +119,18 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 				switch(nSpecialCmd)
 				{
 				case SPECIAL_CMD_ALIGN:
-					result = ParseAlignSpecialCommand(p, result, &dwAlignValue, lpError);
+					result = ParseAlignSpecialCommand(p, result, dwAddress, &dwPaddingSize, lpError);
 					if(result <= 0)
 						return p+(-result);
 
-					if(!InsertAlignBytes(p, dwAddress, dwAlignValue, &cmd_block_node->cmd_head, &dwSize, lpError))
-						return p;
+					if(dwPaddingSize > 0)
+					{
+						if(!InsertPaddingBytes(p, dwPaddingSize, &cmd_block_node->cmd_head, lpError))
+							return p;
 
-					cmd_block_node->dwSize += dwSize;
-					dwAddress += dwSize;
+						cmd_block_node->dwSize += dwPaddingSize;
+						dwAddress += dwPaddingSize;
+					}
 					break;
 				}
 				break;
@@ -316,12 +319,13 @@ static int ParseAnonLabel(TCHAR *lpText, DWORD dwAddress, ANON_LABEL_HEAD *p_ano
 	return p-lpText;
 }
 
-static int ParseLabel(TCHAR *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, DWORD *pdwAlignValue, TCHAR *lpError)
+static int ParseLabel(TCHAR *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, DWORD *pdwPaddingSize, TCHAR *lpError)
 {
 	LABEL_NODE *label_node;
 	TCHAR *p;
 	TCHAR *lpLabel, *lpLabelEnd;
 	DWORD dwAlignValue;
+	DWORD dwPaddingSize;
 	int result;
 
 	p = lpText;
@@ -366,10 +370,16 @@ static int ParseLabel(TCHAR *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, 
 		if(result <= 0)
 			return -(p-lpText)+result;
 
+		if(!GetAlignPaddingSize(dwAddress, dwAlignValue, &dwPaddingSize, lpError))
+			return -(p-lpText);
+
 		p += result;
 	}
 	else
+	{
 		dwAlignValue = 0;
+		dwPaddingSize = 0;
+	}
 
 	p = SkipSpaces(p);
 
@@ -399,7 +409,7 @@ static int ParseLabel(TCHAR *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, 
 		return 0;
 	}
 
-	label_node->dwAddress = dwAddress;
+	label_node->dwAddress = dwAddress + dwPaddingSize;
 	label_node->lpLabel = lpLabel;
 
 	label_node->next = NULL;
@@ -407,7 +417,7 @@ static int ParseLabel(TCHAR *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, 
 	p_label_head->last->next = label_node;
 	p_label_head->last = label_node;
 
-	*pdwAlignValue = dwAlignValue;
+	*pdwPaddingSize = dwPaddingSize;
 
 	return p-lpText;
 }
@@ -1658,11 +1668,12 @@ static int ParseSpecialCommand(TCHAR *lpText, UINT *pnSpecialCmd, TCHAR *lpError
 	return p-lpText;
 }
 
-static int ParseAlignSpecialCommand(TCHAR *lpText, int nArgsOffset, DWORD *pdwAlignValue, TCHAR *lpError)
+static int ParseAlignSpecialCommand(TCHAR *lpText, int nArgsOffset, DWORD dwAddress, DWORD *pdwPaddingSize, TCHAR *lpError)
 {
 	TCHAR *p;
 	TCHAR *pAfterWhiteSpace;
 	DWORD dwAlignValue;
+	DWORD dwPaddingSize;
 	int result;
 
 	p = lpText + nArgsOffset;
@@ -1680,6 +1691,9 @@ static int ParseAlignSpecialCommand(TCHAR *lpText, int nArgsOffset, DWORD *pdwAl
 	if(result <= 0)
 		return -(p-lpText)+result;
 
+	if(!GetAlignPaddingSize(dwAddress, dwAlignValue, &dwPaddingSize, lpError))
+		return -(p-lpText);
+
 	p += result;
 	p = SkipSpaces(p);
 
@@ -1689,16 +1703,15 @@ static int ParseAlignSpecialCommand(TCHAR *lpText, int nArgsOffset, DWORD *pdwAl
 		return -(p-lpText);
 	}
 
-	*pdwAlignValue = dwAlignValue;
+	*pdwPaddingSize = dwPaddingSize;
 
 	return p-lpText;
 }
 
-static BOOL InsertAlignBytes(TCHAR *lpText, DWORD dwAddress, DWORD dwAlignValue, CMD_HEAD *p_cmd_head, DWORD *pdwSizeInBytes, TCHAR *lpError)
+static BOOL GetAlignPaddingSize(DWORD dwAddress, DWORD dwAlignValue, DWORD *pdwPaddingSize, TCHAR *lpError)
 {
 	DWORD dwAlignedAddress;
-	DWORD dwSizeInBytes;
-	CMD_NODE *cmd_node;
+	DWORD dwPaddingSize;
 
 	if(dwAlignValue <= 1)
 	{
@@ -1713,39 +1726,43 @@ static BOOL InsertAlignBytes(TCHAR *lpText, DWORD dwAddress, DWORD dwAlignValue,
 	}
 
 	dwAlignedAddress = (dwAddress + (dwAlignValue - 1)) & ~(dwAlignValue - 1);
-	dwSizeInBytes = dwAlignedAddress - dwAddress;
+	dwPaddingSize = dwAlignedAddress - dwAddress;
 
-	if(dwSizeInBytes > 0)
+	*pdwPaddingSize = dwPaddingSize;
+
+	return TRUE;
+}
+
+static BOOL InsertPaddingBytes(TCHAR *lpText, DWORD dwPaddingSize, CMD_HEAD *p_cmd_head, TCHAR *lpError)
+{
+	CMD_NODE *cmd_node;
+
+	// Allocate
+	cmd_node = (CMD_NODE *)HeapAlloc(GetProcessHeap(), 0, sizeof(CMD_NODE));
+	if(!cmd_node)
 	{
-		// Allocate
-		cmd_node = (CMD_NODE *)HeapAlloc(GetProcessHeap(), 0, sizeof(CMD_NODE));
-		if(!cmd_node)
-		{
-			lstrcpy(lpError, _T("Allocation failed"));
-			return FALSE;
-		}
-
-		cmd_node->bCode = (BYTE *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwSizeInBytes);
-		if(!cmd_node->bCode)
-		{
-			HeapFree(GetProcessHeap(), 0, cmd_node);
-
-			lstrcpy(lpError, _T("Allocation failed"));
-			return FALSE;
-		}
-
-		cmd_node->dwCodeSize = dwSizeInBytes;
-		cmd_node->lpCommand = lpText;
-		cmd_node->lpComment = NULL;
-		cmd_node->lpResolvedCommandWithLabels = NULL;
-
-		cmd_node->next = NULL;
-
-		p_cmd_head->last->next = cmd_node;
-		p_cmd_head->last = cmd_node;
+		lstrcpy(lpError, _T("Allocation failed"));
+		return FALSE;
 	}
 
-	*pdwSizeInBytes = dwSizeInBytes;
+	cmd_node->bCode = (BYTE *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwPaddingSize);
+	if(!cmd_node->bCode)
+	{
+		HeapFree(GetProcessHeap(), 0, cmd_node);
+
+		lstrcpy(lpError, _T("Allocation failed"));
+		return FALSE;
+	}
+
+	cmd_node->dwCodeSize = dwPaddingSize;
+	cmd_node->lpCommand = lpText;
+	cmd_node->lpComment = NULL;
+	cmd_node->lpResolvedCommandWithLabels = NULL;
+
+	cmd_node->next = NULL;
+
+	p_cmd_head->last->next = cmd_node;
+	p_cmd_head->last = cmd_node;
 
 	return TRUE;
 }
