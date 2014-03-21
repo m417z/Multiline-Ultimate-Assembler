@@ -580,6 +580,11 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			SetFocus(hwollymain);
 			break;
 
+		case ID_ACCEL_BLOCK_MODE:
+			SendDlgItemMessage(hWnd, IDC_ASSEMBLER, REM_SETMODE, 
+				SendDlgItemMessage(hWnd, IDC_ASSEMBLER, REM_GETMODE, 0, 0) ^ MODE_BLOCK, 0);
+			break;
+
 		case IDOK:
 			SaveFileOfTab(GetDlgItem(hWnd, IDC_TABS), GetDlgItem(hWnd, IDC_ASSEMBLER));
 			PatchCode(hWnd);

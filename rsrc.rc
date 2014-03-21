@@ -35,6 +35,7 @@ IDI_MAIN                ICON                    "rsrc_files\\icon.ico"
 
 IDR_MAINACCELERATOR ACCELERATORS
 BEGIN
+    "B",            ID_ACCEL_BLOCK_MODE,    VIRTKEY, CONTROL, NOINVERT
     VK_F3,          ID_ACCEL_FINDNEXT,      VIRTKEY, NOINVERT
     VK_F3,          ID_ACCEL_FINDPREV,      VIRTKEY, SHIFT, NOINVERT
     "F",            ID_ACCEL_FINDWND,       VIRTKEY, CONTROL, NOINVERT
