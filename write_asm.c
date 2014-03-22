@@ -151,15 +151,15 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 				break;
 			}
 
-			if(dwEndAddress != 0 && dwAddress > dwEndAddress)
-			{
-				wsprintf(lpError, _T("End of command exceeds the block end address (%08X > %08X)"), dwAddress, dwEndAddress);
-				return p;
-			}
-
 			p += result;
 			p = SkipSpaces(p);
 		}
+	}
+
+	if(dwEndAddress != 0 && dwAddress > dwEndAddress)
+	{
+		wsprintf(lpError, _T("End of code block exceeds the block end address (%u extra bytes)"), dwAddress - dwEndAddress);
+		return cmd_block_node->cmd_head.next->lpCommand;
 	}
 
 	return NULL;
