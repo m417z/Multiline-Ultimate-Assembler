@@ -49,6 +49,7 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 	DWORD dwBaseAddress;
 	DWORD dwSize;
 	UINT nSpecialCmd;
+	BYTE bPaddingByteValue;
 	DWORD dwPaddingSize;
 	int result;
 
@@ -103,7 +104,7 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 
 				if(dwPaddingSize > 0)
 				{
-					if(!InsertPaddingBytes(p, dwPaddingSize, &cmd_block_node->cmd_head, lpError))
+					if(!InsertBytes(p, dwPaddingSize, 0, &cmd_block_node->cmd_head, lpError))
 						return p;
 
 					cmd_block_node->dwSize += dwPaddingSize;
@@ -125,7 +126,30 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 
 					if(dwPaddingSize > 0)
 					{
-						if(!InsertPaddingBytes(p, dwPaddingSize, &cmd_block_node->cmd_head, lpError))
+						if(!InsertBytes(p, dwPaddingSize, 0, &cmd_block_node->cmd_head, lpError))
+							return p;
+
+						cmd_block_node->dwSize += dwPaddingSize;
+						dwAddress += dwPaddingSize;
+					}
+					break;
+
+				case SPECIAL_CMD_PAD:
+					result = ParsePadSpecialCommand(p, result, &bPaddingByteValue, lpError);
+					if(result <= 0)
+						return p+(-result);
+
+					if(dwEndAddress == 0)
+					{
+						lstrcpy(lpError, _T("The !pad special command can only be used with a defined block end address"));
+						return p;
+					}
+
+					if(dwEndAddress > dwAddress)
+					{
+						dwPaddingSize = dwEndAddress - dwAddress;
+
+						if(!InsertBytes(p, dwPaddingSize, bPaddingByteValue, &cmd_block_node->cmd_head, lpError))
 							return p;
 
 						cmd_block_node->dwSize += dwPaddingSize;
@@ -1643,8 +1667,12 @@ static int ParseSpecialCommand(TCHAR *lpText, UINT *pnSpecialCmd, TCHAR *lpError
 	if(memcmp(p, _T("align"), (sizeof("align")-1)*sizeof(TCHAR)) == 0)
 	{
 		p += sizeof("align")-1;
-
 		nSpecialCmd = SPECIAL_CMD_ALIGN;
+	}
+	else if(memcmp(p, _T("pad"), (sizeof("pad") - 1)*sizeof(TCHAR)) == 0)
+	{
+		p += sizeof("pad") - 1;
+		nSpecialCmd = SPECIAL_CMD_PAD;
 	}
 	else
 	{
@@ -1708,6 +1736,48 @@ static int ParseAlignSpecialCommand(TCHAR *lpText, int nArgsOffset, DWORD dwAddr
 	return p-lpText;
 }
 
+static int ParsePadSpecialCommand(TCHAR *lpText, int nArgsOffset, BYTE *pbPaddingByteValue, TCHAR *lpError)
+{
+	TCHAR *p;
+	TCHAR *pAfterWhiteSpace;
+	DWORD dwPaddingByteValue;
+	int result;
+
+	p = lpText + nArgsOffset;
+
+	pAfterWhiteSpace = SkipSpaces(p);
+	if(pAfterWhiteSpace == p)
+	{
+		lstrcpy(lpError, _T("Could not parse command, whitespace expected"));
+		return -(p-lpText);
+	}
+
+	p = pAfterWhiteSpace;
+	
+	result = ParseDWORD(p, &dwPaddingByteValue, lpError);
+	if(result <= 0)
+		return -(p-lpText)+result;
+
+	if(dwPaddingByteValue > 0xFF)
+	{
+		lstrcpy(lpError, _T("Out of range error, byte value expected"));
+		return -(p-lpText);
+	}
+
+	p += result;
+	p = SkipSpaces(p);
+
+	if(*p != '\0' && *p != ';')
+	{
+		lstrcpy(lpError, _T("Unexpected input after end of command"));
+		return -(p-lpText);
+	}
+
+	*pbPaddingByteValue = (BYTE)dwPaddingByteValue;
+	
+	return p-lpText;
+}
+
 static BOOL GetAlignPaddingSize(DWORD dwAddress, DWORD dwAlignValue, DWORD *pdwPaddingSize, TCHAR *lpError)
 {
 	DWORD dwAlignedAddress;
@@ -1733,7 +1803,7 @@ static BOOL GetAlignPaddingSize(DWORD dwAddress, DWORD dwAlignValue, DWORD *pdwP
 	return TRUE;
 }
 
-static BOOL InsertPaddingBytes(TCHAR *lpText, DWORD dwPaddingSize, CMD_HEAD *p_cmd_head, TCHAR *lpError)
+static BOOL InsertBytes(TCHAR *lpText, DWORD dwBytesCount, BYTE bByteValue, CMD_HEAD *p_cmd_head, TCHAR *lpError)
 {
 	CMD_NODE *cmd_node;
 
@@ -1745,7 +1815,7 @@ static BOOL InsertPaddingBytes(TCHAR *lpText, DWORD dwPaddingSize, CMD_HEAD *p_c
 		return FALSE;
 	}
 
-	cmd_node->bCode = (BYTE *)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwPaddingSize);
+	cmd_node->bCode = (BYTE *)HeapAlloc(GetProcessHeap(), 0, dwBytesCount);
 	if(!cmd_node->bCode)
 	{
 		HeapFree(GetProcessHeap(), 0, cmd_node);
@@ -1754,7 +1824,9 @@ static BOOL InsertPaddingBytes(TCHAR *lpText, DWORD dwPaddingSize, CMD_HEAD *p_c
 		return FALSE;
 	}
 
-	cmd_node->dwCodeSize = dwPaddingSize;
+	memset(cmd_node->bCode, bByteValue, dwBytesCount);
+
+	cmd_node->dwCodeSize = dwBytesCount;
 	cmd_node->lpCommand = lpText;
 	cmd_node->lpComment = NULL;
 	cmd_node->lpResolvedCommandWithLabels = NULL;

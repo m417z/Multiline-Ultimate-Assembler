@@ -64,6 +64,7 @@ typedef struct _cmd_block_head {
 // special commands
 
 #define SPECIAL_CMD_ALIGN     1
+#define SPECIAL_CMD_PAD       2
 
 // functions
 
@@ -82,8 +83,9 @@ static int ResolveCommand(TCHAR *lpCommand, DWORD dwBaseAddress, TCHAR **ppNewCo
 static int ReplaceLabelsWithAddress(TCHAR *lpCommand, DWORD dwReplaceAddress, TCHAR **ppNewCommand, TCHAR *lpError);
 static int ParseSpecialCommand(TCHAR *lpText, UINT *pnSpecialCmd, TCHAR *lpError);
 static int ParseAlignSpecialCommand(TCHAR *lpText, int nArgsOffset, DWORD dwAddress, DWORD *pdwPaddingSize, TCHAR *lpError);
+static int ParsePadSpecialCommand(TCHAR *lpText, int nArgsOffset, BYTE *pbPaddingByteValue, TCHAR *lpError);
 static BOOL GetAlignPaddingSize(DWORD dwAddress, DWORD dwAlignValue, DWORD *pdwPaddingSize, TCHAR *lpError);
-static BOOL InsertPaddingBytes(TCHAR *lpText, DWORD dwPaddingSize, CMD_HEAD *p_cmd_head, TCHAR *lpError);
+static BOOL InsertBytes(TCHAR *lpText, DWORD dwBytesCount, BYTE bByteValue, CMD_HEAD *p_cmd_head, TCHAR *lpError);
 
 static int ParseRVAAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD dwParentBaseAddress, DWORD *pdwBaseAddress, TCHAR *lpError);
 static int ParseDWORD(TCHAR *lpText, DWORD *pdw, TCHAR *lpError);
