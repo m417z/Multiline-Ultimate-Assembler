@@ -58,6 +58,8 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 		p = SkipSpaces(p);
 		if(*p == _T('<'))
 		{
+			dwAddress = 0;
+			dwEndAddress = 0;
 			dwBaseAddress = 0;
 			break;
 		}
@@ -81,6 +83,12 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 			switch(*p)
 			{
 			case _T('<'): // address
+				if(dwEndAddress != 0 && dwAddress > dwEndAddress)
+				{
+					wsprintf(lpError, _T("End of code block exceeds the block end address (%u extra bytes)"), dwAddress - dwEndAddress);
+					return cmd_block_node->cmd_head.next->lpCommand;
+				}
+
 				result = ParseAddress(p, &dwAddress, &dwEndAddress, &dwBaseAddress, lpError);
 				if(result <= 0)
 					return p+(-result);
