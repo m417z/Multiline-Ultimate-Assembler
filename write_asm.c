@@ -1446,7 +1446,7 @@ static int ParseCommand(TCHAR *lpText, DWORD dwAddress, DWORD dwBaseAddress, CMD
 		lpResolvedCommand = lpText;
 
 	// Assemble command (with a foo address instead of labels)
-	result = ReplaceLabelsWithAddress(lpResolvedCommand, (DWORD)(dwAddress+INT_MAX), &lpCommandWithoutLabels, lpError);
+	result = ReplaceLabelsWithFooAddress(lpResolvedCommand, dwAddress, TRUE, &lpCommandWithoutLabels, lpError);
 	if(result > 0)
 	{
 		if(lpCommandWithoutLabels)
@@ -1457,7 +1457,7 @@ static int ParseCommand(TCHAR *lpText, DWORD dwAddress, DWORD dwBaseAddress, CMD
 
 			if(result <= 0)
 			{
-				result = ReplaceLabelsWithAddress(lpResolvedCommand, dwAddress, &lpCommandWithoutLabels, lpError);
+				result = ReplaceLabelsWithFooAddress(lpResolvedCommand, dwAddress, FALSE, &lpCommandWithoutLabels, lpError);
 				if(result > 0 && lpCommandWithoutLabels)
 				{
 					result = AssembleShortest(lpCommandWithoutLabels, dwAddress, bCode, lpError);
@@ -1593,9 +1593,10 @@ static int ResolveCommand(TCHAR *lpCommand, DWORD dwBaseAddress, TCHAR **ppNewCo
 	return p-lpCommand;
 }
 
-static int ReplaceLabelsWithAddress(TCHAR *lpCommand, DWORD dwReplaceAddress, TCHAR **ppNewCommand, TCHAR *lpError)
+static int ReplaceLabelsWithFooAddress(TCHAR *lpCommand, DWORD dwCommandAddress, BOOL bAddDelta, TCHAR **ppNewCommand, TCHAR *lpError)
 {
 	TCHAR *p;
+	DWORD dwReplaceAddress;
 	int text_start[4];
 	int text_end[4];
 	DWORD dwAddress[4];
@@ -1604,6 +1605,8 @@ static int ReplaceLabelsWithAddress(TCHAR *lpCommand, DWORD dwReplaceAddress, TC
 	// Find labels
 	p = lpCommand;
 	label_count = 0;
+
+	dwReplaceAddress = dwCommandAddress;
 
 	while(*p != _T('\0') && *p != _T(';'))
 	{
@@ -1632,6 +1635,17 @@ static int ReplaceLabelsWithAddress(TCHAR *lpCommand, DWORD dwReplaceAddress, TC
 			{
 				lstrcpy(lpError, _T("Could not parse label"));
 				return -text_start[label_count];
+			}
+
+			if(bAddDelta)
+			{
+				dwReplaceAddress += 0x11111111;
+
+				if((dwReplaceAddress & 0xFFFF0000) == 0x00000000 ||
+					(dwReplaceAddress & 0xFFFF0000) == 0xFFFF0000)
+				{
+					dwReplaceAddress += 0x11111111;
+				}
 			}
 
 			dwAddress[label_count] = dwReplaceAddress;
