@@ -690,15 +690,17 @@ static HDWP ChildRelativeDeferWindowPos(HDWP hWinPosInfo, HWND hWnd, int nIDDlgI
 static int AsmDlgMessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType)
 {
 	ASM_DIALOG_PARAM *p_dialog_param;
-	HWND hForegroundWnd;
+	BOOL bOllyEnabled;
 	int nRet;
-
-	hForegroundWnd = GetForegroundWindow();
 
 	p_dialog_param = (ASM_DIALOG_PARAM *)GetWindowLongPtr(hWnd, DWLP_USER);
 	if(p_dialog_param && p_dialog_param->hFindReplaceWnd)
 	{
-		if(hForegroundWnd == p_dialog_param->hFindReplaceWnd)
+		bOllyEnabled = IsWindowEnabled(hwollymain);
+		if(bOllyEnabled)
+			EnableWindow(hwollymain, FALSE);
+
+		if(GetActiveWindow() == p_dialog_param->hFindReplaceWnd)
 		{
 			EnableWindow(hWnd, FALSE);
 			nRet = MessageBox(p_dialog_param->hFindReplaceWnd, lpText, lpCaption, uType);
@@ -710,6 +712,9 @@ static int AsmDlgMessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT u
 			nRet = MessageBox(hWnd, lpText, lpCaption, uType);
 			EnableWindow(p_dialog_param->hFindReplaceWnd, TRUE);
 		}
+
+		if(bOllyEnabled)
+			EnableWindow(hwollymain, TRUE);
 	}
 	else
 		nRet = MessageBox(hWnd, lpText, lpCaption, uType);
