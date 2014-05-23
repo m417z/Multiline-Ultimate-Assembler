@@ -71,7 +71,7 @@ extc int _export cdecl ODBG_Plugininit(int ollydbgversion, HWND hWnd, ulong *fea
 	// to display message box.
 	hwollymain = hWnd;
 
-	// Init assembler thread, etc.
+	// Init stuff
 	pError = PluginInit(hDllInst);
 	if(pError)
 	{
@@ -432,7 +432,7 @@ static TCHAR *PluginInit(HINSTANCE hInst)
 	// Install RAEdit control
 	InstallRAEdit(hInst, FALSE);
 
-	// Init assembler thread, etc.
+	// Init stuff
 	pError = AssemblerInit();
 	if(pError)
 	{

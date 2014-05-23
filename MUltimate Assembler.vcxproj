@@ -206,6 +206,7 @@
   <ItemGroup>
     <ClCompile Include="assembler_dlg.c" />
     <ClCompile Include="assembler_dlg_tabs.c" />
+    <ClCompile Include="functions.c" />
     <ClCompile Include="MUltimate Assembler.c" />
     <ClCompile Include="options_dlg.c" />
     <ClCompile Include="plugin_v1.c">
@@ -215,6 +216,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release immdbg|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="pointer_redirection.c" />
     <ClCompile Include="read_asm.c" />
     <ClCompile Include="tabctrl_ex.c" />
     <ClCompile Include="write_asm.c" />
@@ -222,12 +224,14 @@
   <ItemGroup>
     <ClInclude Include="assembler_dlg.h" />
     <ClInclude Include="assembler_dlg_tabs.h" />
+    <ClInclude Include="functions.h" />
     <ClInclude Include="options_def.h" />
     <ClInclude Include="options_dlg.h" />
     <ClInclude Include="plugin.h" />
     <ClInclude Include="plugin_immdbg.h" />
     <ClInclude Include="plugin_ollydbg.h" />
     <ClInclude Include="plugin_ollydbg2.h" />
+    <ClInclude Include="pointer_redirection.h" />
     <ClInclude Include="raedit.h" />
     <ClInclude Include="read_asm.h" />
     <ClInclude Include="resource.h" />

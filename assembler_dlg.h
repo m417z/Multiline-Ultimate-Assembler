@@ -3,6 +3,8 @@
 
 #include <windows.h>
 #include <tchar.h>
+#include "functions.h"
+#include "pointer_redirection.h"
 #include "plugin.h"
 #include "raedit.h"
 #include "options_def.h"
@@ -29,26 +31,13 @@ typedef struct _asm_dialog_param {
 	FINDREPLACE findreplace;
 } ASM_DIALOG_PARAM;
 
-typedef struct _asm_thread_param {
-	HANDLE hThreadReadyEvent;
-	HWND hAsmWnd;
-	BOOL bQuitThread;
-	ASM_DIALOG_PARAM dialog_param;
-} ASM_THREAD_PARAM;
-
-// Message window messages
-#define UWM_SHOWASMDLG                  WM_APP
-#define UWM_CLOSEASMDLG                 (WM_APP+1)
-#define UWM_ASMDLGDESTROYED             (WM_APP+2)
-#define UWM_QUITTHREAD                  (WM_APP+3)
-
 // Both Message window and Assembler dialog messages
-#define UWM_LOADCODE                    (WM_APP+4)
-#define UWM_OPTIONSCHANGED              (WM_APP+5)
+#define UWM_LOADCODE                    (WM_APP)
+#define UWM_OPTIONSCHANGED              (WM_APP+1)
 
 // Assembler dialog messages
-#define UWM_NOTIFY                      (WM_APP+6)
-#define UWM_ERRORMSG                    (WM_APP+7)
+#define UWM_NOTIFY                      (WM_APP+2)
+#define UWM_ERRORMSG                    (WM_APP+3)
 
 #define HILITE_ASM_CMD \
 	"aaa aad aam aas adc add and call cbw clc cld cli cmc cmp cmps cmpsb " \
@@ -146,8 +135,10 @@ void AssemblerShowDlg();
 void AssemblerCloseDlg();
 void AssemblerLoadCode(DWORD dwAddress, DWORD dwSize);
 void AssemblerOptionsChanged();
-static DWORD WINAPI AssemblerThread(void *pParameter);
-static LRESULT CALLBACK AsmMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+static BOOL WINAPI TranslateMDISysAccelHook(HWND hWndClient, LPMSG lpMsg);
+static BOOL AssemblerPreTranslateMessage(LPMSG lpMsg);
+static HWND CreateAsmDlg();
+static void CloseAsmDlg(HWND hWnd);
 static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 static void SetRAEditDesign(HWND hWnd, RAFONT *praFont);
 static void UpdateRightClickMenuState(HWND hWnd, HMENU hMenu);

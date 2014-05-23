@@ -8,8 +8,6 @@ int WriteAsm(TCHAR *lpText, TCHAR *lpError)
 	CMD_BLOCK_HEAD cmd_block_head = {NULL, (CMD_BLOCK_NODE *)&cmd_block_head};
 	TCHAR *lpErrorSpot;
 
-	SendMessage(hwollymain, WM_SETREDRAW, FALSE, 0);
-
 	// Fill the lists using the given text, without replacing labels in commands yet
 	lpErrorSpot = FillListsFromText(&label_head, &cmd_block_head, lpText, lpError);
 
@@ -31,9 +29,6 @@ int WriteAsm(TCHAR *lpText, TCHAR *lpError)
 
 	FreeLabelList(&label_head);
 	FreeCmdBlockList(&cmd_block_head);
-
-	SendMessage(hwollymain, WM_SETREDRAW, TRUE, 0);
-	RedrawWindow(hwollymain, NULL, NULL, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
 
 	if(lpErrorSpot)
 		return -(lpErrorSpot-lpText);

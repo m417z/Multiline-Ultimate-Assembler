@@ -3,265 +3,127 @@
 extern HINSTANCE hDllInst;
 extern OPTIONS options;
 
-static HANDLE hAsmThread;
-static DWORD dwAsmThreadId;
-static HWND hAsmMsgWnd;
+static HACCEL hAccelerators;
+static HWND hAsmDlg;
+static ASM_DIALOG_PARAM AsmDlgParam;
+
+// hooks
+static void **ppTranslateMDISysAccel;
+POINTER_REDIRECTION_VAR(static POINTER_REDIRECTION prTranslateMDISysAccel);
 
 TCHAR *AssemblerInit()
 {
-	HANDLE hThreadReadyEvent;
-	HANDLE hHandles[2];
-	TCHAR *pError;
+	// Below is a hack, which allows us to define a PreTranslateMessage-like function.
+	// We hook the TranslateMDISysAccel function, and use it to do our pre-translation.
+	ppTranslateMDISysAccel = FindImportPtr(GetModuleHandle(NULL), "user32.dll", "TranslateMDISysAccel");
+	if(!ppTranslateMDISysAccel)
+		return _T("Couldn't find the TranslateMDISysAccel function in User32.dll");
 
-	hThreadReadyEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-	if(hThreadReadyEvent)
-	{
-		hAsmThread = CreateThread(NULL, 0, AssemblerThread, (void *)hThreadReadyEvent, 0, &dwAsmThreadId);
-		if(hAsmThread)
-		{
-			hHandles[0] = hThreadReadyEvent;
-			hHandles[1] = hAsmThread;
+	PointerRedirectionAdd(ppTranslateMDISysAccel, TranslateMDISysAccelHook, &prTranslateMDISysAccel);
 
-			switch(WaitForMultipleObjects(2, hHandles, FALSE, INFINITE))
-			{
-			case WAIT_OBJECT_0:
-				pError = NULL;
-				break;
-
-			case WAIT_OBJECT_0+1:
-				hAsmThread = NULL;
-				pError = _T("Thread initialization failed");
-				break;
-
-			case WAIT_FAILED:
-			default:
-				pError = _T("WaitForMultipleObjects() failed");
-				break;
-			}
-		}
-		else
-			pError = _T("Could not create thread");
-
-		CloseHandle(hThreadReadyEvent);
-	}
-	else
-		pError = _T("Could not create event");
-
-	return pError;
+	hAccelerators = LoadAccelerators(hDllInst, MAKEINTRESOURCE(IDR_MAINACCELERATOR));
+	return NULL;
 }
 
 void AssemblerExit()
 {
-	if(hAsmThread)
-	{
-		PostMessage(hAsmMsgWnd, UWM_QUITTHREAD, 0, 0);
-		WaitForSingleObject(hAsmThread, INFINITE);
-
-		CloseHandle(hAsmThread);
-		hAsmThread = NULL;
-	}
+	PointerRedirectionRemove(ppTranslateMDISysAccel, &prTranslateMDISysAccel);
 }
 
 void AssemblerShowDlg()
 {
-	if(hAsmThread)
-		PostMessage(hAsmMsgWnd, UWM_SHOWASMDLG, 0, 0);
+	if(!hAsmDlg)
+	{
+		hAsmDlg = CreateAsmDlg();
+		if(!hAsmDlg)
+			MessageBox(hwollymain, _T("Couldn't create dialog"), _T("Multiline Ultimate Assembler error"), MB_ICONHAND);
+	}
+	else
+	{
+		HWND hWnd = hAsmDlg;
+
+		if(IsWindowEnabled(hWnd))
+		{
+			if(IsIconic(hWnd))
+				ShowWindow(hWnd, SW_RESTORE);
+
+			SetFocus(hWnd);
+		}
+		else
+		{
+			HWND hPopupWnd = GetWindow(hWnd, GW_ENABLEDPOPUP);
+			if(hPopupWnd)
+				SetFocus(hPopupWnd);
+		}
+	}
 }
 
 void AssemblerCloseDlg()
 {
-	if(hAsmThread)
-		PostMessage(hAsmMsgWnd, UWM_CLOSEASMDLG, 0, 0);
+	if(hAsmDlg)
+		CloseAsmDlg(hAsmDlg);
 }
 
 void AssemblerLoadCode(DWORD dwAddress, DWORD dwSize)
 {
-	if(hAsmThread)
-		PostMessage(hAsmMsgWnd, UWM_LOADCODE, dwAddress, dwSize);
+	AssemblerShowDlg();
+
+	if(hAsmDlg)
+		PostMessage(hAsmDlg, UWM_LOADCODE, dwAddress, dwSize);
 }
 
 void AssemblerOptionsChanged()
 {
-	if(hAsmThread)
-		PostMessage(hAsmMsgWnd, UWM_OPTIONSCHANGED, 0, 0);
+	if(hAsmDlg)
+		PostMessage(hAsmDlg, UWM_OPTIONSCHANGED, 0, 0);
 }
 
-static DWORD WINAPI AssemblerThread(void *pParameter)
+static BOOL WINAPI TranslateMDISysAccelHook(HWND hWndClient, LPMSG lpMsg)
 {
-	ASM_THREAD_PARAM thread_param;
-	WNDCLASS wndclass;
-	ATOM class_atom;
-	HACCEL hAccelerators;
-	HWND hAsmWnd, hFindReplaceWnd;
-	MSG msg;
-	BOOL bRet;
+	if(AssemblerPreTranslateMessage(lpMsg))
+		return TRUE;
 
-	thread_param.hThreadReadyEvent = (HANDLE)pParameter;
-	thread_param.hAsmWnd = NULL;
-	thread_param.bQuitThread = FALSE;
-
-	thread_param.dialog_param.hFindReplaceWnd = NULL;
-
-	ZeroMemory(&wndclass, sizeof(WNDCLASS));
-	wndclass.lpfnWndProc = AsmMsgProc;
-	wndclass.hInstance = hDllInst;
-	wndclass.lpszClassName = _T("Multiline Ultimate Assembler Message Window");
-
-	class_atom = RegisterClass(&wndclass);
-	if(!class_atom)
-		return 0;
-
-	hAsmMsgWnd = CreateWindowEx(0, MAKEINTATOM(class_atom), NULL, 
-		0, 0, 0, 0, 0, HWND_MESSAGE, NULL, hDllInst, &thread_param);
-	if(!hAsmMsgWnd)
-	{
-		UnregisterClass(MAKEINTATOM(class_atom), hDllInst);
-		return 0;
-	}
-
-	hAccelerators = LoadAccelerators(hDllInst, MAKEINTRESOURCE(IDR_MAINACCELERATOR));
-
-	while((bRet = GetMessage(&msg, NULL, 0, 0)) != 0)
-	{
-		if(bRet == -1)
-		{
-			MessageBox(hwollymain, _T("GetMessage() error"), _T("Multiline Ultimate Assembler error"), MB_ICONHAND);
-			msg.wParam = 0;
-			break;
-		}
-
-		hAsmWnd = thread_param.hAsmWnd;
-		hFindReplaceWnd = thread_param.dialog_param.hFindReplaceWnd;
-
-		if(hFindReplaceWnd && IsDialogMessage(hFindReplaceWnd, &msg))
-		{
-			// processed
-		}
-		else if(hAsmWnd && (TranslateAccelerator(hAsmWnd, hAccelerators, &msg) || IsDialogMessage(hAsmWnd, &msg)))
-		{
-			// processed
-		}
-		else
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-	}
-
-	UnregisterClass(MAKEINTATOM(class_atom), hDllInst);
-
-	return (DWORD)msg.wParam;
+	return ((BOOL(WINAPI *)(HWND, LPMSG))prTranslateMDISysAccel.pOriginalAddress)(hWndClient, lpMsg);
 }
 
-static LRESULT CALLBACK AsmMsgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+static BOOL AssemblerPreTranslateMessage(LPMSG lpMsg)
 {
-	ASM_THREAD_PARAM *p_thread_param;
-	HWND hAsmWnd;
-	HWND hPopupWnd;
-
-	if(uMsg == WM_CREATE)
+	if(hAsmDlg)
 	{
-		p_thread_param = (ASM_THREAD_PARAM *)((CREATESTRUCT *)lParam)->lpCreateParams;
-		SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)p_thread_param);
-	}
-	else
-	{
-		p_thread_param = (ASM_THREAD_PARAM *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
-		if(!p_thread_param)
-			return DefWindowProc(hWnd, uMsg, wParam, lParam);
-	}
+		HWND hWnd = hAsmDlg;
+		HWND hFindReplaceWnd = AsmDlgParam.hFindReplaceWnd;
 
-	switch(uMsg)
-	{
-	case WM_CREATE:
-		SetEvent(p_thread_param->hThreadReadyEvent);
-		return 0;
+		if(hFindReplaceWnd && IsDialogMessage(hFindReplaceWnd, lpMsg))
+			return TRUE;
 
-	case UWM_SHOWASMDLG:
-	case UWM_LOADCODE:
-		if(p_thread_param->bQuitThread)
-			return 0;
-
-		if(!p_thread_param->hAsmWnd)
+		HWND hActiveWnd = GetActiveWindow();
+		if(hActiveWnd == hWnd || IsChild(hActiveWnd, hWnd))
 		{
-			hAsmWnd = CreateDialogParam(hDllInst, MAKEINTRESOURCE(IDD_MAIN), hwollymain, 
-				(DLGPROC)DlgAsmProc, (LPARAM)&p_thread_param->dialog_param);
-			if(!hAsmWnd)
-			{
-				MessageBox(hwollymain, _T("CreateDialog() error"), _T("Multiline Ultimate Assembler error"), MB_ICONHAND);
-				return 0;
-			}
-
-			p_thread_param->hAsmWnd = hAsmWnd;
-
-			ShowWindow(hAsmWnd, SW_SHOWNORMAL);
-
-			if(uMsg == UWM_LOADCODE)
-				PostMessage(hAsmWnd, uMsg, wParam, lParam);
+			if(hAccelerators && TranslateAccelerator(hWnd, hAccelerators, lpMsg))
+				return TRUE;
 		}
-		else
-		{
-			hAsmWnd = p_thread_param->hAsmWnd;
 
-			if(IsWindowEnabled(hAsmWnd))
-			{
-				if(IsIconic(hAsmWnd))
-					ShowWindow(hAsmWnd, SW_RESTORE);
-
-				SetFocus(hAsmWnd);
-
-				if(uMsg == UWM_LOADCODE)
-					PostMessage(hAsmWnd, uMsg, wParam, lParam);
-			}
-			else
-			{
-				hPopupWnd = GetWindow(hAsmWnd, GW_ENABLEDPOPUP);
-				if(hPopupWnd)
-					SetFocus(hPopupWnd);
-			}
-		}
-		return 0;
-
-	case UWM_CLOSEASMDLG:
-		hAsmWnd = p_thread_param->hAsmWnd;
-
-		if(hAsmWnd)
-			PostMessage(hAsmWnd, WM_CLOSE, 0, 0);
-		return 0;
-
-	case UWM_OPTIONSCHANGED:
-		hAsmWnd = p_thread_param->hAsmWnd;
-
-		if(hAsmWnd)
-			PostMessage(hAsmWnd, uMsg, wParam, lParam);
-		return 0;
-
-	case UWM_ASMDLGDESTROYED:
-		p_thread_param->hAsmWnd = NULL;
-
-		if(p_thread_param->bQuitThread)
-			DestroyWindow(hWnd);
-		return 0;
-
-	case UWM_QUITTHREAD:
-		p_thread_param->bQuitThread = TRUE;
-		hAsmWnd = p_thread_param->hAsmWnd;
-
-		if(hAsmWnd)
-			PostMessage(hAsmWnd, WM_CLOSE, 0, 0);
-		else
-			DestroyWindow(hWnd);
-		return 0;
-
-	case WM_DESTROY:
-		hAsmMsgWnd = NULL;
-
-		PostQuitMessage(0);
-		return 0;
-
-	default:
-		return DefWindowProc(hWnd, uMsg, wParam, lParam);
+		if(IsDialogMessage(hWnd, lpMsg))
+			return TRUE;
 	}
+
+	return FALSE;
+}
+
+static HWND CreateAsmDlg()
+{
+	HWND hWnd = CreateDialogParam(hDllInst, MAKEINTRESOURCE(IDD_MAIN), hwollymain,
+		(DLGPROC)DlgAsmProc, (LPARAM)&AsmDlgParam);
+	if(!hWnd)
+		return NULL;
+
+	ShowWindow(hWnd, SW_SHOWNORMAL);
+	return hWnd;
+}
+
+static void CloseAsmDlg(HWND hWnd)
+{
+	PostMessage(hWnd, WM_CLOSE, 0, 0);
 }
 
 static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -604,6 +466,7 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			SaveWindowPos(hWnd, hDllInst);
 			SaveFileOfTab(GetDlgItem(hWnd, IDC_TABS), GetDlgItem(hWnd, IDC_ASSEMBLER));
 			DestroyWindow(hWnd);
+			hAsmDlg = NULL;
 			break;
 		}
 		break;
@@ -650,8 +513,6 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			TabCtrlExExit(GetDlgItem(hWnd, IDC_TABS));
 			p_dialog_param->bTabCtrlExInitialized = FALSE;
 		}
-
-		PostMessage(hAsmMsgWnd, UWM_ASMDLGDESTROYED, 0, 0);
 		break;
 
 	default:

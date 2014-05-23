@@ -42,6 +42,12 @@
     <ClCompile Include="plugin_v1.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="pointer_redirection.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="functions.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="assembler_dlg.h">
@@ -81,6 +87,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="plugin_ollydbg2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pointer_redirection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="functions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
