@@ -96,8 +96,7 @@ static BOOL AssemblerPreTranslateMessage(LPMSG lpMsg)
 		if(hFindReplaceWnd && IsDialogMessage(hFindReplaceWnd, lpMsg))
 			return TRUE;
 
-		HWND hActiveWnd = GetActiveWindow();
-		if(hActiveWnd == hWnd || IsChild(hActiveWnd, hWnd))
+		if(GetActiveWindow() == hWnd)
 		{
 			if(hAccelerators && TranslateAccelerator(hWnd, hAccelerators, lpMsg))
 				return TRUE;
@@ -690,34 +689,40 @@ static HDWP ChildRelativeDeferWindowPos(HDWP hWinPosInfo, HWND hWnd, int nIDDlgI
 static int AsmDlgMessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType)
 {
 	ASM_DIALOG_PARAM *p_dialog_param;
+	HWND hFindReplaceWnd;
 	BOOL bOllyEnabled;
 	int nRet;
 
-	p_dialog_param = (ASM_DIALOG_PARAM *)GetWindowLongPtr(hWnd, DWLP_USER);
-	if(p_dialog_param && p_dialog_param->hFindReplaceWnd)
-	{
-		bOllyEnabled = IsWindowEnabled(hwollymain);
-		if(bOllyEnabled)
-			EnableWindow(hwollymain, FALSE);
+	bOllyEnabled = IsWindowEnabled(hwollymain);
+	if(bOllyEnabled)
+		EnableWindow(hwollymain, FALSE);
 
-		if(GetActiveWindow() == p_dialog_param->hFindReplaceWnd)
+	p_dialog_param = (ASM_DIALOG_PARAM *)GetWindowLongPtr(hWnd, DWLP_USER);
+	if(p_dialog_param)
+		hFindReplaceWnd = p_dialog_param->hFindReplaceWnd;
+	else
+		hFindReplaceWnd = NULL;
+
+	if(hFindReplaceWnd)
+	{
+		if(GetActiveWindow() == hFindReplaceWnd)
 		{
 			EnableWindow(hWnd, FALSE);
-			nRet = MessageBox(p_dialog_param->hFindReplaceWnd, lpText, lpCaption, uType);
+			nRet = MessageBox(hFindReplaceWnd, lpText, lpCaption, uType);
 			EnableWindow(hWnd, TRUE);
 		}
 		else
 		{
-			EnableWindow(p_dialog_param->hFindReplaceWnd, FALSE);
+			EnableWindow(hFindReplaceWnd, FALSE);
 			nRet = MessageBox(hWnd, lpText, lpCaption, uType);
-			EnableWindow(p_dialog_param->hFindReplaceWnd, TRUE);
+			EnableWindow(hFindReplaceWnd, TRUE);
 		}
-
-		if(bOllyEnabled)
-			EnableWindow(hwollymain, TRUE);
 	}
 	else
 		nRet = MessageBox(hWnd, lpText, lpCaption, uType);
+
+	if(bOllyEnabled)
+		EnableWindow(hwollymain, TRUE);
 
 	return nRet;
 }
