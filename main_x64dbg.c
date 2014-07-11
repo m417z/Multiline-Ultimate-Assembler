@@ -45,10 +45,10 @@ DLL_EXPORT bool pluginit(PLUG_INITSTRUCT* initStruct)
 		return false;
 	}
 
-	_plugin_logprintf("Multiline Ultimate Assembler v" DEF_VERSION);
-	_plugin_logprintf("  " DEF_COPYRIGHT);
-
 	_plugin_registercallback(pluginHandle, CB_MENUENTRY, cbMenuEntry);
+
+	_plugin_logprintf("Multiline Ultimate Assembler v" DEF_VERSION "\n");
+	_plugin_logprintf("  " DEF_COPYRIGHT "\n");
 
 	return true;
 }
@@ -56,6 +56,7 @@ DLL_EXPORT bool pluginit(PLUG_INITSTRUCT* initStruct)
 DLL_EXPORT bool plugstop()
 {
 	_plugin_unregistercallback(pluginHandle, CB_MENUENTRY);
+    _plugin_menuclear(hMenu);
 
 	AssemblerCloseDlg();
 	PluginExit();

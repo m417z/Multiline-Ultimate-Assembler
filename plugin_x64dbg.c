@@ -31,10 +31,10 @@ BOOL MyWriteinttoini(HINSTANCE dllinst, TCHAR *key, int val)
 
 int MyGetstringfromini(HINSTANCE dllinst, TCHAR *key, TCHAR *s, int length)
 {
-	char buf[256];
+	char *buf;
 	int len;
 
-	if(length >= 256)
+	if(length >= MAX_SETTING_SIZE)
 	{
 		if(!BridgeSettingGet(DEF_PLUGINNAME, key, s))
 		{
@@ -45,8 +45,13 @@ int MyGetstringfromini(HINSTANCE dllinst, TCHAR *key, TCHAR *s, int length)
 		return lstrlen(s);
 	}
 
+	buf = (char *)HeapAlloc(GetProcessHeap(), 0, MAX_SETTING_SIZE*sizeof(char));
+	if(!buf)
+		return 0;
+
 	if(!BridgeSettingGet(DEF_PLUGINNAME, key, buf))
 	{
+		HeapFree(GetProcessHeap(), 0, buf);
 		*s = '\0';
 		return 0;
 	}
@@ -56,6 +61,8 @@ int MyGetstringfromini(HINSTANCE dllinst, TCHAR *key, TCHAR *s, int length)
 		len = length - 1;
 
 	lstrcpyn(s, buf, len + 1);
+
+	HeapFree(GetProcessHeap(), 0, buf);
 
 	return len;
 }
@@ -70,8 +77,12 @@ BOOL MyWritestringtoini(HINSTANCE dllinst, TCHAR *key, TCHAR *s)
 DWORD SimpleDisasm(BYTE *cmd, DWORD cmdsize, DWORD ip, BYTE *dec, BOOL bSizeOnly,
 	TCHAR *pszResult, DWORD *jmpconst, DWORD *adrconst, DWORD *immconst)
 {
+	BYTE cmd_safe[MAXCMDSIZE];
+	CopyMemory(cmd_safe, cmd, cmdsize);
+	ZeroMemory(cmd_safe + cmdsize, MAXCMDSIZE - cmdsize);
+
 	BASIC_INSTRUCTION_INFO basicinfo;
-	if(!DbgFunctions()->DisasmFast(cmd, ip, &basicinfo))
+	if(!DbgFunctions()->DisasmFast(cmd_safe, ip, &basicinfo))
 		return 0;
 
 	if(!bSizeOnly)
@@ -123,7 +134,23 @@ BOOL SimpleWriteMemory(void *buf, DWORD addr, DWORD size)
 	return DbgMemWrite(addr, buf, size);
 }
 
-// Data functions
+// Symbolic functions
+
+int GetLabel(DWORD addr, TCHAR *name)
+{
+	if(!DbgGetLabelAt(addr, SEG_DEFAULT, name))
+		return 0;
+
+	return lstrlen(name);
+}
+
+int GetComment(DWORD addr, TCHAR *name)
+{
+	if(!DbgGetCommentAt(addr, name))
+		return 0;
+
+	return lstrlen(name);
+}
 
 BOOL QuickInsertLabel(DWORD addr, TCHAR *s)
 {
@@ -227,22 +254,6 @@ int DecodeGetType(BYTE decode)
 BOOL IsProcessLoaded()
 {
 	return DbgIsDebugging();
-}
-
-int GetLabel(DWORD addr, TCHAR *name)
-{
-	if(!DbgGetLabelAt(addr, SEG_DEFAULT, name))
-		return 0;
-
-	return lstrlen(name);
-}
-
-int GetComment(DWORD addr, TCHAR *name)
-{
-	if(!DbgGetCommentAt(addr, name))
-		return 0;
-
-	return lstrlen(name);
 }
 
 DWORD GetCpuBaseAddr()
