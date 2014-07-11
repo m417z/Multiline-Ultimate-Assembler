@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "assembler_dlg.h"
 
 extern HINSTANCE hDllInst;

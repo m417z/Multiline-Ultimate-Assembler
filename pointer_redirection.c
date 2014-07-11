@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "pointer_redirection.h"
 
 void PointerRedirectionAdd(void **pp, void *pNew, POINTER_REDIRECTION *ppr)

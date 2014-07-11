@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "tabctrl_ex.h"
 
 // Label editing

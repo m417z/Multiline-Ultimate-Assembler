@@ -1,8 +1,5 @@
 #pragma once
 
-#include <windows.h>
-#include <tchar.h>
-
 #ifdef IMMDBG
 #include "plugin_immdbg.h"
 #else // if !IMMDBG

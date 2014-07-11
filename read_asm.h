@@ -1,8 +1,6 @@
 #ifndef _READ_ASM_H_
 #define _READ_ASM_H_
 
-#include <windows.h>
-#include <tchar.h>
 #include "options_def.h"
 #include "plugin.h"
 

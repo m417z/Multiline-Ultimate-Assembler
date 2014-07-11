@@ -1,9 +1,6 @@
 #ifndef _PLUGIN_H_
 #define _PLUGIN_H_
 
-#include <windows.h>
-#include <tchar.h>
-
 #if PLUGIN_VERSION_MAJOR == 1
 #include "plugin_ollydbg_v1.h"
 #elif PLUGIN_VERSION_MAJOR == 2

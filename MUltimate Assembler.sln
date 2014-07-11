@@ -1,24 +1,24 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+VisualStudioVersion = 12.0.30501.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MUltimate Assembler", "MUltimate Assembler.vcxproj", "{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
-		Release immdbg|Win32 = Release immdbg|Win32
-		Release v2|Win32 = Release v2|Win32
+		Rel_immdbg|Win32 = Rel_immdbg|Win32
+		Rel_odbg_v2|Win32 = Rel_odbg_v2|Win32
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}.Debug|Win32.ActiveCfg = Debug|Win32
 		{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}.Debug|Win32.Build.0 = Debug|Win32
-		{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}.Release immdbg|Win32.ActiveCfg = Release immdbg|Win32
-		{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}.Release immdbg|Win32.Build.0 = Release immdbg|Win32
-		{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}.Release v2|Win32.ActiveCfg = Release v2|Win32
-		{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}.Release v2|Win32.Build.0 = Release v2|Win32
+		{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}.Rel_immdbg|Win32.ActiveCfg = Rel_immdbg|Win32
+		{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}.Rel_immdbg|Win32.Build.0 = Rel_immdbg|Win32
+		{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}.Rel_odbg_v2|Win32.ActiveCfg = Rel_odbg_v2|Win32
+		{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}.Rel_odbg_v2|Win32.Build.0 = Rel_odbg_v2|Win32
 		{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}.Release|Win32.ActiveCfg = Release|Win32
 		{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection

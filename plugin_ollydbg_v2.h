@@ -1,8 +1,5 @@
 #pragma once
 
-#include <windows.h>
-#include <tchar.h>
-
 #include "plugin_ollydbg2.h"
 
 #define MODULE_MAX_LEN        SHORTNAME

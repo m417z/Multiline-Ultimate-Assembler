@@ -1,9 +1,6 @@
 #ifndef _POINTER_REDIRECTION_H_
 #define _POINTER_REDIRECTION_H_
 
-#include <windows.h>
-#include <stddef.h>
-
 #ifdef _WIN64
 #define POINTER_REDIRECTION_ASM_COMMAND "\xFF\x25\xF2\xFF\xFF\xFF"
 #else

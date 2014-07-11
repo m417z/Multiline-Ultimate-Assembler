@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "plugin.h"
 
 HWND hwollymain;

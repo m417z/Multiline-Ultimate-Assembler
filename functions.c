@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "functions.h"
 
 void **FindImportPtr(HMODULE hFindInModule, char *pModuleName, char *pImportName)

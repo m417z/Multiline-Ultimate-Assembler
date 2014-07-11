@@ -1,10 +1,6 @@
 #ifndef _ASSEMBLER_DLG_TABS_H_
 #define _ASSEMBLER_DLG_TABS_H_
 
-#include <windows.h>
-#include <tchar.h>
-#include <commctrl.h>
-#include <shlwapi.h>
 #include "plugin.h"
 #include "raedit.h"
 #include "tabctrl_ex.h"

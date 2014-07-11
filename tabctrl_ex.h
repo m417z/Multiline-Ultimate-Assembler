@@ -1,10 +1,6 @@
 #ifndef _TABCTRL_EX_H_
 #define _TABCTRL_EX_H_
 
-#include <windows.h>
-#include <tchar.h>
-#include <commctrl.h>
-
 // Config
 #include "assembler_dlg.h"
 

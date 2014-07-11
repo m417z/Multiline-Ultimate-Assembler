@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "write_asm.h"
 
 extern OPTIONS options;

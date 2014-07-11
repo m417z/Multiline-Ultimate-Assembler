@@ -1,8 +1,6 @@
 #ifndef _ASSEMBLER_DLG_H_
 #define _ASSEMBLER_DLG_H_
 
-#include <windows.h>
-#include <tchar.h>
 #include "functions.h"
 #include "pointer_redirection.h"
 #include "plugin.h"

@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "assembler_dlg_tabs.h"
 
 static HWND hPostErrorWnd;
