@@ -26,7 +26,9 @@ DLL_EXPORT void plugsetup(PLUG_SETUPSTRUCT *setupStruct)
 	hMenu = setupStruct->hMenu;
 
 	_plugin_menuaddentry(hMenu, MENU_MAIN, "&Multiline Ultimate Assembler");
+	_plugin_menuaddseparator(hMenu);
 	_plugin_menuaddentry(hMenu, MENU_OPTIONS, "&Options");
+	_plugin_menuaddseparator(hMenu);
 	_plugin_menuaddentry(hMenu, MENU_HELP, "&Help");
 	_plugin_menuaddentry(hMenu, MENU_ABOUT, "&About");
 }
