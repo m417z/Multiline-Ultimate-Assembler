@@ -209,10 +209,10 @@
     <ClCompile Include="functions.c" />
     <ClCompile Include="MUltimate Assembler.c" />
     <ClCompile Include="options_dlg.c" />
-    <ClCompile Include="plugin_v1.c">
+    <ClCompile Include="plugin_ollydbg_v1.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release v2|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="plugin_v2.c">
+    <ClCompile Include="plugin_ollydbg_v2.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release immdbg|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
@@ -231,6 +231,8 @@
     <ClInclude Include="plugin_immdbg.h" />
     <ClInclude Include="plugin_ollydbg.h" />
     <ClInclude Include="plugin_ollydbg2.h" />
+    <ClInclude Include="plugin_ollydbg_v1.h" />
+    <ClInclude Include="plugin_ollydbg_v2.h" />
     <ClInclude Include="pointer_redirection.h" />
     <ClInclude Include="raedit.h" />
     <ClInclude Include="read_asm.h" />

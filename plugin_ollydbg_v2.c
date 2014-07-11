@@ -206,7 +206,58 @@ BOOL IsModuleWithRelocations(PLUGIN_MODULE module)
 	return module->relocbase != 0;
 }
 
+// Analysis functions
+
+BYTE *FindDecode(DWORD addr, DWORD *psize)
+{
+	return Finddecode(addr, psize);
+}
+
+int DecodeGetType(BYTE decode)
+{
+	switch(decode & DEC_TYPEMASK)
+	{
+	// Unknown
+	case DEC_UNKNOWN:
+	default:
+		return DECODE_UNKNOWN;
+
+	// Supported data
+	case DEC_FILLDATA:
+	case DEC_INT:
+	case DEC_SWITCH:
+	case DEC_DATA:
+	case DEC_DB:
+	case DEC_DUMP:
+	case DEC_FLOAT:
+	case DEC_GUID:
+	case DEC_FILLING:
+		return DECODE_DATA;
+
+	// Command
+	case DEC_COMMAND:
+	case DEC_JMPDEST:
+	case DEC_CALLDEST:
+		return DECODE_COMMAND;
+
+	// Ascii
+	case DEC_ASCII:
+	case DEC_ASCCNT:
+		return DECODE_ASCII;
+
+	// Unicode
+	case DEC_UNICODE:
+	case DEC_UNICNT:
+		return DECODE_UNICODE;
+	}
+}
+
 // Misc.
+
+BOOL IsProcessLoaded()
+{
+	return run.status != STAT_IDLE;
+}
 
 int GetLabel(DWORD addr, TCHAR *name)
 {
@@ -216,11 +267,6 @@ int GetLabel(DWORD addr, TCHAR *name)
 int GetComment(DWORD addr, TCHAR *name)
 {
 	return FindnameW(addr, NM_COMMENT, name, TEXTLEN);
-}
-
-BOOL IsProcessLoaded()
-{
-	return run.status != STAT_IDLE;
 }
 
 t_dump *GetCpuDisasmDump()

@@ -36,16 +36,16 @@
     <ClCompile Include="tabctrl_ex.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="plugin_v2.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="plugin_v1.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="pointer_redirection.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="functions.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="plugin_ollydbg_v1.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="plugin_ollydbg_v2.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -93,6 +93,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="functions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="plugin_ollydbg_v1.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="plugin_ollydbg_v2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

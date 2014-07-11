@@ -96,62 +96,41 @@ static BOOL ProcessCode(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_H
 	DISASM_CMD_NODE *dasm_cmd;
 	BYTE *bDecode;
 	DWORD dwDecodeSize;
-	DWORD dwCommandType;
+	int nCommandType;
 	DWORD dwCommandSize;
 	TCHAR szComment[TEXTLEN];
 	int comment_length;
 
-	bDecode = Finddecode(dwAddress, &dwDecodeSize);
+	bDecode = FindDecode(dwAddress, &dwDecodeSize);
 	if(bDecode && dwDecodeSize < dwSize)
 		bDecode = NULL;
 
 	while(dwSize > 0)
 	{
-		// Code or data?
+		// Get command type
 		if(bDecode)
-			dwCommandType = *bDecode & DEC_TYPEMASK;
+			nCommandType = DecodeGetType(*bDecode);
 		else
-			dwCommandType = DEC_UNKNOWN;
+			nCommandType = DECODE_UNKNOWN;
 
 		// Process it
-		switch(dwCommandType)
+		switch(nCommandType)
 		{
 		// Unknown is treated as command
-		case DEC_UNKNOWN:
+		case DECODE_UNKNOWN:
 		// Supported data
-#if PLUGIN_VERSION_MAJOR == 1
-		case DEC_BYTE:
-		case DEC_WORD:
-		case DEC_DWORD:
-		case DEC_BYTESW:
-#elif PLUGIN_VERSION_MAJOR == 2
-		case DEC_FILLDATA:
-		case DEC_INT:
-		case DEC_SWITCH:
-		case DEC_DATA:
-		case DEC_DB:
-		case DEC_DUMP:
-		case DEC_FLOAT:
-		case DEC_GUID:
-		case DEC_FILLING:
-#endif // PLUGIN_VERSION_MAJOR
+		case DECODE_DATA:
 		// Command
-		case DEC_COMMAND:
-		case DEC_JMPDEST:
-		case DEC_CALLDEST:
+		case DECODE_COMMAND:
 			dwCommandSize = ProcessCommand(pCode, dwSize, dwAddress, bDecode, p_dasm_head, lpError);
 			break;
 
-		// Text
-		case DEC_ASCII:
-		case DEC_UNICODE:
-#if PLUGIN_VERSION_MAJOR == 2
-		case DEC_ASCCNT:
-		case DEC_UNICNT:
-#endif // PLUGIN_VERSION_MAJOR
-		// Some other stuff
-		default:
-			dwCommandSize = ProcessData(pCode, dwSize, dwAddress, bDecode, dwCommandType, p_dasm_head, lpError);
+		case DECODE_ASCII:
+			dwCommandSize = ProcessData(pCode, dwSize, dwAddress, bDecode, nCommandType, p_dasm_head, lpError);
+			break;
+
+		case DECODE_UNICODE:
+			dwCommandSize = ProcessData(pCode, dwSize, dwAddress, bDecode, nCommandType, p_dasm_head, lpError);
 			break;
 		}
 
@@ -242,7 +221,7 @@ static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bD
 }
 
 static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress, 
-	BYTE *bDecode, DWORD dwCommandType, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
+	BYTE *bDecode, int nCommandType, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
 	DISASM_CMD_NODE *dasm_cmd;
 	DWORD dwCommandSize;
@@ -261,31 +240,25 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 	}
 
 	// Check whether it's text or binary data, and calc size
-	switch(dwCommandType)
+	switch(nCommandType)
 	{
-	case DEC_UNICODE:
-#if PLUGIN_VERSION_MAJOR == 2
-	case DEC_UNICNT:
-#endif // PLUGIN_VERSION_MAJOR
+	case DECODE_UNICODE:
 		if(ValidateUnicode(pCode, dwCommandSize, &dwTextSize, &bReadAsBinary))
-			dwCommandType = DEC_UNICODE;
+			nCommandType = DECODE_UNICODE;
 		else
-			dwCommandType = DEC_UNKNOWN;
+			nCommandType = DECODE_UNKNOWN;
 		break;
 
-	case DEC_ASCII:
-#if PLUGIN_VERSION_MAJOR == 2
-	case DEC_ASCCNT:
-#endif // PLUGIN_VERSION_MAJOR
+	case DECODE_ASCII:
 	default:
 		if(ValidateAscii(pCode, dwCommandSize, &dwTextSize, &bReadAsBinary))
-			dwCommandType = DEC_ASCII;
+			nCommandType = DECODE_ASCII;
 		else
-			dwCommandType = DEC_UNKNOWN;
+			nCommandType = DECODE_UNKNOWN;
 		break;
 	}
 
-	if(dwCommandType == DEC_UNKNOWN)
+	if(nCommandType == DECODE_UNKNOWN)
 	{
 		wsprintf(lpError, _T("Couldn't parse data on address 0x%08X"), dwAddress);
 		return 0;
@@ -308,13 +281,13 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 		return 0;
 	}
 
-	switch(dwCommandType)
+	switch(nCommandType)
 	{
-	case DEC_UNICODE:
+	case DECODE_UNICODE:
 		ConvertUnicodeToText(pCode, dwCommandSize, bReadAsBinary, dasm_cmd->lpCommand);
 		break;
 
-	case DEC_ASCII:
+	case DECODE_ASCII:
 		ConvertAsciiToText(pCode, dwCommandSize, bReadAsBinary, dasm_cmd->lpCommand);
 		break;
 	}
@@ -629,7 +602,7 @@ static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE mod
 	DWORD dwCodeBase, dwCodeSize;
 	DWORD dwFromAddr, dwToAddr;
 	BYTE *bDecode;
-	DWORD dwCommandType;
+	int nCommandType;
 	BYTE bBuffer[MAXCMDSIZE];
 	DWORD dwCommandSize;
 	TCHAR szComment[TEXTLEN];
@@ -667,18 +640,17 @@ static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE mod
 			pCode[dwToAddr-dwAddress] != 0
 		)
 		{
-			bDecode = Finddecode(dwFromAddr, NULL);
+			bDecode = FindDecode(dwFromAddr, NULL);
 			if(bDecode)
-				dwCommandType = *bDecode & DEC_TYPEMASK;
+				nCommandType = DecodeGetType(*bDecode);
 			else
-				dwCommandType = DEC_UNKNOWN;
+				nCommandType = DECODE_UNKNOWN;
 
-			if(dwCommandType == DEC_UNKNOWN || dwCommandType == DEC_COMMAND || 
-				dwCommandType == DEC_JMPDEST || dwCommandType == DEC_CALLDEST)
+			if(nCommandType == DECODE_UNKNOWN || nCommandType == DECODE_COMMAND)
 			{
 				// Try to read and process...
 				if(dwCodeBase+dwCodeSize-dwFromAddr < MAXCMDSIZE)
-					dwCommandSize = dwCodeBase+dwCodeSize-dwFromAddr;
+					dwCommandSize = dwCodeBase + dwCodeSize - dwFromAddr;
 				else
 					dwCommandSize = MAXCMDSIZE;
 
