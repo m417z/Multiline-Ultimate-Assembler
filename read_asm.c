@@ -597,6 +597,7 @@ static void MarkLabels(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_HE
 static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE module,
 	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
+#if PLUGIN_VERSION_MAJOR != 11 // TODO: fix for x64_dbg
 	DISASM_CMD_NODE *dasm_cmd;
 	t_jmp *jmpdata;
 	int njmpdata;
@@ -687,6 +688,7 @@ static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE mod
 			}
 		}
 	}
+#endif // PLUGIN_VERSION_MAJOR
 
 	return TRUE;
 }

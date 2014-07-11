@@ -5,6 +5,8 @@
 #include "plugin_odbg_v1.h"
 #elif PLUGIN_VERSION_MAJOR == 2 // Ollydbg v2
 #include "plugin_odbg_v2.h"
+#elif PLUGIN_VERSION_MAJOR == 11 // x64_dbg alpha
+#include "plugin_x64dbg.h"
 #endif // PLUGIN_VERSION_MAJOR
 
 #define DEF_PLUGINNAME        _T("Multiline Ultimate Assembler")

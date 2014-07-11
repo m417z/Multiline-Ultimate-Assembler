@@ -17,6 +17,10 @@
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Rel_x64dbg|Win32">
+      <Configuration>Rel_x64dbg</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1356A7DE-2F61-48DB-91CE-7C27DBC3D9A9}</ProjectGuid>
@@ -31,6 +35,13 @@
     <PlatformToolset>v120_xp</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>NotSet</CharacterSet>
+    <PlatformToolset>v120_xp</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Rel_x64dbg|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -60,6 +71,9 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Rel_x64dbg|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Rel_odbg_v2|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
@@ -81,6 +95,15 @@
     <TargetName>multiasm_odbg</TargetName>
     <OutDir>$(SolutionDir)Release\</OutDir>
     <IntDir>Release\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Rel_x64dbg|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <GenerateManifest>false</GenerateManifest>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <TargetName>multiasm_x64dbg</TargetName>
+    <OutDir>$(SolutionDir)Release\</OutDir>
+    <IntDir>Release\$(Configuration)\</IntDir>
+    <TargetExt>.dp32</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Rel_odbg_v2|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -147,6 +170,32 @@
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Rel_x64dbg|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;MULTIMATEASSEMBLER_EXPORTS;PLUGIN_VERSION_MAJOR=11;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <CompileAs>CompileAsC</CompileAs>
+      <AdditionalOptions>/J %(AdditionalOptions)</AdditionalOptions>
+      <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EntryPointSymbol>DllMain</EntryPointSymbol>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <AdditionalDependencies>comctl32.lib;shlwapi.lib;minicrt\minicrt.lib;raeditlib\masm32.lib;raeditlib\raedit.lib;x64dbg_pluginsdk\x32_dbg.lib;x64dbg_pluginsdk\x32_bridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Rel_odbg_v2|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -206,22 +255,28 @@
     <ClCompile Include="main_common.c" />
     <ClCompile Include="main_odbg_v1.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Rel_odbg_v2|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Rel_x64dbg|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="main_odbg_v2.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Rel_odbg_v1|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Rel_immdbg|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Rel_x64dbg|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="main_x64dbg.c" />
     <ClCompile Include="options_dlg.c" />
     <ClCompile Include="plugin_odbg_v1.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Rel_odbg_v2|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Rel_x64dbg|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="plugin_odbg_v2.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Rel_immdbg|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Rel_x64dbg|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="plugin_x64dbg.c" />
     <ClCompile Include="pointer_redirection.c" />
     <ClCompile Include="read_asm.c" />
     <ClCompile Include="stdafx.c">
@@ -229,7 +284,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Rel_odbg_v2|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Rel_immdbg|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Rel_x64dbg|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Rel_x64dbg|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="tabctrl_ex.c" />
     <ClCompile Include="write_asm.c" />
@@ -247,6 +304,7 @@
     <ClInclude Include="plugin_ollydbg2.h" />
     <ClInclude Include="plugin_odbg_v1.h" />
     <ClInclude Include="plugin_odbg_v2.h" />
+    <ClInclude Include="plugin_x64dbg.h" />
     <ClInclude Include="pointer_redirection.h" />
     <ClInclude Include="raedit.h" />
     <ClInclude Include="read_asm.h" />
@@ -254,6 +312,23 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="tabctrl_ex.h" />
     <ClInclude Include="write_asm.h" />
+    <ClInclude Include="x64dbg_pluginsdk\BeaEngine\basic_types.h" />
+    <ClInclude Include="x64dbg_pluginsdk\BeaEngine\BeaEngine.h" />
+    <ClInclude Include="x64dbg_pluginsdk\BeaEngine\export.h" />
+    <ClInclude Include="x64dbg_pluginsdk\BeaEngine\macros.h" />
+    <ClInclude Include="x64dbg_pluginsdk\bridgemain.h" />
+    <ClInclude Include="x64dbg_pluginsdk\dbghelp\dbghelp.h" />
+    <ClInclude Include="x64dbg_pluginsdk\DeviceNameResolver\DeviceNameResolver.h" />
+    <ClInclude Include="x64dbg_pluginsdk\jansson\jansson.h" />
+    <ClInclude Include="x64dbg_pluginsdk\jansson\jansson_config.h" />
+    <ClInclude Include="x64dbg_pluginsdk\lz4\lz4.h" />
+    <ClInclude Include="x64dbg_pluginsdk\lz4\lz4file.h" />
+    <ClInclude Include="x64dbg_pluginsdk\lz4\lz4hc.h" />
+    <ClInclude Include="x64dbg_pluginsdk\TitanEngine\TitanEngine.h" />
+    <ClInclude Include="x64dbg_pluginsdk\XEDParse\XEDParse.h" />
+    <ClInclude Include="x64dbg_pluginsdk\_dbgfunctions.h" />
+    <ClInclude Include="x64dbg_pluginsdk\_plugins.h" />
+    <ClInclude Include="x64dbg_pluginsdk\_plugin_types.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="raeditlib\RAEdit.Rc" />

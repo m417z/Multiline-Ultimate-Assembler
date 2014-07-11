@@ -57,6 +57,12 @@
     <ClCompile Include="main_common.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="main_x64dbg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="plugin_x64dbg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="assembler_dlg.h">
@@ -114,6 +120,60 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="main_common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="x64dbg_pluginsdk\BeaEngine\basic_types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="x64dbg_pluginsdk\BeaEngine\BeaEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="x64dbg_pluginsdk\BeaEngine\export.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="x64dbg_pluginsdk\BeaEngine\macros.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="x64dbg_pluginsdk\bridgemain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="x64dbg_pluginsdk\dbghelp\dbghelp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="x64dbg_pluginsdk\DeviceNameResolver\DeviceNameResolver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="x64dbg_pluginsdk\jansson\jansson.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="x64dbg_pluginsdk\jansson\jansson_config.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="x64dbg_pluginsdk\lz4\lz4.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="x64dbg_pluginsdk\lz4\lz4file.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="x64dbg_pluginsdk\lz4\lz4hc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="x64dbg_pluginsdk\TitanEngine\TitanEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="x64dbg_pluginsdk\XEDParse\XEDParse.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="x64dbg_pluginsdk\_dbgfunctions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="x64dbg_pluginsdk\_plugins.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="x64dbg_pluginsdk\_plugin_types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="plugin_x64dbg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
