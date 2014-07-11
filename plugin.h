@@ -1,9 +1,9 @@
 #ifndef _PLUGIN_H_
 #define _PLUGIN_H_
 
-#if PLUGIN_VERSION_MAJOR == 1
+#if PLUGIN_VERSION_MAJOR == 1 // Ollydbg v1
 #include "plugin_odbg_v1.h"
-#elif PLUGIN_VERSION_MAJOR == 2
+#elif PLUGIN_VERSION_MAJOR == 2 // Ollydbg v2
 #include "plugin_odbg_v2.h"
 #endif // PLUGIN_VERSION_MAJOR
 

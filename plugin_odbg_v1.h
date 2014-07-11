@@ -6,6 +6,8 @@
 #include "plugin_ollydbg.h"
 #endif // IMMDBG
 
+extern HWND hwollymain;
+
 #define MODULE_MAX_LEN        SHORTLEN
 
 #ifndef JT_CALL
@@ -14,8 +16,6 @@
 
 // v1 -> v2 helper
 typedef t_jdest t_jmp;
-
-extern HWND hwollymain;
 
 typedef t_module *PLUGIN_MODULE;
 typedef t_memory *PLUGIN_MEMORY;
