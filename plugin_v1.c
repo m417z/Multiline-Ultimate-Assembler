@@ -58,9 +58,24 @@ BOOL MyWritestringtoini(HINSTANCE dllinst, TCHAR *key, TCHAR *s)
 
 // Assembler functions
 
-ulong SimpleDisasm(uchar *cmd, ulong cmdsize, ulong ip, uchar *dec, t_disasm *disasm, BOOL bSizeOnly)
+DWORD SimpleDisasm(BYTE *cmd, DWORD cmdsize, DWORD ip, BYTE *dec, BOOL bSizeOnly,
+	TCHAR *pszResult, DWORD *jmpconst, DWORD *adrconst, DWORD *immconst)
 {
-	return Disasm(cmd, cmdsize, ip, dec, disasm, bSizeOnly?DISASM_SIZE:DISASM_FILE, 0);
+	t_disasm disasm;
+	DWORD dwCommandSize = Disasm(cmd, cmdsize, ip, dec, &disasm, bSizeOnly ? DISASM_SIZE : DISASM_FILE, 0);
+	if(disasm.error)
+		return 0;
+
+	if(!bSizeOnly)
+	{
+		lstrcpy(pszResult, disasm.result); // pszResult should have at least TEXTLEN chars
+
+		*jmpconst = disasm.jmpconst;
+		*adrconst = disasm.adrconst;
+		*immconst = disasm.immconst;
+	}
+
+	return dwCommandSize;
 }
 
 int AssembleShortest(TCHAR *lpCommand, DWORD dwAddress, BYTE *bBuffer, TCHAR *lpError)
@@ -424,26 +439,26 @@ static BOOL FindNextHexNumberStartingWithALetter(char *lpCommand, char **ppHexNu
 
 // Memory functions
 
-BOOL SimpleReadMemory(void *buf, ulong addr, ulong size)
+BOOL SimpleReadMemory(void *buf, DWORD addr, DWORD size)
 {
 	return Readmemory(buf, addr, size, MM_RESTORE|MM_SILENT) != 0;
 }
 
-BOOL SimpleWriteMemory(void *buf, ulong addr, ulong size)
+BOOL SimpleWriteMemory(void *buf, DWORD addr, DWORD size)
 {
 	return Writememory(buf, addr, size, MM_RESTORE|MM_DELANAL|MM_SILENT) != 0;
 }
 
 // Data functions
 
-void DeleteDataRange(ulong addr0, ulong addr1, int type)
+BOOL QuickInsertLabel(DWORD addr, TCHAR *s)
 {
-	Deletenamerange(addr0, addr1, type);
+	return Quickinsertname(addr, NM_LABEL, s) != -1;
 }
 
-int QuickInsertName(ulong addr, int type, TCHAR *s)
+BOOL QuickInsertComment(DWORD addr, TCHAR *s)
 {
-	return Quickinsertname(addr, type, s);
+	return Quickinsertname(addr, NM_COMMENT, s) != -1;
 }
 
 void MergeQuickData(void)
@@ -451,16 +466,26 @@ void MergeQuickData(void)
 	Mergequicknames();
 }
 
-// Misc.
-
-int FindName(ulong addr, int type, TCHAR *name)
+void DeleteRangeLabels(DWORD addr0, DWORD addr1)
 {
-	return Findname(addr, type, name);
+	Deletenamerange(addr0, addr1, NM_LABEL);
 }
 
-int FindSymbolicName(ulong addr, TCHAR *fname)
+void DeleteRangeComments(DWORD addr0, DWORD addr1)
 {
-	return Findsymbolicname(addr, fname);
+	Deletenamerange(addr0, addr1, NM_COMMENT);
+}
+
+// Misc.
+
+int GetLabel(DWORD addr, TCHAR *name)
+{
+	return Findsymbolicname(addr, name);
+}
+
+int GetComment(DWORD addr, TCHAR *name)
+{
+	return Findname(addr, NM_COMMENT, name);
 }
 
 t_module *FindModuleByName(TCHAR *lpModule)
@@ -526,9 +551,9 @@ void EnsureMemoryBackup(t_memory *pmem)
 	}
 }
 
-t_status GetStatus()
+BOOL IsProcessLoaded()
 {
-	return Getstatus();
+	return Getstatus() != STAT_NONE;
 }
 
 t_dump *GetCpuDisasmDump()

@@ -2318,7 +2318,7 @@ static TCHAR *SetComments(CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpError)
 		if(cmd_block_node->dwSize > 0)
 		{
 			dwAddress = cmd_block_node->dwAddress;
-			DeleteDataRange(dwAddress, dwAddress+cmd_block_node->dwSize, NM_COMMENT);
+			DeleteRangeComments(dwAddress, dwAddress+cmd_block_node->dwSize);
 
 			for(cmd_node = cmd_block_node->cmd_head.next; cmd_node != NULL; cmd_node = cmd_node->next)
 			{
@@ -2327,7 +2327,7 @@ static TCHAR *SetComments(CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpError)
 					if(lstrlen(cmd_node->lpComment) > TEXTLEN-1)
 						lstrcpy(&cmd_node->lpComment[TEXTLEN-1-3], _T("..."));
 
-					if(QuickInsertName(dwAddress, NM_COMMENT, cmd_node->lpComment) == -1)
+					if(!QuickInsertComment(dwAddress, cmd_node->lpComment))
 					{
 						MergeQuickData();
 						wsprintf(lpError, _T("Failed to set comment on address 0x%08X"), dwAddress);
@@ -2354,7 +2354,7 @@ static TCHAR *SetLabels(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_he
 
 	for(cmd_block_node = p_cmd_block_head->next; cmd_block_node != NULL; cmd_block_node = cmd_block_node->next)
 		if(cmd_block_node->dwSize > 0)
-			DeleteDataRange(cmd_block_node->dwAddress, cmd_block_node->dwAddress+cmd_block_node->dwSize, NM_LABEL);
+			DeleteRangeLabels(cmd_block_node->dwAddress, cmd_block_node->dwAddress+cmd_block_node->dwSize);
 
 	for(label_node = p_label_head->next; label_node != NULL; label_node = label_node->next)
 	{
@@ -2391,7 +2391,7 @@ static TCHAR *SetLabels(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_he
 				continue;
 		}
 
-		if(QuickInsertName(label_node->dwAddress, NM_LABEL, lpLabel) == -1)
+		if(!QuickInsertLabel(label_node->dwAddress, lpLabel))
 		{
 			MergeQuickData();
 			wsprintf(lpError, _T("Failed to set label on address 0x%08X"), label_node->dwAddress);

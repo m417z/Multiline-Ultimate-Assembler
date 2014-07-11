@@ -161,7 +161,7 @@ static BOOL ProcessCode(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_H
 		dasm_cmd = p_dasm_head->last;
 
 		// Comments?
-		comment_length = FindName(dwAddress, NM_COMMENT, szComment);
+		comment_length = GetComment(dwAddress, szComment);
 		if(comment_length > 0)
 		{
 			dasm_cmd->lpComment = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, (comment_length+1)*sizeof(TCHAR));
@@ -192,16 +192,14 @@ static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bD
 {
 	DISASM_CMD_NODE *dasm_cmd;
 	DWORD dwCommandSize;
-	t_disasm td;
+	TCHAR szCommandText[TEXTLEN];
+	DWORD jmpconst, adrconst, immconst;
 
 	// Disasm
-	dwCommandSize = SimpleDisasm(pCode, dwSize, dwAddress, bDecode, &td, FALSE);
+	dwCommandSize = SimpleDisasm(pCode, dwSize, dwAddress, bDecode, FALSE, 
+		szCommandText, &jmpconst, &adrconst, &immconst);
 
-#if PLUGIN_VERSION_MAJOR == 1
-	if(td.error)
-#elif PLUGIN_VERSION_MAJOR == 2
-	if(td.errors != DAE_NOERR)
-#endif // PLUGIN_VERSION_MAJOR
+	if(dwCommandSize == 0)
 	{
 		wsprintf(lpError, _T("Disasm failed on address 0x%08X"), dwAddress);
 		return 0;
@@ -215,7 +213,7 @@ static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bD
 		return 0;
 	}
 
-	dasm_cmd->lpCommand = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, (lstrlen(td.result)+1)*sizeof(TCHAR));
+	dasm_cmd->lpCommand = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, (lstrlen(szCommandText) + 1)*sizeof(TCHAR));
 	if(!dasm_cmd->lpCommand)
 	{
 		HeapFree(GetProcessHeap(), 0, dasm_cmd);
@@ -224,25 +222,11 @@ static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bD
 		return 0;
 	}
 
-	lstrcpy(dasm_cmd->lpCommand, td.result);
+	lstrcpy(dasm_cmd->lpCommand, szCommandText);
 
-#if PLUGIN_VERSION_MAJOR == 1
-	dasm_cmd->dwConst[0] = td.jmpconst;
-	dasm_cmd->dwConst[1] = td.adrconst;
-	dasm_cmd->dwConst[2] = td.immconst;
-#elif PLUGIN_VERSION_MAJOR == 2
-	if(td.memfixup != -1)
-		dasm_cmd->dwConst[0] = *(DWORD *)(pCode+td.memfixup);
-	else
-		dasm_cmd->dwConst[0] = 0;
-
-	if(td.immfixup != -1)
-		dasm_cmd->dwConst[1] = *(DWORD *)(pCode+td.immfixup);
-	else
-		dasm_cmd->dwConst[1] = 0;
-
-	dasm_cmd->dwConst[2] = td.jmpaddr;
-#endif // PLUGIN_VERSION_MAJOR
+	dasm_cmd->dwConst[0] = jmpconst;
+	dasm_cmd->dwConst[1] = adrconst;
+	dasm_cmd->dwConst[2] = immconst;
 
 	dasm_cmd->dwAddress = 0;
 
@@ -262,19 +246,15 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 {
 	DISASM_CMD_NODE *dasm_cmd;
 	DWORD dwCommandSize;
-	t_disasm td;
 	DWORD dwTextSize;
 	BOOL bReadAsBinary;
 	int i;
 
 	// Check size of data
-	dwCommandSize = SimpleDisasm(pCode, dwSize, dwAddress, bDecode, &td, TRUE);
+	dwCommandSize = SimpleDisasm(pCode, dwSize, dwAddress, bDecode, TRUE,
+		NULL, NULL, NULL, NULL);
 
-#if PLUGIN_VERSION_MAJOR == 1
-	if(td.error)
-#elif PLUGIN_VERSION_MAJOR == 2
-	if(td.errors != DAE_NOERR)
-#endif // PLUGIN_VERSION_MAJOR
+	if(dwCommandSize == 0)
 	{
 		wsprintf(lpError, _T("Disasm failed on address 0x%08X"), dwAddress);
 		return 0;
@@ -717,10 +697,10 @@ static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, t_module *module,
 				pCode[dwToAddr-dwAddress] = 2;
 
 				// Comments?
-				comment_length = FindName(dwFromAddr, NM_COMMENT, szComment);
+				comment_length = GetComment(dwFromAddr, szComment);
 				if(comment_length > 0)
 				{
-					dasm_cmd->lpComment = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, (comment_length+1)*sizeof(TCHAR));
+					dasm_cmd->lpComment = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, (comment_length + 1)*sizeof(TCHAR));
 					if(!dasm_cmd->lpComment)
 					{
 						lstrcpy(lpError, _T("Allocation failed"));
@@ -781,7 +761,7 @@ static BOOL CreateAndSetLabels(DWORD dwAddress, DWORD dwSize,
 
 		if(pCode[i] == 2)
 		{
-			if(!FindSymbolicName(dwAddress+i, pLabel) || !IsValidLabel(pLabel, p_dasm_head, dasm_cmd))
+			if(!GetLabel(dwAddress + i, pLabel) || !IsValidLabel(pLabel, p_dasm_head, dasm_cmd))
 			{
 				switch(options.disasm_labelgen)
 				{
