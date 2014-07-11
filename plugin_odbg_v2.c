@@ -49,7 +49,7 @@ DWORD SimpleDisasm(BYTE *cmd, DWORD cmdsize, DWORD ip, BYTE *dec, BOOL bSizeOnly
 
 	if(!bSizeOnly)
 	{
-		lstrcpy(pszResult, disasm.result); // pszResult should have at least TEXTLEN chars
+		lstrcpy(pszResult, disasm.result); // pszResult should have at least COMMAND_MAX_LEN chars
 
 		*jmpconst = disasm.jmpaddr;
 
@@ -124,7 +124,17 @@ BOOL SimpleWriteMemory(void *buf, DWORD addr, DWORD size)
 	return TRUE;
 }
 
-// Data functions
+// Symbolic functions
+
+int GetLabel(DWORD addr, TCHAR *name)
+{
+	return Decodeaddress(addr, 0, DM_SYMBOL | DM_JUMPIMP, name, LABEL_MAX_LEN, NULL);
+}
+
+int GetComment(DWORD addr, TCHAR *name)
+{
+	return FindnameW(addr, NM_COMMENT, name, COMMENT_MAX_LEN);
+}
 
 BOOL QuickInsertLabel(DWORD addr, TCHAR *s)
 {
@@ -173,6 +183,17 @@ DWORD GetModuleSize(PLUGIN_MODULE module)
 	return module->size;
 }
 
+BOOL GetModuleName(PLUGIN_MODULE module, TCHAR *pszModuleName)
+{
+	lstrcpy(pszModuleName, module->modname); // Must be at least MODULE_MAX_LEN characters long
+	return TRUE;
+}
+
+BOOL IsModuleWithRelocations(PLUGIN_MODULE module)
+{
+	return module->relocbase != 0;
+}
+
 // Memory functions
 
 PLUGIN_MEMORY FindMemory(DWORD dwAddress)
@@ -193,18 +214,6 @@ DWORD GetMemorySize(PLUGIN_MEMORY mem)
 void EnsureMemoryBackup(PLUGIN_MEMORY mem)
 {
 	Ensurememorybackup(mem, 0);
-}
-
-BOOL GetModuleName(PLUGIN_MODULE module, TCHAR *pszModuleName)
-{
-	CopyMemory(pszModuleName, module->modname, MODULE_MAX_LEN*sizeof(TCHAR));
-	pszModuleName[MODULE_MAX_LEN] = _T('\0');
-	return TRUE;
-}
-
-BOOL IsModuleWithRelocations(PLUGIN_MODULE module)
-{
-	return module->relocbase != 0;
 }
 
 // Analysis functions
@@ -260,17 +269,11 @@ BOOL IsProcessLoaded()
 	return run.status != STAT_IDLE;
 }
 
-int GetLabel(DWORD addr, TCHAR *name)
+DWORD GetCpuBaseAddr()
 {
-	return Decodeaddress(addr, 0, DM_SYMBOL | DM_JUMPIMP, name, TEXTLEN, NULL);
-}
+	t_dump *td = Getcpudisasmdump();
+	if(!td)
+		return 0;
 
-int GetComment(DWORD addr, TCHAR *name)
-{
-	return FindnameW(addr, NM_COMMENT, name, TEXTLEN);
-}
-
-t_dump *GetCpuDisasmDump()
-{
-	return Getcpudisasmdump();
+	return td->base;
 }

@@ -48,7 +48,7 @@ static TCHAR *MakeText(DWORD dwAddress, PLUGIN_MODULE module, DISASM_CMD_HEAD *p
 static int CopyCommand(TCHAR *pBuffer, TCHAR *pCommand, int hex_option);
 
 // Helper functions
-static int MakeRVAText(TCHAR szText[1 + MODULE_MAX_LEN + 2 + 1 + 1], PLUGIN_MODULE module);
+static int MakeRVAText(TCHAR szText[1 + MODULE_MAX_LEN + 2 + 1], PLUGIN_MODULE module);
 static BOOL ReplaceAddressWithText(TCHAR **ppCommand, DWORD dwAddress, TCHAR *lpText, TCHAR *lpError);
 static TCHAR *SkipCommandName(TCHAR *p);
 static int DWORDToString(TCHAR szString[11], DWORD dw, BOOL bAddress, int hex_option);

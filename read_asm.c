@@ -99,7 +99,7 @@ static BOOL ProcessCode(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_H
 	DWORD dwDecodeSize;
 	int nCommandType;
 	DWORD dwCommandSize;
-	TCHAR szComment[TEXTLEN];
+	TCHAR szComment[COMMENT_MAX_LEN];
 	int comment_length;
 
 	bDecode = FindDecode(dwAddress, &dwDecodeSize);
@@ -172,7 +172,7 @@ static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bD
 {
 	DISASM_CMD_NODE *dasm_cmd;
 	DWORD dwCommandSize;
-	TCHAR szCommandText[TEXTLEN];
+	TCHAR szCommandText[COMMAND_MAX_LEN];
 	DWORD jmpconst, adrconst, immconst;
 
 	// Disasm
@@ -696,7 +696,7 @@ static BOOL CreateAndSetLabels(DWORD dwAddress, DWORD dwSize,
 {
 	DISASM_CMD_NODE *dasm_cmd, *dasm_cmd_2;
 	UINT nLabelCounter;
-	TCHAR szAtLabel[TEXTLEN+1];
+	TCHAR szAtLabel[LABEL_MAX_LEN+1];
 	TCHAR *pLabel;
 	int nLabelLen;
 	UINT i;
@@ -897,7 +897,7 @@ static TCHAR *MakeText(DWORD dwAddress, PLUGIN_MODULE module, DISASM_CMD_HEAD *p
 	DISASM_CMD_NODE *dasm_cmd;
 	BOOL bRVAAddresses;
 	DWORD dwModuleBase;
-	TCHAR szRVAText[1 + MODULE_MAX_LEN + 2 + 1 + 1];
+	TCHAR szRVAText[1 + MODULE_MAX_LEN + 2 + 1];
 	TCHAR *lpText, *lpRealloc;
 	DWORD dwSize, dwMemory;
 
@@ -1106,9 +1106,9 @@ static int CopyCommand(TCHAR *pBuffer, TCHAR *pCommand, int hex_option)
 	return p_dest-pBuffer-1;
 }
 
-static int MakeRVAText(TCHAR szText[1 + MODULE_MAX_LEN + 2 + 1 + 1], PLUGIN_MODULE module)
+static int MakeRVAText(TCHAR szText[1 + MODULE_MAX_LEN + 2 + 1], PLUGIN_MODULE module)
 {
-	TCHAR szModName[MODULE_MAX_LEN + 1];
+	TCHAR szModName[MODULE_MAX_LEN];
 	TCHAR c;
 	int i;
 

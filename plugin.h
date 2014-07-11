@@ -33,7 +33,9 @@ int AssembleWithGivenSize(TCHAR *lpCommand, DWORD dwAddress, DWORD dwSize, BYTE 
 BOOL SimpleReadMemory(void *buf, DWORD addr, DWORD size);
 BOOL SimpleWriteMemory(void *buf, DWORD addr, DWORD size);
 
-// Data functions
+// Symbolic functions
+int GetLabel(DWORD addr, TCHAR *name);
+int GetComment(DWORD addr, TCHAR *name);
 BOOL QuickInsertLabel(DWORD addr, TCHAR *s);
 BOOL QuickInsertComment(DWORD addr, TCHAR *s);
 void MergeQuickData(void);
@@ -60,8 +62,6 @@ int DecodeGetType(BYTE decode);
 
 // Misc.
 BOOL IsProcessLoaded();
-int GetLabel(DWORD addr, TCHAR *name);
-int GetComment(DWORD addr, TCHAR *name);
-t_dump *GetCpuDisasmDump();
+DWORD GetCpuBaseAddr();
 
 #endif // _PLUGIN_H_

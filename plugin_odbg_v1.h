@@ -8,7 +8,10 @@
 
 extern HWND hwollymain;
 
-#define MODULE_MAX_LEN        SHORTLEN
+#define COMMAND_MAX_LEN       TEXTLEN
+#define MODULE_MAX_LEN        (SHORTLEN+1)
+#define LABEL_MAX_LEN         TEXTLEN
+#define COMMENT_MAX_LEN       TEXTLEN
 
 #ifndef JT_CALL
 #define JT_CALL               3 // Local (intramodular) call

@@ -1864,7 +1864,7 @@ static int ParseRVAAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD dwParentBaseA
 	PLUGIN_MODULE module;
 	DWORD dwBaseAddress;
 	DWORD dwAddress;
-	t_dump *ptd;
+	DWORD dwCPUBaseAddr;
 	int result;
 	TCHAR c;
 
@@ -1969,8 +1969,12 @@ static int ParseRVAAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD dwParentBaseA
 		}
 		else
 		{
-			ptd = GetCpuDisasmDump();
-			module = FindModuleByAddr(ptd->base);
+			dwCPUBaseAddr = GetCpuBaseAddr();
+			if(dwCPUBaseAddr)
+				module = FindModuleByAddr(dwCPUBaseAddr);
+			else
+				module = NULL;
+
 			if(!module)
 			{
 				wsprintf(lpError, _T("Can't identify the module currently loaded in the CPU disassembler"));
@@ -2329,8 +2333,8 @@ static TCHAR *SetComments(CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpError)
 			{
 				if(cmd_node->lpComment)
 				{
-					if(lstrlen(cmd_node->lpComment) > TEXTLEN-1)
-						lstrcpy(&cmd_node->lpComment[TEXTLEN-1-3], _T("..."));
+					if(lstrlen(cmd_node->lpComment) > COMMENT_MAX_LEN - 1)
+						lstrcpy(&cmd_node->lpComment[COMMENT_MAX_LEN - 1 - 3], _T("..."));
 
 					if(!QuickInsertComment(dwAddress, cmd_node->lpComment))
 					{
@@ -2366,9 +2370,9 @@ static TCHAR *SetLabels(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_he
 		lpLabel = label_node->lpLabel;
 		nLabelLen = lstrlen(lpLabel);
 
-		if(nLabelLen > TEXTLEN-1)
+		if(nLabelLen > LABEL_MAX_LEN - 1)
 		{
-			lstrcpy(&lpLabel[TEXTLEN-1-3], _T("..."));
+			lstrcpy(&lpLabel[LABEL_MAX_LEN - 1 - 3], _T("..."));
 		}
 		else if(lpLabel[0] == _T('L'))
 		{
