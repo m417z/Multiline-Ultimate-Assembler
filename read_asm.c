@@ -4,12 +4,12 @@ extern OPTIONS options;
 
 TCHAR *ReadAsm(DWORD dwAddress, DWORD dwSize, TCHAR *pLabelPerfix, TCHAR *lpError)
 {
-	t_module *module;
+	PLUGIN_MODULE module;
 	BYTE *pCode;
 	DISASM_CMD_HEAD dasm_head = {NULL, (DISASM_CMD_NODE *)&dasm_head};
 	TCHAR *lpText;
 
-	module = Findmodule(dwAddress);
+	module = FindModuleByAddr(dwAddress);
 
 	// Allocate and read the code block
 	pCode = (BYTE *)HeapAlloc(GetProcessHeap(), 0, dwSize);
@@ -620,7 +620,7 @@ static void MarkLabels(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_HE
 	}
 }
 
-static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, t_module *module, 
+static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE module,
 	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
 	DISASM_CMD_NODE *dasm_cmd;
@@ -871,19 +871,19 @@ static BOOL IsValidLabel(TCHAR *lpLabel, DISASM_CMD_HEAD *p_dasm_head, DISASM_CM
 	return TRUE;
 }
 
-static BOOL SetRVAAddresses(DWORD dwAddress, DWORD dwSize, t_module *module, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
+static BOOL SetRVAAddresses(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE module, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
+	DWORD dwModuleBase, dwModuleSize;
 	DISASM_CMD_NODE *dasm_cmd;
 	TCHAR szRVAText[2+10+1];
 	TCHAR *pRVAAddress;
 	int i, j;
 
-#if PLUGIN_VERSION_MAJOR == 1
-	if(!module || (options.disasm_rva_reloconly && !module->reloctable))
-#elif PLUGIN_VERSION_MAJOR == 2
-	if(!module || (options.disasm_rva_reloconly && !module->relocbase))
-#endif // PLUGIN_VERSION_MAJOR
+	if(!module || (options.disasm_rva_reloconly && !IsModuleWithRelocations(module)))
 		return TRUE;
+
+	dwModuleBase = GetModuleBase(module);
+	dwModuleSize = GetModuleSize(module);
 
 	szRVAText[0] = _T('$');
 	szRVAText[1] = _T('$');
@@ -897,11 +897,11 @@ static BOOL SetRVAAddresses(DWORD dwAddress, DWORD dwSize, t_module *module, DIS
 			if(dasm_cmd->dwConst[i])
 			{
 				if(
-					dasm_cmd->dwConst[i] >= module->base && 
-					dasm_cmd->dwConst[i] < module->base + module->size
+					dasm_cmd->dwConst[i] >= dwModuleBase &&
+					dasm_cmd->dwConst[i] < dwModuleBase + dwModuleSize
 				)
 				{
-					DWORDToString(pRVAAddress, dasm_cmd->dwConst[i]-module->base, FALSE, 0);
+					DWORDToString(pRVAAddress, dasm_cmd->dwConst[i] - dwModuleBase, FALSE, 0);
 
 					if(!ReplaceAddressWithText(&dasm_cmd->lpCommand, dasm_cmd->dwConst[i], szRVAText, lpError))
 						return FALSE;
@@ -919,11 +919,12 @@ static BOOL SetRVAAddresses(DWORD dwAddress, DWORD dwSize, t_module *module, DIS
 	return TRUE;
 }
 
-static TCHAR *MakeText(DWORD dwAddress, t_module *module, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
+static TCHAR *MakeText(DWORD dwAddress, PLUGIN_MODULE module, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
 	DISASM_CMD_NODE *dasm_cmd;
 	BOOL bRVAAddresses;
-	TCHAR szRVAText[1+SHORTNAME+2+1+1];
+	DWORD dwModuleBase;
+	TCHAR szRVAText[1 + MODULE_MAX_LEN + 2 + 1 + 1];
 	TCHAR *lpText, *lpRealloc;
 	DWORD dwSize, dwMemory;
 
@@ -936,13 +937,16 @@ static TCHAR *MakeText(DWORD dwAddress, t_module *module, DISASM_CMD_HEAD *p_das
 		return NULL;
 	}
 
-#if PLUGIN_VERSION_MAJOR == 1
-	bRVAAddresses = (options.disasm_rva && module && (!options.disasm_rva_reloconly || module->reloctable));
-#elif PLUGIN_VERSION_MAJOR == 2
-	bRVAAddresses = (options.disasm_rva && module && (!options.disasm_rva_reloconly || module->relocbase));
-#endif // PLUGIN_VERSION_MAJOR
+	bRVAAddresses = (options.disasm_rva && module && (!options.disasm_rva_reloconly || IsModuleWithRelocations(module)));
 	if(bRVAAddresses)
-		MakeRVAText(szRVAText, module);
+	{
+		dwModuleBase = GetModuleBase(module);
+		if(!MakeRVAText(szRVAText, module))
+		{
+			lstrcpy(lpError, _T("Couldn't make RVA label text"));
+			return NULL;
+		}
+	}
 
 	dasm_cmd = p_dasm_head->next;
 
@@ -964,7 +968,7 @@ static TCHAR *MakeText(DWORD dwAddress, t_module *module, DISASM_CMD_HEAD *p_das
 			if(bRVAAddresses)
 			{
 				dwSize += wsprintf(lpText+dwSize, _T("%s"), szRVAText);
-				dwSize += DWORDToString(lpText+dwSize, dasm_cmd->dwAddress-module->base, FALSE, options.disasm_hex);
+				dwSize += DWORDToString(lpText + dwSize, dasm_cmd->dwAddress - dwModuleBase, FALSE, options.disasm_hex);
 			}
 			else
 				dwSize += DWORDToString(lpText+dwSize, dasm_cmd->dwAddress, TRUE, options.disasm_hex);
@@ -1129,25 +1133,18 @@ static int CopyCommand(TCHAR *pBuffer, TCHAR *pCommand, int hex_option)
 	return p_dest-pBuffer-1;
 }
 
-static int MakeRVAText(TCHAR szText[1+SHORTNAME+2+1+1], t_module *module)
+static int MakeRVAText(TCHAR szText[1 + MODULE_MAX_LEN + 2 + 1 + 1], PLUGIN_MODULE module)
 {
-	TCHAR *pModName;
-	BOOL bQuoted;
-	TCHAR *p;
+	TCHAR szModName[MODULE_MAX_LEN + 1];
 	TCHAR c;
 	int i;
 
-#if PLUGIN_VERSION_MAJOR == 1
-	pModName = module->name;
-#elif PLUGIN_VERSION_MAJOR == 2
-	pModName = module->modname;
-#endif // PLUGIN_VERSION_MAJOR
+	if(!GetModuleName(module, szModName))
+		return 0;
 
-	bQuoted = FALSE;
-
-	for(i=0; i<SHORTNAME && pModName[i] != _T('\0'); i++)
+	for(i = 0; szModName[i] != _T('\0'); i++)
 	{
-		c = pModName[i];
+		c = szModName[i];
 		if(
 			(c < _T('0') || c > _T('9')) && 
 			(c < _T('A') || c > _T('Z')) && 
@@ -1155,28 +1152,13 @@ static int MakeRVAText(TCHAR szText[1+SHORTNAME+2+1+1], t_module *module)
 			c != _T('_')
 		)
 		{
-			bQuoted = TRUE;
-			break;
+			// Quoted
+			return wsprintf(szText, _T("$\"%s\"."), szModName);
 		}
 	}
 
-	p = szText;
-
-	*p++ = _T('$');
-
-	if(bQuoted)
-		*p++ = _T('"');
-
-	for(i=0; i<SHORTNAME && pModName[i] != _T('\0'); i++)
-		*p++ = pModName[i];
-
-	if(bQuoted)
-		*p++ = _T('"');
-
-	*p++ = _T('.');
-	*p = _T('\0');
-
-	return p-szText;
+	// Non-quoted
+	return wsprintf(szText, _T("$%s."), szModName);
 }
 
 static BOOL ReplaceAddressWithText(TCHAR **ppCommand, DWORD dwAddress, TCHAR *lpText, TCHAR *lpError)

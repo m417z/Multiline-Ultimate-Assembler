@@ -476,19 +476,9 @@ void DeleteRangeComments(DWORD addr0, DWORD addr1)
 	Deletenamerange(addr0, addr1, NM_COMMENT);
 }
 
-// Misc.
+// Module functions
 
-int GetLabel(DWORD addr, TCHAR *name)
-{
-	return Findsymbolicname(addr, name);
-}
-
-int GetComment(DWORD addr, TCHAR *name)
-{
-	return Findname(addr, NM_COMMENT, name);
-}
-
-t_module *FindModuleByName(TCHAR *lpModule)
+PLUGIN_MODULE FindModuleByName(TCHAR *lpModule)
 {
 	int module_len;
 	t_table *table;
@@ -509,17 +499,17 @@ t_module *FindModuleByName(TCHAR *lpModule)
 	itemsize = sorted->itemsize;
 	module = (t_module *)sorted->data;
 
-	for(i=0; i<n; i++)
+	for(i = 0; i < n; i++)
 	{
-		for(j=0; j<module_len; j++)
+		for(j = 0; j < module_len; j++)
 		{
 			c1 = lpModule[j];
 			if(c1 >= 'a' && c1 <= 'z')
-				c1 += -'a'+'A';
+				c1 += -'a' + 'A';
 
 			c2 = module->name[j];
 			if(c2 >= 'a' && c2 <= 'z')
-				c2 += -'a'+'A';
+				c2 += -'a' + 'A';
 
 			if(c1 != c2)
 				break;
@@ -534,21 +524,77 @@ t_module *FindModuleByName(TCHAR *lpModule)
 	return NULL;
 }
 
-void EnsureMemoryBackup(t_memory *pmem)
+PLUGIN_MODULE FindModuleByAddr(DWORD dwAddress)
+{
+	return Findmodule(dwAddress);
+}
+
+DWORD GetModuleBase(PLUGIN_MODULE module)
+{
+	return module->base;
+}
+
+DWORD GetModuleSize(PLUGIN_MODULE module)
+{
+	return module->size;
+}
+
+// Memory functions
+
+PLUGIN_MEMORY FindMemory(DWORD dwAddress)
+{
+	return Findmemory(dwAddress);
+}
+
+DWORD GetMemoryBase(PLUGIN_MEMORY mem)
+{
+	return mem->base;
+}
+
+DWORD GetMemorySize(PLUGIN_MEMORY mem)
+{
+	return mem->size;
+}
+
+void EnsureMemoryBackup(PLUGIN_MEMORY mem)
 {
 	t_dump dump;
 
-	if(!pmem->copy)
+	if(!mem->copy)
 	{
 		// what a hack -_-'
-		dump.base = pmem->base;
-		dump.size = pmem->size;
+		dump.base = mem->base;
+		dump.size = mem->size;
 		dump.threadid = 1;
 		dump.filecopy = NULL;
 		dump.backup = NULL;
 
 		Dumpbackup(&dump, BKUP_CREATE);
 	}
+}
+
+BOOL GetModuleName(PLUGIN_MODULE module, TCHAR *pszModuleName)
+{
+	CopyMemory(pszModuleName, module->name, MODULE_MAX_LEN*sizeof(TCHAR));
+	pszModuleName[MODULE_MAX_LEN] = _T('\0');
+	return TRUE;
+}
+
+BOOL IsModuleWithRelocations(PLUGIN_MODULE module)
+{
+	return module->reloctable != 0;
+}
+
+// Misc.
+
+int GetLabel(DWORD addr, TCHAR *name)
+{
+	return Findsymbolicname(addr, name);
+}
+
+int GetComment(DWORD addr, TCHAR *name)
+{
+	return Findname(addr, NM_COMMENT, name);
 }
 
 BOOL IsProcessLoaded()

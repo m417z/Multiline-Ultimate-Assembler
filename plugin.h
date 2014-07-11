@@ -16,16 +16,14 @@
 #include "plugin_ollydbg.h"
 #endif // IMMDBG
 
+#define MODULE_MAX_LEN        SHORTLEN
+
 #ifndef JT_CALL
 #define JT_CALL               3 // Local (intramodular) call
 #endif // JT_CALL
 
 // v1 -> v2 helpers
 // {
-#ifndef SHORTNAME
-#define SHORTNAME             SHORTLEN
-#endif // SHORTNAME
-
 #ifndef DEC_ASCII
 #define DEC_ASCII             DEC_STRING
 #endif // DEC_ASCII
@@ -39,7 +37,12 @@ extern HWND hwollymain;
 
 #include "plugin_ollydbg2.h"
 
+#define MODULE_MAX_LEN        SHORTNAME
+
 #endif // PLUGIN_VERSION_MAJOR
+
+typedef t_module *PLUGIN_MODULE;
+typedef t_memory *PLUGIN_MEMORY;
 
 // Config functions
 BOOL MyGetintfromini(HINSTANCE dllinst, TCHAR *key, int *p_val, int min, int max, int def);
@@ -64,11 +67,24 @@ void MergeQuickData(void);
 void DeleteRangeLabels(DWORD addr0, DWORD addr1);
 void DeleteRangeComments(DWORD addr0, DWORD addr1);
 
+// Module functions
+PLUGIN_MODULE FindModuleByName(TCHAR *lpModule);
+PLUGIN_MODULE FindModuleByAddr(DWORD dwAddress);
+DWORD GetModuleBase(PLUGIN_MODULE module);
+DWORD GetModuleSize(PLUGIN_MODULE module);
+BOOL GetModuleName(PLUGIN_MODULE module, TCHAR *pszModuleName);
+BOOL IsModuleWithRelocations(PLUGIN_MODULE module);
+
+// Memory functions
+
+PLUGIN_MEMORY FindMemory(DWORD dwAddress);
+DWORD GetMemoryBase(PLUGIN_MEMORY mem);
+DWORD GetMemorySize(PLUGIN_MEMORY mem);
+void EnsureMemoryBackup(PLUGIN_MEMORY mem);
+
 // Misc.
 int GetLabel(DWORD addr, TCHAR *name);
 int GetComment(DWORD addr, TCHAR *name);
-t_module *FindModuleByName(TCHAR *lpModule);
-void EnsureMemoryBackup(t_memory *pmem);
 BOOL IsProcessLoaded();
 t_dump *GetCpuDisasmDump();
 

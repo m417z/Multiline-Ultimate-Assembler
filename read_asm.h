@@ -38,19 +38,19 @@ static void ConvertAsciiToText(BYTE *p, DWORD dwSize, BOOL bAsBinary, TCHAR *pTe
 
 // 2
 static void MarkLabels(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head);
-static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, t_module *module, 
+static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE module,
 	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError);
 static BOOL CreateAndSetLabels(DWORD dwAddress, DWORD dwSize, 
 	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *pLabelPerfix, TCHAR *lpError);
 static BOOL IsValidLabel(TCHAR *lpLabel, DISASM_CMD_HEAD *p_dasm_head, DISASM_CMD_NODE *dasm_cmd_target);
-static BOOL SetRVAAddresses(DWORD dwAddress, DWORD dwSize, t_module *module, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError);
+static BOOL SetRVAAddresses(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE module, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError);
 
 // 3
-static TCHAR *MakeText(DWORD dwAddress, t_module *module, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError);
+static TCHAR *MakeText(DWORD dwAddress, PLUGIN_MODULE module, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError);
 static int CopyCommand(TCHAR *pBuffer, TCHAR *pCommand, int hex_option);
 
 // Helper functions
-static int MakeRVAText(TCHAR szText[1+SHORTNAME+2+1+1], t_module *module);
+static int MakeRVAText(TCHAR szText[1 + MODULE_MAX_LEN + 2 + 1 + 1], PLUGIN_MODULE module);
 static BOOL ReplaceAddressWithText(TCHAR **ppCommand, DWORD dwAddress, TCHAR *lpText, TCHAR *lpError);
 static TCHAR *SkipCommandName(TCHAR *p);
 static int DWORDToString(TCHAR szString[11], DWORD dw, BOOL bAddress, int hex_option);

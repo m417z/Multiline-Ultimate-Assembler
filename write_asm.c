@@ -1860,7 +1860,7 @@ static int ParseRVAAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD dwParentBaseA
 {
 	TCHAR *p;
 	TCHAR *pModuleName, *pModuleNameEnd;
-	t_module *module;
+	PLUGIN_MODULE module;
 	DWORD dwBaseAddress;
 	DWORD dwAddress;
 	t_dump *ptd;
@@ -1969,7 +1969,7 @@ static int ParseRVAAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD dwParentBaseA
 		else
 		{
 			ptd = GetCpuDisasmDump();
-			module = Findmodule(ptd->base);
+			module = FindModuleByAddr(ptd->base);
 			if(!module)
 			{
 				wsprintf(lpError, _T("Can't identify the module currently loaded in the CPU disassembler"));
@@ -1977,7 +1977,7 @@ static int ParseRVAAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD dwParentBaseA
 			}
 		}
 
-		dwBaseAddress = module->base;
+		dwBaseAddress = GetModuleBase(module);
 	}
 	else
 		module = NULL;
@@ -1986,7 +1986,7 @@ static int ParseRVAAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD dwParentBaseA
 	if(result <= 0)
 		return -(p-lpText)+result;
 
-	if(module && dwAddress > module->size-1)
+	if(module && dwAddress > GetModuleSize(module) - 1)
 	{
 		lstrcpy(lpError, _T("The RVA address exceeds the module size"));
 		return -(p-lpText);
@@ -2255,24 +2255,28 @@ static TCHAR *PatchCommands(CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpError)
 	CMD_BLOCK_NODE *cmd_block_node;
 	CMD_NODE *cmd_node;
 	BYTE *bBuffer;
-	t_memory *ptm;
+	PLUGIN_MEMORY memory;
+	DWORD dwMemoryBase, dwMemorySize;
 	DWORD dwWritten;
 
 	for(cmd_block_node = p_cmd_block_head->next; cmd_block_node != NULL; cmd_block_node = cmd_block_node->next)
 	{
 		if(cmd_block_node->dwSize > 0)
 		{
-			ptm = Findmemory(cmd_block_node->dwAddress);
-			if(!ptm)
+			memory = FindMemory(cmd_block_node->dwAddress);
+			if(!memory)
 			{
 				wsprintf(lpError, _T("Failed to find memory block for address 0x%08X"), cmd_block_node->dwAddress);
 				return cmd_block_node->cmd_head.next->lpCommand;
 			}
 
-			if(cmd_block_node->dwAddress+cmd_block_node->dwSize > ptm->base+ptm->size)
+			dwMemoryBase = GetMemoryBase(memory);
+			dwMemorySize = GetMemorySize(memory);
+
+			if(cmd_block_node->dwAddress + cmd_block_node->dwSize > dwMemoryBase + dwMemorySize)
 			{
 				wsprintf(lpError, _T("End of code block exceeds end of memory block (%u extra bytes)"), 
-					(cmd_block_node->dwAddress+cmd_block_node->dwSize) - (ptm->base+ptm->size));
+					(cmd_block_node->dwAddress + cmd_block_node->dwSize) - (dwMemoryBase + dwMemorySize));
 				return cmd_block_node->cmd_head.next->lpCommand;
 			}
 
@@ -2291,7 +2295,7 @@ static TCHAR *PatchCommands(CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpError)
 				dwWritten += cmd_node->dwCodeSize;
 			}
 
-			EnsureMemoryBackup(ptm);
+			EnsureMemoryBackup(memory);
 
 			if(!SimpleWriteMemory(bBuffer, cmd_block_node->dwAddress, cmd_block_node->dwSize))
 			{

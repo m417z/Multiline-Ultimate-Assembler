@@ -150,6 +150,62 @@ void DeleteRangeComments(DWORD addr0, DWORD addr1)
 	Deletedatarange(addr0, addr1, NM_COMMENT, DT_NONE, DT_NONE);
 }
 
+// Module functions
+
+PLUGIN_MODULE FindModuleByName(TCHAR *lpModule)
+{
+	return Findmodulebyname(lpModule);
+}
+
+PLUGIN_MODULE FindModuleByAddr(DWORD dwAddress)
+{
+	return Findmodule(dwAddress);
+}
+
+DWORD GetModuleBase(PLUGIN_MODULE module)
+{
+	return module->base;
+}
+
+DWORD GetModuleSize(PLUGIN_MODULE module)
+{
+	return module->size;
+}
+
+// Memory functions
+
+PLUGIN_MEMORY FindMemory(DWORD dwAddress)
+{
+	return Findmemory(dwAddress);
+}
+
+DWORD GetMemoryBase(PLUGIN_MEMORY mem)
+{
+	return mem->base;
+}
+
+DWORD GetMemorySize(PLUGIN_MEMORY mem)
+{
+	return mem->size;
+}
+
+void EnsureMemoryBackup(PLUGIN_MEMORY mem)
+{
+	Ensurememorybackup(mem, 0);
+}
+
+BOOL GetModuleName(PLUGIN_MODULE module, TCHAR *pszModuleName)
+{
+	CopyMemory(pszModuleName, module->modname, MODULE_MAX_LEN*sizeof(TCHAR));
+	pszModuleName[MODULE_MAX_LEN] = _T('\0');
+	return TRUE;
+}
+
+BOOL IsModuleWithRelocations(PLUGIN_MODULE module)
+{
+	return module->relocbase != 0;
+}
+
 // Misc.
 
 int GetLabel(DWORD addr, TCHAR *name)
@@ -160,21 +216,6 @@ int GetLabel(DWORD addr, TCHAR *name)
 int GetComment(DWORD addr, TCHAR *name)
 {
 	return FindnameW(addr, NM_COMMENT, name, TEXTLEN);
-}
-
-DWORD GetModuleSize(DWORD base)
-{
-
-}
-
-t_module *FindModuleByName(TCHAR *lpModule)
-{
-	return Findmodulebyname(lpModule);
-}
-
-void EnsureMemoryBackup(t_memory *pmem)
-{
-	Ensurememorybackup(pmem, 0);
 }
 
 BOOL IsProcessLoaded()
