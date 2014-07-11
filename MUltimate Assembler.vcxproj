@@ -264,7 +264,11 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Rel_x64dbg|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="main_x64dbg.c" />
+    <ClCompile Include="main_x64dbg.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Rel_odbg_v2|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Rel_immdbg|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="options_dlg.c" />
     <ClCompile Include="plugin_odbg_v1.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Rel_odbg_v2|Win32'">true</ExcludedFromBuild>
@@ -276,7 +280,11 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Rel_x64dbg|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="plugin_x64dbg.c" />
+    <ClCompile Include="plugin_x64dbg.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Rel_odbg_v2|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Rel_immdbg|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="pointer_redirection.c" />
     <ClCompile Include="read_asm.c" />
     <ClCompile Include="stdafx.c">
