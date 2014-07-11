@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MUltimate Assembler.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="assembler_dlg.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -42,13 +39,22 @@
     <ClCompile Include="functions.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="plugin_ollydbg_v1.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="plugin_ollydbg_v2.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="stdafx.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="plugin_odbg_v1.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="plugin_odbg_v2.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="main_odbg_v1.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="main_odbg_v2.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="main_common.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -89,22 +95,25 @@
     <ClInclude Include="plugin_ollydbg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="plugin_ollydbg2.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="pointer_redirection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="functions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="plugin_ollydbg_v1.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="plugin_ollydbg_v2.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="plugin_odbg_v1.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="plugin_odbg_v2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="plugin_ollydbg2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="main_common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

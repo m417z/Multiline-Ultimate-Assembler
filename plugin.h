@@ -2,9 +2,9 @@
 #define _PLUGIN_H_
 
 #if PLUGIN_VERSION_MAJOR == 1
-#include "plugin_ollydbg_v1.h"
+#include "plugin_odbg_v1.h"
 #elif PLUGIN_VERSION_MAJOR == 2
-#include "plugin_ollydbg_v2.h"
+#include "plugin_odbg_v2.h"
 #endif // PLUGIN_VERSION_MAJOR
 
 #define DEF_PLUGINNAME        _T("Multiline Ultimate Assembler")
