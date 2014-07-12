@@ -31,6 +31,8 @@ int WriteAsm(TCHAR *lpText, TCHAR *lpError)
 	FreeLabelList(&label_head);
 	FreeCmdBlockList(&cmd_block_head);
 
+	InvalidateGui();
+
 	if(lpErrorSpot)
 		return -(lpErrorSpot-lpText);
 	else

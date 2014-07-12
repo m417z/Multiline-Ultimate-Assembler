@@ -72,7 +72,7 @@ int AssembleShortest(TCHAR *lpCommand, DWORD dwAddress, BYTE *bBuffer, TCHAR *lp
 	return Assemble(lpCommand, dwAddress, bBuffer, MAXCMDSIZE, 0, lpError);
 }
 
-int AssembleWithGivenSize(TCHAR *lpCommand, DWORD dwAddress, DWORD dwSize, BYTE *bBuffer, TCHAR *lpError)
+int AssembleWithGivenSize(TCHAR *lpCommand, DWORD dwAddress, int req_size, BYTE *bBuffer, TCHAR *lpError)
 {
 	t_asmmod models[32];
 	int nModelsCount;
@@ -90,7 +90,7 @@ int AssembleWithGivenSize(TCHAR *lpCommand, DWORD dwAddress, DWORD dwSize, BYTE 
 
 	for(i=0; i<nModelsCount; i++)
 	{
-		if(models[i].ncode == dwSize)
+		if(models[i].ncode == req_size)
 		{
 			if(nModelIndex < 0 || (!(models[i].features & AMF_UNDOC) && (models[i].features & AMF_SAMEORDER)))
 				nModelIndex = i;
@@ -103,9 +103,9 @@ int AssembleWithGivenSize(TCHAR *lpCommand, DWORD dwAddress, DWORD dwSize, BYTE 
 		return 0;
 	}
 
-	CopyMemory(bBuffer, models[nModelIndex].code, dwSize);
+	CopyMemory(bBuffer, models[nModelIndex].code, req_size);
 
-	return dwSize;
+	return req_size;
 }
 
 // Memory functions
@@ -269,6 +269,16 @@ BOOL IsProcessLoaded()
 	return run.status != STAT_IDLE;
 }
 
+void SuspendAllThreads()
+{
+	Suspendallthreads();
+}
+
+void ResumeAllThreads()
+{
+	Resumeallthreads();
+}
+
 DWORD GetCpuBaseAddr()
 {
 	t_dump *td = Getcpudisasmdump();
@@ -276,4 +286,9 @@ DWORD GetCpuBaseAddr()
 		return 0;
 
 	return td->base;
+}
+
+void InvalidateGui()
+{
+	// Not needed
 }

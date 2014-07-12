@@ -156,7 +156,7 @@ int AssembleShortest(TCHAR *lpCommand, DWORD dwAddress, BYTE *bBuffer, TCHAR *lp
 	return pm_shortest->length;
 }
 
-int AssembleWithGivenSize(TCHAR *lpCommand, DWORD dwAddress, DWORD dwSize, BYTE *bBuffer, TCHAR *lpError)
+int AssembleWithGivenSize(TCHAR *lpCommand, DWORD dwAddress, int req_size, BYTE *bBuffer, TCHAR *lpError)
 {
 	char *lpFixedCommand, *lpCommandToAssemble;
 	t_asmmodel model;
@@ -189,7 +189,7 @@ int AssembleWithGivenSize(TCHAR *lpCommand, DWORD dwAddress, DWORD dwSize, BYTE 
 			{
 				bHadResults = TRUE;
 
-				if(model.length == dwSize)
+				if(model.length == req_size)
 				{
 					if(lpFixedCommand)
 						HeapFree(GetProcessHeap(), 0, lpFixedCommand);
@@ -642,6 +642,18 @@ BOOL IsProcessLoaded()
 	return Getstatus() != STAT_NONE;
 }
 
+void SuspendAllThreads()
+{
+	// Note: I'm not sure it's required to be implemented here
+	// It's recommended to call for OllyDbg v2, though
+}
+
+void ResumeAllThreads()
+{
+	// Note: I'm not sure it's required to be implemented here
+	// It's recommended to call for OllyDbg v2, though
+}
+
 DWORD GetCpuBaseAddr()
 {
 	t_dump *td = (t_dump *)Plugingetvalue(VAL_CPUDASM);
@@ -649,4 +661,9 @@ DWORD GetCpuBaseAddr()
 		return 0;
 
 	return td->base;
+}
+
+void InvalidateGui()
+{
+	// Not needed
 }

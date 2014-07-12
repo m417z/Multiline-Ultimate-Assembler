@@ -1,9 +1,9 @@
 #ifndef _PLUGIN_H_
 #define _PLUGIN_H_
 
-#if PLUGIN_VERSION_MAJOR == 1 // Ollydbg v1
+#if PLUGIN_VERSION_MAJOR == 1 // OllyDbg v1
 #include "plugin_odbg_v1.h"
-#elif PLUGIN_VERSION_MAJOR == 2 // Ollydbg v2
+#elif PLUGIN_VERSION_MAJOR == 2 // OllyDbg v2
 #include "plugin_odbg_v2.h"
 #elif PLUGIN_VERSION_MAJOR == 11 // x64_dbg alpha
 #include "plugin_x64dbg.h"
@@ -29,7 +29,7 @@ BOOL MyWritestringtoini(HINSTANCE dllinst, TCHAR *key, TCHAR *s);
 DWORD SimpleDisasm(BYTE *cmd, DWORD cmdsize, DWORD ip, BYTE *dec, BOOL bSizeOnly,
 	TCHAR *pszResult, DWORD *jmpconst, DWORD *adrconst, DWORD *immconst);
 int AssembleShortest(TCHAR *lpCommand, DWORD dwAddress, BYTE *bBuffer, TCHAR *lpError);
-int AssembleWithGivenSize(TCHAR *lpCommand, DWORD dwAddress, DWORD dwSize, BYTE *bBuffer, TCHAR *lpError);
+int AssembleWithGivenSize(TCHAR *lpCommand, DWORD dwAddress, int req_size, BYTE *bBuffer, TCHAR *lpError);
 
 // Memory functions
 BOOL SimpleReadMemory(void *buf, DWORD addr, DWORD size);
@@ -64,6 +64,9 @@ int DecodeGetType(BYTE decode);
 
 // Misc.
 BOOL IsProcessLoaded();
+void SuspendAllThreads();
+void ResumeAllThreads();
 DWORD GetCpuBaseAddr();
+void InvalidateGui();
 
 #endif // _PLUGIN_H_

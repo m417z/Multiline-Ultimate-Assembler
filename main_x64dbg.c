@@ -14,11 +14,13 @@ static int hMenu;
 #endif //DLL_EXPORT
 
 #define MENU_MAIN             0
-#define MENU_OPTIONS          1
-#define MENU_HELP             2
-#define MENU_ABOUT            3
+#define MENU_DISASM           1
+#define MENU_OPTIONS          2
+#define MENU_HELP             3
+#define MENU_ABOUT            4
 
 static void cbMenuEntry(CBTYPE cbType, void *callbackInfo);
+static void DisassembleSelection();
 
 DLL_EXPORT void plugsetup(PLUG_SETUPSTRUCT *setupStruct)
 {
@@ -26,6 +28,7 @@ DLL_EXPORT void plugsetup(PLUG_SETUPSTRUCT *setupStruct)
 	hMenu = setupStruct->hMenu;
 
 	_plugin_menuaddentry(hMenu, MENU_MAIN, "&Multiline Ultimate Assembler");
+	_plugin_menuaddentry(hMenu, MENU_DISASM, "&Disassemble selection");
 	_plugin_menuaddseparator(hMenu);
 	_plugin_menuaddentry(hMenu, MENU_OPTIONS, "&Options");
 	_plugin_menuaddseparator(hMenu);
@@ -49,8 +52,8 @@ DLL_EXPORT bool pluginit(PLUG_INITSTRUCT* initStruct)
 
 	_plugin_registercallback(pluginHandle, CB_MENUENTRY, cbMenuEntry);
 
-	_plugin_logprintf("Multiline Ultimate Assembler v" DEF_VERSION "\n");
-	_plugin_logprintf("  " DEF_COPYRIGHT "\n");
+	_plugin_logputs("Multiline Ultimate Assembler v" DEF_VERSION);
+	_plugin_logputs("  " DEF_COPYRIGHT);
 
 	return true;
 }
@@ -76,6 +79,10 @@ static void cbMenuEntry(CBTYPE cbType, void *callbackInfo)
 		AssemblerShowDlg();
 		break;
 
+	case MENU_DISASM:
+		DisassembleSelection();
+		break;
+
 	case MENU_OPTIONS:
 		// Menu item "Options"
 		if(ShowOptionsDlg())
@@ -93,4 +100,12 @@ static void cbMenuEntry(CBTYPE cbType, void *callbackInfo)
 		AboutMessageBox(hwollymain, hDllInst);
 		break;
 	}
+}
+
+static void DisassembleSelection()
+{
+	SELECTIONDATA selection;
+
+	if(GuiSelectionGet(GUI_DISASSEMBLY, &selection))
+		AssemblerLoadCode(selection.start, selection.end - selection.start + 1);
 }

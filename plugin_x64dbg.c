@@ -78,11 +78,15 @@ DWORD SimpleDisasm(BYTE *cmd, DWORD cmdsize, DWORD ip, BYTE *dec, BOOL bSizeOnly
 	TCHAR *pszResult, DWORD *jmpconst, DWORD *adrconst, DWORD *immconst)
 {
 	BYTE cmd_safe[MAXCMDSIZE];
-	CopyMemory(cmd_safe, cmd, cmdsize);
-	ZeroMemory(cmd_safe + cmdsize, MAXCMDSIZE - cmdsize);
+	if(cmdsize < MAXCMDSIZE)
+	{
+		CopyMemory(cmd_safe, cmd, cmdsize);
+		ZeroMemory(cmd_safe + cmdsize, MAXCMDSIZE - cmdsize);
+		cmd = cmd_safe;
+	}
 
 	BASIC_INSTRUCTION_INFO basicinfo;
-	if(!DbgFunctions()->DisasmFast(cmd_safe, ip, &basicinfo))
+	if(!DbgFunctions()->DisasmFast(cmd, ip, &basicinfo))
 		return 0;
 
 	if(!bSizeOnly)
@@ -91,7 +95,7 @@ DWORD SimpleDisasm(BYTE *cmd, DWORD cmdsize, DWORD ip, BYTE *dec, BOOL bSizeOnly
 
 		*jmpconst = basicinfo.addr;
 		*adrconst = basicinfo.memory.value;
-		*adrconst = basicinfo.value.value;
+		*immconst = basicinfo.value.value;
 	}
 
 	return basicinfo.size;
@@ -106,18 +110,21 @@ int AssembleShortest(TCHAR *lpCommand, DWORD dwAddress, BYTE *bBuffer, TCHAR *lp
 	return size;
 }
 
-int AssembleWithGivenSize(TCHAR *lpCommand, DWORD dwAddress, DWORD dwSize, BYTE *bBuffer, TCHAR *lpError)
+int AssembleWithGivenSize(TCHAR *lpCommand, DWORD dwAddress, int req_size, BYTE *bBuffer, TCHAR *lpError)
 {
 	int size;
 	if(!DbgFunctions()->Assemble(dwAddress, bBuffer, &size, lpCommand, lpError))
 		return 0;
 
 	// TODO: fix when implemented
-	if(size != dwSize)
+	if(size > req_size)
 	{
-		lstrcpy(lpError, "AssembleWithGivenSize is not implemented in x64_dbg, cannot proceed");
+		lstrcpy(lpError, "AssembleWithGivenSize: internal assembler error");
 		return 0;
 	}
+
+	while(size < req_size)
+		bBuffer[size++] = 0x90; // Fill with NOPs
 
 	return size;
 }
@@ -131,7 +138,7 @@ BOOL SimpleReadMemory(void *buf, DWORD addr, DWORD size)
 
 BOOL SimpleWriteMemory(void *buf, DWORD addr, DWORD size)
 {
-	return DbgMemWrite(addr, buf, size);
+	return DbgFunctions()->MemPatch(addr, buf, size);
 }
 
 // Symbolic functions
@@ -205,8 +212,29 @@ BOOL GetModuleName(PLUGIN_MODULE module, TCHAR *pszModuleName)
 
 BOOL IsModuleWithRelocations(PLUGIN_MODULE module)
 {
-	// TODO: fix when implemented
-	return FALSE;
+	IMAGE_DOS_HEADER *pDosHeader = (IMAGE_DOS_HEADER *)module;
+
+	LONG e_lfanew;
+	if(!DbgMemRead(
+		(ULONG_PTR)&pDosHeader->e_lfanew,
+		(BYTE *)&e_lfanew,
+		sizeof(LONG)))
+	{
+		return FALSE;
+	}
+
+	IMAGE_NT_HEADERS *pNtHeader = (IMAGE_NT_HEADERS *)((char *)pDosHeader + e_lfanew);
+
+	DWORD dwRelocVirtualAddress;
+	if(!DbgMemRead(
+		(ULONG_PTR)&pNtHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress,
+		(BYTE *)&dwRelocVirtualAddress,
+		sizeof(DWORD)))
+	{
+		return FALSE;
+	}
+
+	return dwRelocVirtualAddress != 0;
 }
 
 // Memory functions
@@ -232,7 +260,6 @@ DWORD GetMemorySize(PLUGIN_MEMORY mem)
 
 void EnsureMemoryBackup(PLUGIN_MEMORY mem)
 {
-	// TODO: not implemented
 }
 
 // Analysis functions
@@ -256,8 +283,33 @@ BOOL IsProcessLoaded()
 	return DbgIsDebugging();
 }
 
+void SuspendAllThreads()
+{
+	// Note: I'm not sure it's required to be implemented here
+	// It's recommended to call for OllyDbg v2, though
+
+	//ThreaderPauseAllThreads(false);
+}
+
+void ResumeAllThreads()
+{
+	// Note: I'm not sure it's required to be implemented here
+	// It's recommended to call for OllyDbg v2, though
+
+	//ThreaderResumeAllThreads(false);
+}
+
 DWORD GetCpuBaseAddr()
 {
-	// TODO: not implemented
-	return 0;
+	SELECTIONDATA selection;
+
+	if(!GuiSelectionGet(GUI_DISASSEMBLY, &selection))
+		return 0;
+		
+	return DbgMemFindBaseAddr(selection.start, NULL);
+}
+
+void InvalidateGui()
+{
+	GuiUpdateAllViews();
 }
