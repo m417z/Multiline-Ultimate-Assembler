@@ -1,10 +1,12 @@
 #pragma once
 
-#ifdef IMMDBG
-#include "plugin_immdbg.h"
-#else // if !IMMDBG
+#if defined(TARGET_ODBG)
 #include "plugin_ollydbg.h"
-#endif // IMMDBG
+#elif defined(TARGET_IMMDBG)
+#include "plugin_immdbg.h"
+#else
+#error Unknonw target
+#endif
 
 extern HWND hwollymain;
 

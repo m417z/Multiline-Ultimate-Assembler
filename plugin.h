@@ -1,13 +1,15 @@
 #ifndef _PLUGIN_H_
 #define _PLUGIN_H_
 
-#if PLUGIN_VERSION_MAJOR == 1 // OllyDbg v1
+#if defined(TARGET_ODBG) || defined(TARGET_IMMDBG)
 #include "plugin_odbg_v1.h"
-#elif PLUGIN_VERSION_MAJOR == 2 // OllyDbg v2
+#elif defined(TARGET_ODBG2)
 #include "plugin_odbg_v2.h"
-#elif PLUGIN_VERSION_MAJOR == 11 // x64_dbg alpha
+#elif defined(TARGET_X64DBG)
 #include "plugin_x64dbg.h"
-#endif // PLUGIN_VERSION_MAJOR
+#else
+#error Unknonw target
+#endif
 
 #define DEF_PLUGINNAME        _T("Multiline Ultimate Assembler")
 #define DEF_VERSION           _T("2.2.5")

@@ -597,7 +597,7 @@ static void MarkLabels(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_HE
 static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE module,
 	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
-#if PLUGIN_VERSION_MAJOR != 11 // TODO: fix for x64_dbg
+#if defined(TARGET_ODBG) || defined(TARGET_IMMDBG) || defined(TARGET_ODBG2)
 	DISASM_CMD_NODE *dasm_cmd;
 	t_jmp *jmpdata;
 	int njmpdata;
@@ -614,26 +614,30 @@ static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE mod
 	if(!module)
 		return TRUE;
 
-#if PLUGIN_VERSION_MAJOR == 1
+#if defined(TARGET_ODBG) || defined(TARGET_IMMDBG)
 	jmpdata = module->jddata;
 	njmpdata = module->njddata;
-#elif PLUGIN_VERSION_MAJOR == 2
+#elif defined(TARGET_ODBG2)
 	jmpdata = module->jumps.jmpdata;
 	njmpdata = module->jumps.njmp;
-#endif // PLUGIN_VERSION_MAJOR
+#else
+#error Unknonw target
+#endif
 
 	dwCodeBase = module->codebase;
 	dwCodeSize = module->codesize;
 
 	for(i=0; i<njmpdata; i++)
 	{
-#if PLUGIN_VERSION_MAJOR == 1
+#if defined(TARGET_ODBG) || defined(TARGET_IMMDBG)
 		dwFromAddr = jmpdata[i].from+dwCodeBase;
 		dwToAddr = jmpdata[i].to+dwCodeBase;
-#elif PLUGIN_VERSION_MAJOR == 2
+#elif defined(TARGET_ODBG2)
 		dwFromAddr = jmpdata[i].from;
 		dwToAddr = jmpdata[i].dest;
-#endif // PLUGIN_VERSION_MAJOR
+#else
+#error Unknonw target
+#endif
 
 		if(
 			(dwFromAddr < dwAddress || dwFromAddr >= dwAddress+dwSize) && 
@@ -688,7 +692,11 @@ static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE mod
 			}
 		}
 	}
-#endif // PLUGIN_VERSION_MAJOR
+#elif defined(TARGET_X64DBG)
+	// TODO: fix for x64_dbg
+#else
+#error Unknonw target
+#endif
 
 	return TRUE;
 }

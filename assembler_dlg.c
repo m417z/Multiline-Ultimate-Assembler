@@ -14,7 +14,7 @@ POINTER_REDIRECTION_VAR(static POINTER_REDIRECTION prTranslateMDISysAccel);
 
 TCHAR *AssemblerInit()
 {
-#if PLUGIN_VERSION_MAJOR != 11 // TODO: fix for x64_dbg
+#if defined(TARGET_ODBG) || defined(TARGET_IMMDBG) || defined(TARGET_ODBG2)
 	// Below is a hack, which allows us to define a PreTranslateMessage-like function.
 	// We hook the TranslateMDISysAccel function, and use it to do our pre-translation.
 	ppTranslateMDISysAccel = FindImportPtr(GetModuleHandle(NULL), "user32.dll", "TranslateMDISysAccel");
@@ -22,7 +22,11 @@ TCHAR *AssemblerInit()
 		return _T("Couldn't find the TranslateMDISysAccel function in User32.dll");
 
 	PointerRedirectionAdd(ppTranslateMDISysAccel, TranslateMDISysAccelHook, &prTranslateMDISysAccel);
-#endif // PLUGIN_VERSION_MAJOR
+#elif defined(TARGET_X64DBG)
+	// TODO: fix for x64_dbg
+#else
+#error Unknonw target
+#endif
 
 	hAccelerators = LoadAccelerators(hDllInst, MAKEINTRESOURCE(IDR_MAINACCELERATOR));
 	return NULL;
@@ -30,9 +34,13 @@ TCHAR *AssemblerInit()
 
 void AssemblerExit()
 {
-#if PLUGIN_VERSION_MAJOR != 11 // TODO: fix for x64_dbg
+#if defined(TARGET_ODBG) || defined(TARGET_IMMDBG) || defined(TARGET_ODBG2)
 	PointerRedirectionRemove(ppTranslateMDISysAccel, &prTranslateMDISysAccel);
-#endif // PLUGIN_VERSION_MAJOR
+#elif defined(TARGET_X64DBG)
+	// TODO: fix for x64_dbg
+#else
+#error Unknonw target
+#endif
 }
 
 void AssemblerShowDlg()
