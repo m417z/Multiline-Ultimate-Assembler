@@ -64,21 +64,14 @@ DLL_EXPORT bool plugstop()
 	PluginExit();
 	return true;
 }
-/*
-// TODO: fix when implemented
+
 DLL_EXPORT CDECL void CBWINEVENT(CBTYPE cbType, void *callbackInfo)
 {
 	PLUG_CB_WINEVENT *info = (PLUG_CB_WINEVENT *)callbackInfo;
 
-	if(AssemblerPreTranslateMessage(info->message))
-	{
-		info->result = 0;
-		info->retval = true;
-	}
-	else
-		info->retval = false;
+	info->retval = AssemblerPreTranslateMessage(info->message);
 }
-*/
+
 DLL_EXPORT CDECL void CBMENUENTRY(CBTYPE cbType, void *callbackInfo)
 {
 	PLUG_CB_MENUENTRY *info = (PLUG_CB_MENUENTRY *)callbackInfo;
