@@ -138,7 +138,7 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 		if(p_dialog_param->hLargeIcon)
 			SendMessage(hWnd, WM_SETICON, ICON_BIG, (LPARAM)p_dialog_param->hLargeIcon);
 
-		SetRAEditDesign(hWnd, &p_dialog_param->raFont);
+		SetRAEditDesign(hWnd, hDllInst, &p_dialog_param->raFont);
 		p_dialog_param->hMenu = LoadMenu(hDllInst, MAKEINTRESOURCE(IDR_RIGHTCLICK));
 
 		GetClientRect(hWnd, &rc);
@@ -514,11 +514,13 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 	return FALSE;
 }
 
-static void SetRAEditDesign(HWND hWnd, RAFONT *praFont)
+static void SetRAEditDesign(HWND hWnd, HINSTANCE hInstance, RAFONT *praFont)
 {
 	RACOLOR raColor;
 	LOGFONT lfLogFont;
+	int nFontSize;
 	int tabwidth_variants[] = {2, 4, 8};
+	HDC hDC;
 
 	// Colors
 	SendDlgItemMessage(hWnd, IDC_ASSEMBLER, REM_GETCOLOR, 0, (LPARAM)&raColor);
@@ -532,19 +534,34 @@ static void SetRAEditDesign(HWND hWnd, RAFONT *praFont)
 	// Fonts
 	ZeroMemory(&lfLogFont, sizeof(LOGFONT));
 
-	lfLogFont.lfHeight = -12;
+	if(!MyGetstringfromini(hInstance, _T("font_name"), lfLogFont.lfFaceName, LF_FACESIZE))
+	{
+		lstrcpy(lfLogFont.lfFaceName, _T("Lucida Console")); // Default font
+		MyWritestringtoini(hInstance, _T("font_name"), lfLogFont.lfFaceName);
+	}
+
+	if(!MyGetintfromini(hInstance, _T("font_size"), &nFontSize, 0, 0, 9))
+	{
+		MyWriteinttoini(hInstance, _T("font_size"), nFontSize);
+	}
+
+	hDC = GetDC(GetDlgItem(hWnd, IDC_ASSEMBLER));
+
+	lfLogFont.lfHeight = -MulDiv(nFontSize, GetDeviceCaps(hDC, LOGPIXELSY), 72);
 	lfLogFont.lfCharSet = DEFAULT_CHARSET;
-	lstrcpy(lfLogFont.lfFaceName, _T("Lucida Console"));
 	praFont->hFont = CreateFontIndirect(&lfLogFont);
 
 	lfLogFont.lfItalic = TRUE;
 	praFont->hIFont = CreateFontIndirect(&lfLogFont);
 
-	lfLogFont.lfHeight = -8;
+	nFontSize = MulDiv(nFontSize, 2, 3);
+	lfLogFont.lfHeight = -MulDiv(nFontSize, GetDeviceCaps(hDC, LOGPIXELSY), 72);
 	lfLogFont.lfItalic = FALSE;
 	praFont->hLnrFont = CreateFontIndirect(&lfLogFont);
 
 	SendDlgItemMessage(hWnd, IDC_ASSEMBLER, REM_SETFONT, 0, (LPARAM)praFont);
+
+	ReleaseDC(GetDlgItem(hWnd, IDC_ASSEMBLER), hDC);
 
 	// Highlights
 	SendDlgItemMessage(hWnd, IDC_ASSEMBLER, REM_SETHILITEWORDS, RGB(0, 0, 255), (LPARAM)HILITE_ASM_CMD);

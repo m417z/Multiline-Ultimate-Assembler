@@ -135,7 +135,7 @@ void AssemblerOptionsChanged();
 static HWND CreateAsmDlg();
 static void CloseAsmDlg(HWND hWnd);
 static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-static void SetRAEditDesign(HWND hWnd, RAFONT *praFont);
+static void SetRAEditDesign(HWND hWnd, HINSTANCE hInst, RAFONT *praFont);
 static void UpdateRightClickMenuState(HWND hWnd, HMENU hMenu);
 static void LoadWindowPos(HWND hWnd, HINSTANCE hInst, long *p_min_w, long *p_min_h);
 static void SaveWindowPos(HWND hWnd, HINSTANCE hInst);
