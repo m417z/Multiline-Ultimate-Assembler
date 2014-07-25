@@ -130,7 +130,7 @@ void AssemblerExit();
 BOOL AssemblerPreTranslateMessage(LPMSG lpMsg);
 void AssemblerShowDlg();
 void AssemblerCloseDlg();
-void AssemblerLoadCode(DWORD dwAddress, DWORD dwSize);
+void AssemblerLoadCode(DWORD_PTR dwAddress, DWORD_PTR dwSize);
 void AssemblerOptionsChanged();
 static HWND CreateAsmDlg();
 static void CloseAsmDlg(HWND hWnd);
@@ -145,11 +145,11 @@ static void InitFindReplace(HWND hWnd, HINSTANCE hInst, ASM_DIALOG_PARAM *p_dial
 static void ShowFindDialog(ASM_DIALOG_PARAM *p_dialog_param);
 static void ShowReplaceDialog(ASM_DIALOG_PARAM *p_dialog_param);
 static void DoFind(ASM_DIALOG_PARAM *p_dialog_param);
-static void DoFindCustom(ASM_DIALOG_PARAM *p_dialog_param, DWORD dwFlagsSet, DWORD dwFlagsRemove);
+static void DoFindCustom(ASM_DIALOG_PARAM *p_dialog_param, WPARAM wFlagsSet, WPARAM wFlagsRemove);
 static void DoReplace(ASM_DIALOG_PARAM *p_dialog_param);
 static void DoReplaceAll(ASM_DIALOG_PARAM *p_dialog_param);
 static void OptionsChanged(HWND hWnd);
-static BOOL LoadCode(HWND hWnd, DWORD dwAddress, DWORD dwSize);
+static BOOL LoadCode(HWND hWnd, DWORD_PTR dwAddress, DWORD_PTR dwSize);
 static BOOL PatchCode(HWND hWnd);
 
 #endif // _ASSEMBLER_DLG_H_

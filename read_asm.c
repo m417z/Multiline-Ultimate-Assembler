@@ -3,7 +3,13 @@
 
 extern OPTIONS options;
 
-TCHAR *ReadAsm(DWORD dwAddress, DWORD dwSize, TCHAR *pLabelPerfix, TCHAR *lpError)
+#ifdef _WIN64
+#define HEXPTR_PADDED         _T("%016I64X")
+#else // _WIN64
+#define HEXPTR_PADDED         _T("%08X")
+#endif // _WIN64
+
+TCHAR *ReadAsm(DWORD_PTR dwAddress, SIZE_T nSize, TCHAR *pLabelPerfix, TCHAR *lpError)
 {
 	PLUGIN_MODULE module;
 	BYTE *pCode;
@@ -13,14 +19,14 @@ TCHAR *ReadAsm(DWORD dwAddress, DWORD dwSize, TCHAR *pLabelPerfix, TCHAR *lpErro
 	module = FindModuleByAddr(dwAddress);
 
 	// Allocate and read the code block
-	pCode = (BYTE *)HeapAlloc(GetProcessHeap(), 0, dwSize);
+	pCode = (BYTE *)HeapAlloc(GetProcessHeap(), 0, nSize);
 	if(!pCode)
 	{
 		lstrcpy(lpError, _T("Allocation failed"));
 		return NULL;
 	}
 
-	if(!SimpleReadMemory(pCode, dwAddress, dwSize))
+	if(!SimpleReadMemory(pCode, dwAddress, nSize))
 	{
 		HeapFree(GetProcessHeap(), 0, pCode);
 
@@ -29,7 +35,7 @@ TCHAR *ReadAsm(DWORD dwAddress, DWORD dwSize, TCHAR *pLabelPerfix, TCHAR *lpErro
 	}
 
 	// Disasm the code, allocate the linked list of commands, fill it
-	if(!ProcessCode(dwAddress, dwSize, pCode, &dasm_head, lpError))
+	if(!ProcessCode(dwAddress, nSize, pCode, &dasm_head, lpError))
 	{
 		HeapFree(GetProcessHeap(), 0, pCode);
 		FreeDisasmCmdList(&dasm_head);
@@ -41,12 +47,12 @@ TCHAR *ReadAsm(DWORD dwAddress, DWORD dwSize, TCHAR *pLabelPerfix, TCHAR *lpErro
 	if(options.disasm_label)
 	{
 		// Mark labels
-		MarkLabels(dwAddress, dwSize, pCode, &dasm_head);
+		MarkLabels(dwAddress, nSize, pCode, &dasm_head);
 
 		// Add external jumps and calls
 		if(options.disasm_extjmp)
 		{
-			if(!ProcessExternalCode(dwAddress, dwSize, module, pCode, &dasm_head, lpError))
+			if(!ProcessExternalCode(dwAddress, nSize, module, pCode, &dasm_head, lpError))
 			{
 				HeapFree(GetProcessHeap(), 0, pCode);
 				FreeDisasmCmdList(&dasm_head);
@@ -56,7 +62,7 @@ TCHAR *ReadAsm(DWORD dwAddress, DWORD dwSize, TCHAR *pLabelPerfix, TCHAR *lpErro
 		}
 
 		// Give names to labels, and set them in commands
-		if(!CreateAndSetLabels(dwAddress, dwSize, pCode, &dasm_head, pLabelPerfix, lpError))
+		if(!CreateAndSetLabels(dwAddress, nSize, pCode, &dasm_head, pLabelPerfix, lpError))
 		{
 			HeapFree(GetProcessHeap(), 0, pCode);
 			FreeDisasmCmdList(&dasm_head);
@@ -70,7 +76,7 @@ TCHAR *ReadAsm(DWORD dwAddress, DWORD dwSize, TCHAR *pLabelPerfix, TCHAR *lpErro
 	if(options.disasm_rva)
 	{
 		// Set RVA addresses in commands
-		if(!SetRVAAddresses(dwAddress, dwSize, module, &dasm_head, lpError))
+		if(!SetRVAAddresses(dwAddress, nSize, module, &dasm_head, lpError))
 		{
 			FreeDisasmCmdList(&dasm_head);
 
@@ -92,21 +98,21 @@ TCHAR *ReadAsm(DWORD dwAddress, DWORD dwSize, TCHAR *pLabelPerfix, TCHAR *lpErro
 	return lpText;
 }
 
-static BOOL ProcessCode(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
+static BOOL ProcessCode(DWORD_PTR dwAddress, SIZE_T nSize, BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
 	DISASM_CMD_NODE *dasm_cmd;
 	BYTE *bDecode;
-	DWORD dwDecodeSize;
+	SIZE_T nDecodeSize;
 	int nCommandType;
 	DWORD dwCommandSize;
 	TCHAR szComment[COMMENT_MAX_LEN];
 	int comment_length;
 
-	bDecode = FindDecode(dwAddress, &dwDecodeSize);
-	if(bDecode && dwDecodeSize < dwSize)
+	bDecode = FindDecode(dwAddress, &nDecodeSize);
+	if(bDecode && nDecodeSize < nSize)
 		bDecode = NULL;
 
-	while(dwSize > 0)
+	while(nSize > 0)
 	{
 		// Get command type
 		if(bDecode)
@@ -123,15 +129,15 @@ static BOOL ProcessCode(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_H
 		case DECODE_DATA:
 		// Command
 		case DECODE_COMMAND:
-			dwCommandSize = ProcessCommand(pCode, dwSize, dwAddress, bDecode, p_dasm_head, lpError);
+			dwCommandSize = ProcessCommand(pCode, nSize, dwAddress, bDecode, p_dasm_head, lpError);
 			break;
 
 		case DECODE_ASCII:
-			dwCommandSize = ProcessData(pCode, dwSize, dwAddress, bDecode, nCommandType, p_dasm_head, lpError);
+			dwCommandSize = ProcessData(pCode, nSize, dwAddress, bDecode, nCommandType, p_dasm_head, lpError);
 			break;
 
 		case DECODE_UNICODE:
-			dwCommandSize = ProcessData(pCode, dwSize, dwAddress, bDecode, nCommandType, p_dasm_head, lpError);
+			dwCommandSize = ProcessData(pCode, nSize, dwAddress, bDecode, nCommandType, p_dasm_head, lpError);
 			break;
 		}
 
@@ -159,7 +165,7 @@ static BOOL ProcessCode(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_H
 		ZeroMemory(pCode+1, dwCommandSize-1);
 
 		pCode += dwCommandSize;
-		dwSize -= dwCommandSize;
+		nSize -= dwCommandSize;
 		dwAddress += dwCommandSize;
 		if(bDecode)
 			bDecode += dwCommandSize;
@@ -168,20 +174,20 @@ static BOOL ProcessCode(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_H
 	return TRUE;
 }
 
-static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bDecode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
+static DWORD ProcessCommand(BYTE *pCode, SIZE_T nSize, DWORD_PTR dwAddress, BYTE *bDecode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
 	DISASM_CMD_NODE *dasm_cmd;
 	DWORD dwCommandSize;
 	TCHAR szCommandText[COMMAND_MAX_LEN];
-	DWORD jmpconst, adrconst, immconst;
+	DWORD_PTR jmpconst, adrconst, immconst;
 
 	// Disasm
-	dwCommandSize = SimpleDisasm(pCode, dwSize, dwAddress, bDecode, FALSE, 
+	dwCommandSize = SimpleDisasm(pCode, nSize, dwAddress, bDecode, FALSE, 
 		szCommandText, &jmpconst, &adrconst, &immconst);
 
 	if(dwCommandSize == 0)
 	{
-		wsprintf(lpError, _T("Disasm failed on address 0x%08X"), dwAddress);
+		wsprintf(lpError, _T("Disasm failed on address 0x" HEXPTR_PADDED), dwAddress);
 		return 0;
 	}
 
@@ -221,7 +227,7 @@ static DWORD ProcessCommand(BYTE *pCode, DWORD dwSize, DWORD dwAddress, BYTE *bD
 	return dwCommandSize;
 }
 
-static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress, 
+static DWORD ProcessData(BYTE *pCode, SIZE_T nSize, DWORD_PTR dwAddress, 
 	BYTE *bDecode, int nCommandType, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
 	DISASM_CMD_NODE *dasm_cmd;
@@ -231,12 +237,12 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 	int i;
 
 	// Check size of data
-	dwCommandSize = SimpleDisasm(pCode, dwSize, dwAddress, bDecode, TRUE,
+	dwCommandSize = SimpleDisasm(pCode, nSize, dwAddress, bDecode, TRUE,
 		NULL, NULL, NULL, NULL);
 
 	if(dwCommandSize == 0)
 	{
-		wsprintf(lpError, _T("Disasm failed on address 0x%08X"), dwAddress);
+		wsprintf(lpError, _T("Disasm failed on address 0x" HEXPTR_PADDED), dwAddress);
 		return 0;
 	}
 
@@ -261,7 +267,7 @@ static DWORD ProcessData(BYTE *pCode, DWORD dwSize, DWORD dwAddress,
 
 	if(nCommandType == DECODE_UNKNOWN)
 	{
-		wsprintf(lpError, _T("Couldn't parse data on address 0x%08X"), dwAddress);
+		wsprintf(lpError, _T("Couldn't parse data on address 0x" HEXPTR_PADDED), dwAddress);
 		return 0;
 	}
 
@@ -572,7 +578,7 @@ static void ConvertAsciiToText(BYTE *p, DWORD dwSize, BOOL bAsBinary, TCHAR *pTe
 	*pText++ = _T('\0');
 }
 
-static void MarkLabels(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head)
+static void MarkLabels(DWORD_PTR dwAddress, SIZE_T nSize, BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head)
 {
 	DISASM_CMD_NODE *dasm_cmd;
 	int i;
@@ -585,7 +591,7 @@ static void MarkLabels(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_HE
 			{
 				if(
 					dasm_cmd->dwConst[i] >= dwAddress && 
-					dasm_cmd->dwConst[i] < dwAddress+dwSize && 
+					dasm_cmd->dwConst[i] < dwAddress + nSize &&
 					pCode[dasm_cmd->dwConst[i]-dwAddress] == 1
 				)
 					pCode[dasm_cmd->dwConst[i]-dwAddress] = 2;
@@ -594,15 +600,16 @@ static void MarkLabels(DWORD dwAddress, DWORD dwSize, BYTE *pCode, DISASM_CMD_HE
 	}
 }
 
-static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE module,
+static BOOL ProcessExternalCode(DWORD_PTR dwAddress, SIZE_T nSize, PLUGIN_MODULE module,
 	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
 #if defined(TARGET_ODBG) || defined(TARGET_IMMDBG) || defined(TARGET_ODBG2)
 	DISASM_CMD_NODE *dasm_cmd;
 	t_jmp *jmpdata;
 	int njmpdata;
-	DWORD dwCodeBase, dwCodeSize;
-	DWORD dwFromAddr, dwToAddr;
+	DWORD_PTR dwCodeBase;
+	SIZE_T nCodeSize;
+	DWORD_PTR dwFromAddr, dwToAddr;
 	BYTE *bDecode;
 	int nCommandType;
 	BYTE bBuffer[MAXCMDSIZE];
@@ -625,7 +632,7 @@ static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE mod
 #endif
 
 	dwCodeBase = module->codebase;
-	dwCodeSize = module->codesize;
+	nCodeSize = module->codesize;
 
 	for(i=0; i<njmpdata; i++)
 	{
@@ -640,8 +647,8 @@ static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE mod
 #endif
 
 		if(
-			(dwFromAddr < dwAddress || dwFromAddr >= dwAddress+dwSize) && 
-			dwToAddr >= dwAddress && dwToAddr < dwAddress+dwSize && 
+			(dwFromAddr < dwAddress || dwFromAddr >= dwAddress+nSize) && 
+			dwToAddr >= dwAddress && dwToAddr < dwAddress+nSize && 
 			(jmpdata[i].type == JT_JUMP || jmpdata[i].type == JT_COND || jmpdata[i].type == JT_CALL) && 
 			pCode[dwToAddr-dwAddress] != 0
 		)
@@ -655,14 +662,14 @@ static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE mod
 			if(nCommandType == DECODE_UNKNOWN || nCommandType == DECODE_COMMAND)
 			{
 				// Try to read and process...
-				if(dwCodeBase+dwCodeSize-dwFromAddr < MAXCMDSIZE)
-					dwCommandSize = dwCodeBase + dwCodeSize - dwFromAddr;
+				if(dwCodeBase + nCodeSize - dwFromAddr < MAXCMDSIZE)
+					dwCommandSize = dwCodeBase + nCodeSize - dwFromAddr;
 				else
 					dwCommandSize = MAXCMDSIZE;
 
 				if(!SimpleReadMemory(bBuffer, dwFromAddr, dwCommandSize))
 				{
-					wsprintf(lpError, _T("Could not read memory on address 0x%08X"), dwFromAddr);
+					wsprintf(lpError, _T("Could not read memory on address 0x" HEXPTR_PADDED), dwFromAddr);
 					return FALSE;
 				}
 
@@ -701,7 +708,7 @@ static BOOL ProcessExternalCode(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE mod
 	return TRUE;
 }
 
-static BOOL CreateAndSetLabels(DWORD dwAddress, DWORD dwSize, 
+static BOOL CreateAndSetLabels(DWORD_PTR dwAddress, SIZE_T nSize, 
 	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *pLabelPerfix, TCHAR *lpError)
 {
 	DISASM_CMD_NODE *dasm_cmd, *dasm_cmd_2;
@@ -709,7 +716,7 @@ static BOOL CreateAndSetLabels(DWORD dwAddress, DWORD dwSize,
 	TCHAR szAtLabel[LABEL_MAX_LEN+1];
 	TCHAR *pLabel;
 	int nLabelLen;
-	UINT i;
+	SIZE_T i;
 	int j;
 
 	dasm_cmd = p_dasm_head->next;
@@ -737,7 +744,7 @@ static BOOL CreateAndSetLabels(DWORD dwAddress, DWORD dwSize,
 			pLabelPerfix[i] = _T('\0');
 	}
 
-	for(i=0; i<dwSize; i++)
+	for(i = 0; i < nSize; i++)
 	{
 		if(pCode[i] == 0)
 			continue;
@@ -754,7 +761,7 @@ static BOOL CreateAndSetLabels(DWORD dwAddress, DWORD dwSize,
 					break;
 
 				case 1:
-					nLabelLen = wsprintf(pLabel, _T("L_%08X"), dwAddress+i);
+					nLabelLen = wsprintf(pLabel, _T("L_" HEXPTR_PADDED), dwAddress + i);
 					break;
 
 				case 2:
@@ -854,11 +861,12 @@ static BOOL IsValidLabel(TCHAR *lpLabel, DISASM_CMD_HEAD *p_dasm_head, DISASM_CM
 	return TRUE;
 }
 
-static BOOL SetRVAAddresses(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE module, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
+static BOOL SetRVAAddresses(DWORD_PTR dwAddress, SIZE_T nSize, PLUGIN_MODULE module, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
-	DWORD dwModuleBase, dwModuleSize;
+	DWORD_PTR dwModuleBase;
+	SIZE_T nModuleSize;
 	DISASM_CMD_NODE *dasm_cmd;
-	TCHAR szRVAText[2+10+1];
+	TCHAR szRVAText[2 + 2 + sizeof(DWORD_PTR) * 2 + 1];
 	TCHAR *pRVAAddress;
 	int i, j;
 
@@ -866,7 +874,7 @@ static BOOL SetRVAAddresses(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE module,
 		return TRUE;
 
 	dwModuleBase = GetModuleBase(module);
-	dwModuleSize = GetModuleSize(module);
+	nModuleSize = GetModuleSize(module);
 
 	szRVAText[0] = _T('$');
 	szRVAText[1] = _T('$');
@@ -881,10 +889,10 @@ static BOOL SetRVAAddresses(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE module,
 			{
 				if(
 					dasm_cmd->dwConst[i] >= dwModuleBase &&
-					dasm_cmd->dwConst[i] < dwModuleBase + dwModuleSize
+					dasm_cmd->dwConst[i] < dwModuleBase + nModuleSize
 				)
 				{
-					DWORDToString(pRVAAddress, dasm_cmd->dwConst[i] - dwModuleBase, FALSE, 0);
+					DWORDPtrToString(pRVAAddress, dasm_cmd->dwConst[i] - dwModuleBase, FALSE, 0);
 
 					if(!ReplaceAddressWithText(&dasm_cmd->lpCommand, dasm_cmd->dwConst[i], szRVAText, lpError))
 						return FALSE;
@@ -902,18 +910,18 @@ static BOOL SetRVAAddresses(DWORD dwAddress, DWORD dwSize, PLUGIN_MODULE module,
 	return TRUE;
 }
 
-static TCHAR *MakeText(DWORD dwAddress, PLUGIN_MODULE module, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
+static TCHAR *MakeText(DWORD_PTR dwAddress, PLUGIN_MODULE module, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
 	DISASM_CMD_NODE *dasm_cmd;
 	BOOL bRVAAddresses;
-	DWORD dwModuleBase;
+	DWORD_PTR dwModuleBase;
 	TCHAR szRVAText[1 + MODULE_MAX_LEN + 2 + 1];
 	TCHAR *lpText, *lpRealloc;
-	DWORD dwSize, dwMemory;
+	SIZE_T nSize, nMemory;
 
-	dwMemory = 4096*2;
+	nMemory = 4096*2;
 
-	lpText = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, dwMemory*sizeof(TCHAR));
+	lpText = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, nMemory*sizeof(TCHAR));
 	if(!lpText)
 	{
 		lstrcpy(lpError, _T("Allocation failed"));
@@ -934,7 +942,7 @@ static TCHAR *MakeText(DWORD dwAddress, PLUGIN_MODULE module, DISASM_CMD_HEAD *p
 	dasm_cmd = p_dasm_head->next;
 
 	dasm_cmd->dwAddress = dwAddress;
-	dwSize = 0;
+	nSize = 0;
 
 	while(dasm_cmd != NULL)
 	{
@@ -942,53 +950,53 @@ static TCHAR *MakeText(DWORD dwAddress, PLUGIN_MODULE module, DISASM_CMD_HEAD *p
 		{
 			if(dasm_cmd != p_dasm_head->next)
 			{
-				lpText[dwSize++] = _T('\r');
-				lpText[dwSize++] = _T('\n');
+				lpText[nSize++] = _T('\r');
+				lpText[nSize++] = _T('\n');
 			}
 
-			lpText[dwSize++] = _T('<');
+			lpText[nSize++] = _T('<');
 
 			if(bRVAAddresses)
 			{
-				dwSize += wsprintf(lpText+dwSize, _T("%s"), szRVAText);
-				dwSize += DWORDToString(lpText + dwSize, dasm_cmd->dwAddress - dwModuleBase, FALSE, options.disasm_hex);
+				nSize += wsprintf(lpText+nSize, _T("%s"), szRVAText);
+				nSize += DWORDPtrToString(lpText + nSize, dasm_cmd->dwAddress - dwModuleBase, FALSE, options.disasm_hex);
 			}
 			else
-				dwSize += DWORDToString(lpText+dwSize, dasm_cmd->dwAddress, TRUE, options.disasm_hex);
+				nSize += DWORDPtrToString(lpText+nSize, dasm_cmd->dwAddress, TRUE, options.disasm_hex);
 
-			dwSize += wsprintf(lpText+dwSize, _T("%s"), _T(">\r\n\r\n"));
+			nSize += wsprintf(lpText+nSize, _T("%s"), _T(">\r\n\r\n"));
 		}
 
 		if(dasm_cmd->lpLabel)
 		{
 			if(!dasm_cmd->dwAddress)
 			{
-				lpText[dwSize++] = _T('\r');
-				lpText[dwSize++] = _T('\n');
+				lpText[nSize++] = _T('\r');
+				lpText[nSize++] = _T('\n');
 			}
 
-			dwSize += wsprintf(lpText+dwSize, _T("@%s:\r\n"), dasm_cmd->lpLabel);
+			nSize += wsprintf(lpText+nSize, _T("@%s:\r\n"), dasm_cmd->lpLabel);
 		}
 
 		if(options.disasm_hex > 0)
 		{
-			lpText[dwSize++] = _T('\t');
-			dwSize += CopyCommand(lpText+dwSize, dasm_cmd->lpCommand, options.disasm_hex-1);
+			lpText[nSize++] = _T('\t');
+			nSize += CopyCommand(lpText+nSize, dasm_cmd->lpCommand, options.disasm_hex-1);
 		}
 		else
-			dwSize += wsprintf(lpText+dwSize, _T("\t%s"), dasm_cmd->lpCommand);
+			nSize += wsprintf(lpText+nSize, _T("\t%s"), dasm_cmd->lpCommand);
 
 		if(dasm_cmd->lpComment)
-			dwSize += wsprintf(lpText+dwSize, _T(" ; %s"), dasm_cmd->lpComment);
+			nSize += wsprintf(lpText+nSize, _T(" ; %s"), dasm_cmd->lpComment);
 
-		lpText[dwSize++] = _T('\r');
-		lpText[dwSize++] = _T('\n');
+		lpText[nSize++] = _T('\r');
+		lpText[nSize++] = _T('\n');
 
-		if(dwMemory-dwSize < 4096)
+		if(nMemory-nSize < 4096)
 		{
-			dwMemory += 4096;
+			nMemory += 4096;
 
-			lpRealloc = (TCHAR *)HeapReAlloc(GetProcessHeap(), 0, lpText, dwMemory*sizeof(TCHAR));
+			lpRealloc = (TCHAR *)HeapReAlloc(GetProcessHeap(), 0, lpText, nMemory*sizeof(TCHAR));
 			if(!lpRealloc)
 			{
 				HeapFree(GetProcessHeap(), 0, lpText);
@@ -1003,12 +1011,12 @@ static TCHAR *MakeText(DWORD dwAddress, PLUGIN_MODULE module, DISASM_CMD_HEAD *p
 		dasm_cmd = dasm_cmd->next;
 	}
 
-	lpText[dwSize] = _T('\0');
+	lpText[nSize] = _T('\0');
 
 	return lpText;
 }
 
-static int CopyCommand(TCHAR *pBuffer, TCHAR *pCommand, int hex_option)
+static SIZE_T CopyCommand(TCHAR *pBuffer, TCHAR *pCommand, int hex_option)
 {
 	TCHAR *p, *p_dest;
 	TCHAR *pHexFirstChar;
@@ -1113,7 +1121,7 @@ static int CopyCommand(TCHAR *pBuffer, TCHAR *pCommand, int hex_option)
 
 	*p_dest++ = _T('\0');
 
-	return p_dest-pBuffer-1;
+	return p_dest - pBuffer - 1;
 }
 
 static int MakeRVAText(TCHAR szText[1 + MODULE_MAX_LEN + 2 + 1], PLUGIN_MODULE module)
@@ -1144,19 +1152,20 @@ static int MakeRVAText(TCHAR szText[1 + MODULE_MAX_LEN + 2 + 1], PLUGIN_MODULE m
 	return wsprintf(szText, _T("$%s."), szModName);
 }
 
-static BOOL ReplaceAddressWithText(TCHAR **ppCommand, DWORD dwAddress, TCHAR *lpText, TCHAR *lpError)
+static BOOL ReplaceAddressWithText(TCHAR **ppCommand, DWORD_PTR dwAddress, TCHAR *lpText, TCHAR *lpError)
 {
 	TCHAR *p;
 	TCHAR szTextAddress[9];
 	int address_len;
-	int address_count, address_start[3], address_end[3];
-	int text_len, new_command_len;
+	int address_count;
+	LONG_PTR address_start[3], address_end[3];
+	LONG_PTR text_len, new_command_len;
 	TCHAR *lpNewCommand;
 	TCHAR *dest, *src;
 	int i;
 
 	// Address to replace
-	address_len = wsprintf(szTextAddress, _T("%X"), dwAddress);
+	address_len = wsprintf(szTextAddress, _T("%IX"), dwAddress);
 
 	// Skip command name
 	p = SkipCommandName(*ppCommand);
@@ -1168,7 +1177,7 @@ static BOOL ReplaceAddressWithText(TCHAR **ppCommand, DWORD dwAddress, TCHAR *lp
 	{
 		if((*p >= _T('0') && *p <= _T('9')) || (*p >= _T('A') && *p <= _T('F')))
 		{
-			address_start[address_count] = p-*ppCommand;
+			address_start[address_count] = p - *ppCommand;
 
 			while(*p == _T('0'))
 				p++;
@@ -1187,7 +1196,7 @@ static BOOL ReplaceAddressWithText(TCHAR **ppCommand, DWORD dwAddress, TCHAR *lp
 			}
 			else if(i == address_len)
 			{
-				address_end[address_count] = p-*ppCommand;
+				address_end[address_count] = p - *ppCommand;
 				address_count++;
 			}
 		}
@@ -1340,15 +1349,15 @@ static TCHAR *SkipCommandName(TCHAR *p)
 	return p;
 }
 
-static int DWORDToString(TCHAR szString[11], DWORD dw, BOOL bAddress, int hex_option)
+static SIZE_T DWORDPtrToString(TCHAR szString[2 + sizeof(DWORD_PTR) * 2 + 1], DWORD_PTR dw, BOOL bAddress, int hex_option)
 {
 	TCHAR *p;
-	TCHAR szHex[9];
-	int hex_len;
+	TCHAR szHex[sizeof(DWORD_PTR) * 2 + 1];
+	int nHexLen;
 
 	p = szString;
 
-	hex_len = wsprintf(szHex, bAddress?_T("%08X"):_T("%X"), dw);
+	nHexLen = wsprintf(szHex, bAddress ? HEXPTR_PADDED : _T("%IX"), dw);
 
 	if(hex_option == 3)
 	{
@@ -1358,12 +1367,12 @@ static int DWORDToString(TCHAR szString[11], DWORD dw, BOOL bAddress, int hex_op
 
 	if(szHex[0] >= _T('A') && szHex[0] <= _T('F'))
 	{
-		if(hex_option == 1 || hex_option == 2 || hex_len < 8)
+		if(hex_option == 1 || hex_option == 2 || nHexLen < sizeof(DWORD_PTR) * 2)
 			*p++ = _T('0');
 	}
 
 	lstrcpy(p, szHex);
-	p += hex_len;
+	p += nHexLen;
 
 	if(hex_option == 2)
 	{
@@ -1371,7 +1380,7 @@ static int DWORDToString(TCHAR szString[11], DWORD dw, BOOL bAddress, int hex_op
 		*p = _T('\0');
 	}
 
-	return p-szString;
+	return p - szString;
 }
 
 static void FreeDisasmCmdList(DISASM_CMD_HEAD *p_dasm_head)

@@ -97,16 +97,16 @@ static void OptionsToDlg(HWND hWnd)
 
 static void OptionsFromDlg(HWND hWnd)
 {
-	options.disasm_rva = IsDlgButtonChecked(hWnd, IDC_DISASM_RVA)==BST_CHECKED;
-	options.disasm_rva_reloconly = IsDlgButtonChecked(hWnd, IDC_DISASM_RVA_RELOCONLY)==BST_CHECKED;
-	options.disasm_label = IsDlgButtonChecked(hWnd, IDC_DISASM_LABEL)==BST_CHECKED;
-	options.disasm_extjmp = IsDlgButtonChecked(hWnd, IDC_DISASM_EXTJMP)==BST_CHECKED;
-	options.disasm_hex = SendDlgItemMessage(hWnd, IDC_DISASM_HEX, CB_GETCURSEL, 0, 0);
-	options.disasm_labelgen = SendDlgItemMessage(hWnd, IDC_DISASM_LABELGEN, CB_GETCURSEL, 0, 0);
-	options.asm_comments = IsDlgButtonChecked(hWnd, IDC_ASM_COMMENTS)==BST_CHECKED;
-	options.asm_labels = IsDlgButtonChecked(hWnd, IDC_ASM_LABELS)==BST_CHECKED;
-	options.edit_savepos = IsDlgButtonChecked(hWnd, IDC_EDIT_SAVEPOS)==BST_CHECKED;
-	options.edit_tabwidth = SendDlgItemMessage(hWnd, IDC_EDIT_TABWIDTH, CB_GETCURSEL, 0, 0);
+	options.disasm_rva = IsDlgButtonChecked(hWnd, IDC_DISASM_RVA) == BST_CHECKED;
+	options.disasm_rva_reloconly = IsDlgButtonChecked(hWnd, IDC_DISASM_RVA_RELOCONLY) == BST_CHECKED;
+	options.disasm_label = IsDlgButtonChecked(hWnd, IDC_DISASM_LABEL) == BST_CHECKED;
+	options.disasm_extjmp = IsDlgButtonChecked(hWnd, IDC_DISASM_EXTJMP) == BST_CHECKED;
+	options.disasm_hex = (int)SendDlgItemMessage(hWnd, IDC_DISASM_HEX, CB_GETCURSEL, 0, 0);
+	options.disasm_labelgen = (int)SendDlgItemMessage(hWnd, IDC_DISASM_LABELGEN, CB_GETCURSEL, 0, 0);
+	options.asm_comments = IsDlgButtonChecked(hWnd, IDC_ASM_COMMENTS) == BST_CHECKED;
+	options.asm_labels = IsDlgButtonChecked(hWnd, IDC_ASM_LABELS) == BST_CHECKED;
+	options.edit_savepos = IsDlgButtonChecked(hWnd, IDC_EDIT_SAVEPOS) == BST_CHECKED;
+	options.edit_tabwidth = (int)SendDlgItemMessage(hWnd, IDC_EDIT_TABWIDTH, CB_GETCURSEL, 0, 0);
 }
 
 static void OptionsToIni(HINSTANCE hInst)

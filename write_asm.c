@@ -3,7 +3,13 @@
 
 extern OPTIONS options;
 
-int WriteAsm(TCHAR *lpText, TCHAR *lpError)
+#ifdef _WIN64
+#define HEXPTR_PADDED         _T("%016I64X")
+#else // _WIN64
+#define HEXPTR_PADDED         _T("%08X")
+#endif // _WIN64
+
+LONG_PTR WriteAsm(TCHAR *lpText, TCHAR *lpError)
 {
 	LABEL_HEAD label_head = {NULL, (LABEL_NODE *)&label_head};
 	CMD_BLOCK_HEAD cmd_block_head = {NULL, (CMD_BLOCK_NODE *)&cmd_block_head};
@@ -43,13 +49,13 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 {
 	CMD_BLOCK_NODE *cmd_block_node;
 	TCHAR *p, *lpNextLine;
-	DWORD dwAddress, dwEndAddress;
-	DWORD dwBaseAddress;
-	DWORD dwSize;
+	DWORD_PTR dwAddress, dwEndAddress;
+	DWORD_PTR dwBaseAddress;
+	SIZE_T nSize;
 	UINT nSpecialCmd;
 	BYTE bPaddingByteValue;
-	DWORD dwPaddingSize;
-	int result;
+	DWORD_PTR dwPaddingSize;
+	LONG_PTR result;
 
 	for(p = lpText; p != NULL; p = lpNextLine)
 	{
@@ -83,7 +89,7 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 			case _T('<'): // address
 				if(dwEndAddress != 0 && dwAddress > dwEndAddress)
 				{
-					wsprintf(lpError, _T("End of code block exceeds the block end address (%u extra bytes)"), dwAddress - dwEndAddress);
+					wsprintf(lpError, _T("End of code block exceeds the block end address (%Iu extra bytes)"), dwAddress - dwEndAddress);
 					return cmd_block_node->cmd_head.next->lpCommand;
 				}
 
@@ -113,7 +119,7 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 					if(!InsertBytes(p, dwPaddingSize, 0, &cmd_block_node->cmd_head, lpError))
 						return p;
 
-					cmd_block_node->dwSize += dwPaddingSize;
+					cmd_block_node->nSize += dwPaddingSize;
 					dwAddress += dwPaddingSize;
 				}
 				break;
@@ -135,7 +141,7 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 						if(!InsertBytes(p, dwPaddingSize, 0, &cmd_block_node->cmd_head, lpError))
 							return p;
 
-						cmd_block_node->dwSize += dwPaddingSize;
+						cmd_block_node->nSize += dwPaddingSize;
 						dwAddress += dwPaddingSize;
 					}
 					break;
@@ -158,7 +164,7 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 						if(!InsertBytes(p, dwPaddingSize, bPaddingByteValue, &cmd_block_node->cmd_head, lpError))
 							return p;
 
-						cmd_block_node->dwSize += dwPaddingSize;
+						cmd_block_node->nSize += dwPaddingSize;
 						dwAddress += dwPaddingSize;
 					}
 					break;
@@ -167,17 +173,17 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 
 			default: // an asm command or a string
 				if(*p == _T('\"'))
-					result = ParseAsciiString(p, &cmd_block_node->cmd_head, &dwSize, lpError);
+					result = ParseAsciiString(p, &cmd_block_node->cmd_head, &nSize, lpError);
 				else if(*p == _T('L') && p[1] == _T('\"'))
-					result = ParseUnicodeString(p, &cmd_block_node->cmd_head, &dwSize, lpError);
+					result = ParseUnicodeString(p, &cmd_block_node->cmd_head, &nSize, lpError);
 				else
-					result = ParseCommand(p, dwAddress, dwBaseAddress, &cmd_block_node->cmd_head, &dwSize, lpError);
+					result = ParseCommand(p, dwAddress, dwBaseAddress, &cmd_block_node->cmd_head, &nSize, lpError);
 
 				if(result <= 0)
 					return p+(-result);
 
-				cmd_block_node->dwSize += dwSize;
-				dwAddress += dwSize;
+				cmd_block_node->nSize += nSize;
+				dwAddress += nSize;
 				break;
 			}
 
@@ -188,19 +194,19 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 
 	if(dwEndAddress != 0 && dwAddress > dwEndAddress)
 	{
-		wsprintf(lpError, _T("End of code block exceeds the block end address (%u extra bytes)"), dwAddress - dwEndAddress);
+		wsprintf(lpError, _T("End of code block exceeds the block end address (%Iu extra bytes)"), dwAddress - dwEndAddress);
 		return cmd_block_node->cmd_head.next->lpCommand;
 	}
 
 	return NULL;
 }
 
-static int ParseAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD *pdwEndAddress, DWORD *pdwBaseAddress, TCHAR *lpError)
+static LONG_PTR ParseAddress(TCHAR *lpText, DWORD_PTR *pdwAddress, DWORD_PTR *pdwEndAddress, DWORD_PTR *pdwBaseAddress, TCHAR *lpError)
 {
 	TCHAR *p;
-	DWORD dwAddress, dwBaseAddress;
-	DWORD dwEndAddress, dwEndBaseAddress;
-	int result;
+	DWORD_PTR dwAddress, dwBaseAddress;
+	DWORD_PTR dwEndAddress, dwEndBaseAddress;
+	LONG_PTR result;
 
 	p = lpText;
 
@@ -221,7 +227,7 @@ static int ParseAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD *pdwEndAddress, 
 	else
 	{
 		dwBaseAddress = 0;
-		result = ParseDWORD(p, &dwAddress, lpError);
+		result = ParseDWORDPtr(p, &dwAddress, lpError);
 	}
 
 	if(result <= 0)
@@ -243,7 +249,7 @@ static int ParseAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD *pdwEndAddress, 
 		else
 		{
 			dwEndBaseAddress = 0;
-			result = ParseDWORD(p, &dwEndAddress, lpError);
+			result = ParseDWORDPtr(p, &dwEndAddress, lpError);
 		}
 
 		if(result <= 0)
@@ -282,7 +288,7 @@ static int ParseAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD *pdwEndAddress, 
 	return p-lpText;
 }
 
-static BOOL NewCmdBlock(CMD_BLOCK_HEAD *p_cmd_block_head, DWORD dwAddress, TCHAR *lpError)
+static BOOL NewCmdBlock(CMD_BLOCK_HEAD *p_cmd_block_head, DWORD_PTR dwAddress, TCHAR *lpError)
 {
 	CMD_BLOCK_NODE *cmd_block_node;
 
@@ -294,7 +300,7 @@ static BOOL NewCmdBlock(CMD_BLOCK_HEAD *p_cmd_block_head, DWORD dwAddress, TCHAR
 	}
 
 	cmd_block_node->dwAddress = dwAddress;
-	cmd_block_node->dwSize = 0;
+	cmd_block_node->nSize = 0;
 	cmd_block_node->cmd_head.next = NULL;
 	cmd_block_node->cmd_head.last = (CMD_NODE *)&cmd_block_node->cmd_head;
 	cmd_block_node->anon_label_head.next = NULL;
@@ -308,7 +314,7 @@ static BOOL NewCmdBlock(CMD_BLOCK_HEAD *p_cmd_block_head, DWORD dwAddress, TCHAR
 	return TRUE;
 }
 
-static int ParseAnonLabel(TCHAR *lpText, DWORD dwAddress, ANON_LABEL_HEAD *p_anon_label_head, TCHAR *lpError)
+static LONG_PTR ParseAnonLabel(TCHAR *lpText, DWORD_PTR dwAddress, ANON_LABEL_HEAD *p_anon_label_head, TCHAR *lpError)
 {
 	ANON_LABEL_NODE *anon_label_node;
 	TCHAR *p;
@@ -349,14 +355,14 @@ static int ParseAnonLabel(TCHAR *lpText, DWORD dwAddress, ANON_LABEL_HEAD *p_ano
 	return p-lpText;
 }
 
-static int ParseLabel(TCHAR *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, DWORD *pdwPaddingSize, TCHAR *lpError)
+static LONG_PTR ParseLabel(TCHAR *lpText, DWORD_PTR dwAddress, LABEL_HEAD *p_label_head, DWORD_PTR *pdwPaddingSize, TCHAR *lpError)
 {
 	LABEL_NODE *label_node;
 	TCHAR *p;
 	TCHAR *lpLabel, *lpLabelEnd;
-	DWORD dwAlignValue;
-	DWORD dwPaddingSize;
-	int result;
+	DWORD_PTR dwAlignValue;
+	DWORD_PTR dwPaddingSize;
+	LONG_PTR result;
 
 	p = lpText;
 
@@ -396,7 +402,7 @@ static int ParseLabel(TCHAR *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, 
 	{
 		p++;
 
-		result = ParseDWORD(p, &dwAlignValue, lpError);
+		result = ParseDWORDPtr(p, &dwAlignValue, lpError);
 		if(result <= 0)
 			return -(p-lpText)+result;
 
@@ -452,16 +458,16 @@ static int ParseLabel(TCHAR *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, 
 	return p-lpText;
 }
 
-static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeInBytes, TCHAR *lpError)
+static LONG_PTR ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, SIZE_T *pnSizeInBytes, TCHAR *lpError)
 {
 #ifdef UNICODE
 	CMD_NODE *cmd_node;
 	WCHAR *p, *p2;
 	WCHAR *psubstr;
-	DWORD dwStringLength;
+	SIZE_T nStringLength;
 	WCHAR *lpComment;
 	char *dest;
-	DWORD nDestLen;
+	SIZE_T nDestLen;
 	BYTE bHexVal;
 	int nBytesWritten;
 	int i;
@@ -478,7 +484,7 @@ static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeI
 	p++;
 
 	psubstr = p;
-	dwStringLength = 0;
+	nStringLength = 0;
 
 	while(*p != L'\"' && *p != L'\0')
 	{
@@ -486,7 +492,7 @@ static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeI
 		{
 			if(p-psubstr > 0)
 			{
-				dwStringLength += WideCharToMultiByte(CP_ACP, 0, psubstr, p-psubstr, NULL, 0, NULL, NULL);
+				nStringLength += WideCharToMultiByte(CP_ACP, 0, psubstr, p-psubstr, NULL, 0, NULL, NULL);
 				psubstr = p;
 			}
 
@@ -535,7 +541,7 @@ static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeI
 				return -(psubstr-lpText);
 			}
 
-			dwStringLength++;
+			nStringLength++;
 
 			psubstr = p;
 		}
@@ -544,7 +550,7 @@ static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeI
 	}
 
 	if(p-psubstr > 0)
-		dwStringLength += WideCharToMultiByte(CP_ACP, 0, psubstr, p-psubstr, NULL, 0, NULL, NULL);
+		nStringLength += WideCharToMultiByte(CP_ACP, 0, psubstr, p-psubstr, NULL, 0, NULL, NULL);
 
 	if(*p != L'\"')
 	{
@@ -552,7 +558,7 @@ static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeI
 		return -(p-lpText);
 	}
 
-	if(dwStringLength == 0)
+	if(nStringLength == 0)
 	{
 		lstrcpy(lpError, L"Empty strings are not allowed");
 		return -(p-lpText);
@@ -585,7 +591,7 @@ static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeI
 		return 0;
 	}
 
-	cmd_node->bCode = (BYTE *)HeapAlloc(GetProcessHeap(), 0, dwStringLength);
+	cmd_node->bCode = (BYTE *)HeapAlloc(GetProcessHeap(), 0, nStringLength);
 	if(!cmd_node->bCode)
 	{
 		HeapFree(GetProcessHeap(), 0, cmd_node);
@@ -599,7 +605,7 @@ static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeI
 
 	psubstr = p2;
 	dest = (char *)cmd_node->bCode;
-	nDestLen = dwStringLength;
+	nDestLen = nStringLength;
 
 	while(*p2 != L'\"')
 	{
@@ -700,7 +706,7 @@ static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeI
 	CMD_NODE *cmd_node;
 	char *p, *p2;
 	char *pescape;
-	DWORD dwStringLength;
+	SIZE_T nStringLength;
 	char *lpComment;
 	char *dest;
 	BYTE bHexVal;
@@ -716,7 +722,7 @@ static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeI
 	}
 
 	p++;
-	dwStringLength = 0;
+	nStringLength = 0;
 
 	while(*p != '\"' && *p != '\0')
 	{
@@ -772,7 +778,7 @@ static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeI
 		else
 			p++;
 
-		dwStringLength++;
+		nStringLength++;
 	}
 
 	if(*p != '\"')
@@ -781,7 +787,7 @@ static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeI
 		return -(p-lpText);
 	}
 
-	if(dwStringLength == 0)
+	if(nStringLength == 0)
 	{
 		lstrcpy(lpError, "Empty strings are not allowed");
 		return -(p-lpText);
@@ -814,7 +820,7 @@ static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeI
 		return 0;
 	}
 
-	cmd_node->bCode = (BYTE *)HeapAlloc(GetProcessHeap(), 0, dwStringLength);
+	cmd_node->bCode = (BYTE *)HeapAlloc(GetProcessHeap(), 0, nStringLength);
 	if(!cmd_node->bCode)
 	{
 		HeapFree(GetProcessHeap(), 0, cmd_node);
@@ -914,7 +920,7 @@ static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeI
 
 #endif // UNICODE
 
-	cmd_node->dwCodeSize = dwStringLength;
+	cmd_node->nCodeSize = nStringLength;
 	cmd_node->lpCommand = lpText;
 	cmd_node->lpComment = lpComment;
 	cmd_node->lpResolvedCommandWithLabels = NULL;
@@ -924,18 +930,18 @@ static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeI
 	p_cmd_head->last->next = cmd_node;
 	p_cmd_head->last = cmd_node;
 
-	*pdwSizeInBytes = dwStringLength;
+	*pnSizeInBytes = nStringLength;
 
 	return p-lpText;
 }
 
-static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeInBytes, TCHAR *lpError)
+static LONG_PTR ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, SIZE_T *pnSizeInBytes, TCHAR *lpError)
 {
 #ifdef UNICODE
 	CMD_NODE *cmd_node;
 	WCHAR *p, *p2;
 	WCHAR *pescape;
-	DWORD dwStringLength;
+	SIZE_T nStringLength;
 	WCHAR *lpComment;
 	WCHAR *dest;
 	WORD wHexVal;
@@ -959,7 +965,7 @@ static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSiz
 	}
 
 	p++;
-	dwStringLength = 0;
+	nStringLength = 0;
 
 	while(*p != L'\"' && *p != L'\0')
 	{
@@ -1015,7 +1021,7 @@ static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSiz
 		else
 			p++;
 
-		dwStringLength++;
+		nStringLength++;
 	}
 
 	if(*p != L'\"')
@@ -1024,7 +1030,7 @@ static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSiz
 		return -(p-lpText);
 	}
 
-	if(dwStringLength == 0)
+	if(nStringLength == 0)
 	{
 		lstrcpy(lpError, L"Empty strings are not allowed");
 		return -(p-lpText);
@@ -1057,7 +1063,7 @@ static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSiz
 		return 0;
 	}
 
-	cmd_node->bCode = (BYTE *)HeapAlloc(GetProcessHeap(), 0, dwStringLength*sizeof(WCHAR));
+	cmd_node->bCode = (BYTE *)HeapAlloc(GetProcessHeap(), 0, nStringLength*sizeof(WCHAR));
 	if(!cmd_node->bCode)
 	{
 		HeapFree(GetProcessHeap(), 0, cmd_node);
@@ -1159,10 +1165,10 @@ static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSiz
 	CMD_NODE *cmd_node;
 	char *p, *p2;
 	char *psubstr;
-	DWORD dwStringLength;
+	SIZE_T nStringLength;
 	char *lpComment;
 	WCHAR *dest;
-	DWORD nDestLen;
+	SIZE_T nDestLen;
 	WORD bHexVal;
 	int nBytesWritten;
 	int i;
@@ -1187,15 +1193,15 @@ static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSiz
 	p++;
 
 	psubstr = p;
-	dwStringLength = 0;
+	nStringLength = 0;
 
 	while(*p != '\"' && *p != '\0')
 	{
 		if(*p == '\\')
 		{
-			if(p-psubstr > 0)
+			if(p - psubstr > 0)
 			{
-				dwStringLength += MultiByteToWideChar(CP_ACP, 0, psubstr, p-psubstr, NULL, 0);
+				nStringLength += MultiByteToWideChar(CP_ACP, 0, psubstr, (int)(p - psubstr), NULL, 0);
 				psubstr = p;
 			}
 
@@ -1244,7 +1250,7 @@ static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSiz
 				return -(psubstr-lpText);
 			}
 
-			dwStringLength++;
+			nStringLength++;
 
 			psubstr = p;
 		}
@@ -1252,8 +1258,8 @@ static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSiz
 			p++;
 	}
 
-	if(p-psubstr > 0)
-		dwStringLength += MultiByteToWideChar(CP_ACP, 0, psubstr, p-psubstr, NULL, 0);
+	if(p - psubstr > 0)
+		nStringLength += MultiByteToWideChar(CP_ACP, 0, psubstr, (int)(p - psubstr), NULL, 0);
 
 	if(*p != '\"')
 	{
@@ -1261,7 +1267,7 @@ static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSiz
 		return -(p-lpText);
 	}
 
-	if(dwStringLength == 0)
+	if(nStringLength == 0)
 	{
 		lstrcpy(lpError, "Empty strings are not allowed");
 		return -(p-lpText);
@@ -1294,7 +1300,7 @@ static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSiz
 		return 0;
 	}
 
-	cmd_node->bCode = (BYTE *)HeapAlloc(GetProcessHeap(), 0, dwStringLength*sizeof(WCHAR));
+	cmd_node->bCode = (BYTE *)HeapAlloc(GetProcessHeap(), 0, nStringLength*sizeof(WCHAR));
 	if(!cmd_node->bCode)
 	{
 		HeapFree(GetProcessHeap(), 0, cmd_node);
@@ -1308,15 +1314,15 @@ static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSiz
 
 	psubstr = p2;
 	dest = (WCHAR *)cmd_node->bCode;
-	nDestLen = dwStringLength;
+	nDestLen = nStringLength;
 
 	while(*p2 != '\"')
 	{
 		if(*p2 == '\\')
 		{
-			if(p2-psubstr > 0)
+			if(p2 - psubstr > 0)
 			{
-				nBytesWritten = MultiByteToWideChar(CP_ACP, 0, psubstr, p2-psubstr, dest, nDestLen);
+				nBytesWritten = MultiByteToWideChar(CP_ACP, 0, psubstr, (int)(p2 - psubstr), dest, (int)nDestLen);
 				dest += nBytesWritten;
 				nDestLen -= nBytesWritten;
 
@@ -1402,12 +1408,12 @@ static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSiz
 			p2++;
 	}
 
-	if(p2-psubstr > 0)
-		MultiByteToWideChar(CP_ACP, 0, psubstr, p2-psubstr, dest, nDestLen);
+	if(p2 - psubstr > 0)
+		MultiByteToWideChar(CP_ACP, 0, psubstr, (int)(p2 - psubstr), dest, (int)nDestLen);
 
 #endif // UNICODE
 
-	cmd_node->dwCodeSize = dwStringLength*sizeof(WCHAR);
+	cmd_node->nCodeSize = nStringLength*sizeof(WCHAR);
 	cmd_node->lpCommand = lpText;
 	cmd_node->lpComment = lpComment;
 	cmd_node->lpResolvedCommandWithLabels = NULL;
@@ -1417,20 +1423,20 @@ static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSiz
 	p_cmd_head->last->next = cmd_node;
 	p_cmd_head->last = cmd_node;
 
-	*pdwSizeInBytes = dwStringLength*sizeof(WCHAR);
+	*pnSizeInBytes = nStringLength*sizeof(WCHAR);
 
 	return p-lpText;
 }
 
-static int ParseCommand(TCHAR *lpText, DWORD dwAddress, DWORD dwBaseAddress, CMD_HEAD *p_cmd_head, DWORD *pdwSizeInBytes, TCHAR *lpError)
+static LONG_PTR ParseCommand(TCHAR *lpText, DWORD_PTR dwAddress, DWORD_PTR dwBaseAddress, CMD_HEAD *p_cmd_head, SIZE_T *pnSizeInBytes, TCHAR *lpError)
 {
 	CMD_NODE *cmd_node;
 	TCHAR *p;
 	TCHAR *lpResolvedCommand;
 	TCHAR *lpCommandWithoutLabels;
 	BYTE bCode[MAXCMDSIZE];
-	int nCodeLength;
-	int result;
+	SIZE_T nCodeLength;
+	LONG_PTR result;
 	TCHAR *lpComment;
 
 	// Resolve RVA addresses
@@ -1505,7 +1511,7 @@ static int ParseCommand(TCHAR *lpText, DWORD dwAddress, DWORD dwBaseAddress, CMD
 	}
 
 	CopyMemory(cmd_node->bCode, bCode, nCodeLength);
-	cmd_node->dwCodeSize = nCodeLength;
+	cmd_node->nCodeSize = nCodeLength;
 	cmd_node->lpCommand = lpText;
 	cmd_node->lpComment = lpComment;
 
@@ -1519,20 +1525,20 @@ static int ParseCommand(TCHAR *lpText, DWORD dwAddress, DWORD dwBaseAddress, CMD
 	p_cmd_head->last->next = cmd_node;
 	p_cmd_head->last = cmd_node;
 
-	*pdwSizeInBytes = nCodeLength;
+	*pnSizeInBytes = nCodeLength;
 
 	return p-lpText;
 }
 
-static int ResolveCommand(TCHAR *lpCommand, DWORD dwBaseAddress, TCHAR **ppNewCommand, TCHAR **ppComment, TCHAR *lpError)
+static LONG_PTR ResolveCommand(TCHAR *lpCommand, DWORD_PTR dwBaseAddress, TCHAR **ppNewCommand, TCHAR **ppComment, TCHAR *lpError)
 {
 	TCHAR *p;
-	int text_start[4];
-	int text_end[4];
-	DWORD dwAddress[4];
+	SIZE_T text_start[4];
+	SIZE_T text_end[4];
+	DWORD_PTR dwAddress[4];
 	int address_count;
 	TCHAR *lpComment;
-	int result;
+	LONG_PTR result;
 
 	// Find and parse addresses
 	p = lpCommand;
@@ -1591,13 +1597,13 @@ static int ResolveCommand(TCHAR *lpCommand, DWORD dwBaseAddress, TCHAR **ppNewCo
 	return p-lpCommand;
 }
 
-static int ReplaceLabelsWithFooAddress(TCHAR *lpCommand, DWORD dwCommandAddress, BOOL bAddDelta, TCHAR **ppNewCommand, TCHAR *lpError)
+static LONG_PTR ReplaceLabelsWithFooAddress(TCHAR *lpCommand, DWORD_PTR dwCommandAddress, BOOL bAddDelta, TCHAR **ppNewCommand, TCHAR *lpError)
 {
 	TCHAR *p;
-	DWORD dwReplaceAddress;
-	int text_start[4];
-	int text_end[4];
-	DWORD dwAddress[4];
+	DWORD_PTR dwReplaceAddress;
+	LONG_PTR text_start[4];
+	LONG_PTR text_end[4];
+	DWORD_PTR dwAddress[4];
 	int label_count;
 
 	// Find labels
@@ -1637,6 +1643,15 @@ static int ReplaceLabelsWithFooAddress(TCHAR *lpCommand, DWORD dwCommandAddress,
 
 			if(bAddDelta)
 			{
+#ifdef _WIN64
+				dwReplaceAddress += 0x1111111111111111;
+
+				if((dwReplaceAddress & 0xFFFFFFFF00000000) == 0x0000000000000000 ||
+					(dwReplaceAddress & 0xFFFFFFFF00000000) == 0xFFFFFFFF00000000)
+				{
+					dwReplaceAddress += 0x1111111111111111;
+				}
+#else // _WIN64
 				dwReplaceAddress += 0x11111111;
 
 				if((dwReplaceAddress & 0xFFFF0000) == 0x00000000 ||
@@ -1644,6 +1659,7 @@ static int ReplaceLabelsWithFooAddress(TCHAR *lpCommand, DWORD dwCommandAddress,
 				{
 					dwReplaceAddress += 0x11111111;
 				}
+#endif // _WIN64
 			}
 
 			dwAddress[label_count] = dwReplaceAddress;
@@ -1667,7 +1683,7 @@ static int ReplaceLabelsWithFooAddress(TCHAR *lpCommand, DWORD dwCommandAddress,
 	return 1;
 }
 
-static int ParseSpecialCommand(TCHAR *lpText, UINT *pnSpecialCmd, TCHAR *lpError)
+static LONG_PTR ParseSpecialCommand(TCHAR *lpText, UINT *pnSpecialCmd, TCHAR *lpError)
 {
 	TCHAR *p;
 	TCHAR *pCommandStart;
@@ -1716,13 +1732,13 @@ static int ParseSpecialCommand(TCHAR *lpText, UINT *pnSpecialCmd, TCHAR *lpError
 	return p-lpText;
 }
 
-static int ParseAlignSpecialCommand(TCHAR *lpText, int nArgsOffset, DWORD dwAddress, DWORD *pdwPaddingSize, TCHAR *lpError)
+static LONG_PTR ParseAlignSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, DWORD_PTR dwAddress, DWORD_PTR *pdwPaddingSize, TCHAR *lpError)
 {
 	TCHAR *p;
 	TCHAR *pAfterWhiteSpace;
-	DWORD dwAlignValue;
-	DWORD dwPaddingSize;
-	int result;
+	DWORD_PTR dwAlignValue;
+	DWORD_PTR dwPaddingSize;
+	LONG_PTR result;
 
 	p = lpText + nArgsOffset;
 
@@ -1735,7 +1751,7 @@ static int ParseAlignSpecialCommand(TCHAR *lpText, int nArgsOffset, DWORD dwAddr
 
 	p = pAfterWhiteSpace;
 
-	result = ParseDWORD(p, &dwAlignValue, lpError);
+	result = ParseDWORDPtr(p, &dwAlignValue, lpError);
 	if(result <= 0)
 		return -(p-lpText)+result;
 
@@ -1756,12 +1772,12 @@ static int ParseAlignSpecialCommand(TCHAR *lpText, int nArgsOffset, DWORD dwAddr
 	return p-lpText;
 }
 
-static int ParsePadSpecialCommand(TCHAR *lpText, int nArgsOffset, BYTE *pbPaddingByteValue, TCHAR *lpError)
+static LONG_PTR ParsePadSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, BYTE *pbPaddingByteValue, TCHAR *lpError)
 {
 	TCHAR *p;
 	TCHAR *pAfterWhiteSpace;
-	DWORD dwPaddingByteValue;
-	int result;
+	DWORD_PTR dwPaddingByteValue;
+	LONG_PTR result;
 
 	p = lpText + nArgsOffset;
 
@@ -1774,7 +1790,7 @@ static int ParsePadSpecialCommand(TCHAR *lpText, int nArgsOffset, BYTE *pbPaddin
 
 	p = pAfterWhiteSpace;
 	
-	result = ParseDWORD(p, &dwPaddingByteValue, lpError);
+	result = ParseDWORDPtr(p, &dwPaddingByteValue, lpError);
 	if(result <= 0)
 		return -(p-lpText)+result;
 
@@ -1798,10 +1814,10 @@ static int ParsePadSpecialCommand(TCHAR *lpText, int nArgsOffset, BYTE *pbPaddin
 	return p-lpText;
 }
 
-static BOOL GetAlignPaddingSize(DWORD dwAddress, DWORD dwAlignValue, DWORD *pdwPaddingSize, TCHAR *lpError)
+static BOOL GetAlignPaddingSize(DWORD_PTR dwAddress, DWORD_PTR dwAlignValue, DWORD_PTR *pdwPaddingSize, TCHAR *lpError)
 {
-	DWORD dwAlignedAddress;
-	DWORD dwPaddingSize;
+	DWORD_PTR dwAlignedAddress;
+	DWORD_PTR dwPaddingSize;
 
 	if(dwAlignValue <= 1)
 	{
@@ -1809,7 +1825,7 @@ static BOOL GetAlignPaddingSize(DWORD dwAddress, DWORD dwAlignValue, DWORD *pdwP
 		return FALSE;
 	}
 
-	if(!IsDWORDPowerOfTwo(dwAlignValue))
+	if(!IsDWORDPtrPowerOfTwo(dwAlignValue))
 	{
 		lstrcpy(lpError, _T("The align value must be a power of 2"));
 		return FALSE;
@@ -1823,7 +1839,7 @@ static BOOL GetAlignPaddingSize(DWORD dwAddress, DWORD dwAlignValue, DWORD *pdwP
 	return TRUE;
 }
 
-static BOOL InsertBytes(TCHAR *lpText, DWORD dwBytesCount, BYTE bByteValue, CMD_HEAD *p_cmd_head, TCHAR *lpError)
+static BOOL InsertBytes(TCHAR *lpText, SIZE_T nBytesCount, BYTE bByteValue, CMD_HEAD *p_cmd_head, TCHAR *lpError)
 {
 	CMD_NODE *cmd_node;
 
@@ -1835,7 +1851,7 @@ static BOOL InsertBytes(TCHAR *lpText, DWORD dwBytesCount, BYTE bByteValue, CMD_
 		return FALSE;
 	}
 
-	cmd_node->bCode = (BYTE *)HeapAlloc(GetProcessHeap(), 0, dwBytesCount);
+	cmd_node->bCode = (BYTE *)HeapAlloc(GetProcessHeap(), 0, nBytesCount);
 	if(!cmd_node->bCode)
 	{
 		HeapFree(GetProcessHeap(), 0, cmd_node);
@@ -1844,9 +1860,9 @@ static BOOL InsertBytes(TCHAR *lpText, DWORD dwBytesCount, BYTE bByteValue, CMD_
 		return FALSE;
 	}
 
-	memset(cmd_node->bCode, bByteValue, dwBytesCount);
+	memset(cmd_node->bCode, bByteValue, nBytesCount);
 
-	cmd_node->dwCodeSize = dwBytesCount;
+	cmd_node->nCodeSize = nBytesCount;
 	cmd_node->lpCommand = lpText;
 	cmd_node->lpComment = NULL;
 	cmd_node->lpResolvedCommandWithLabels = NULL;
@@ -1859,15 +1875,15 @@ static BOOL InsertBytes(TCHAR *lpText, DWORD dwBytesCount, BYTE bByteValue, CMD_
 	return TRUE;
 }
 
-static int ParseRVAAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD dwParentBaseAddress, DWORD *pdwBaseAddress, TCHAR *lpError)
+static LONG_PTR ParseRVAAddress(TCHAR *lpText, DWORD_PTR *pdwAddress, DWORD_PTR dwParentBaseAddress, DWORD_PTR *pdwBaseAddress, TCHAR *lpError)
 {
 	TCHAR *p;
 	TCHAR *pModuleName, *pModuleNameEnd;
 	PLUGIN_MODULE module;
-	DWORD dwBaseAddress;
-	DWORD dwAddress;
-	DWORD dwCPUBaseAddr;
-	int result;
+	DWORD_PTR dwBaseAddress;
+	DWORD_PTR dwAddress;
+	DWORD_PTR dwCPUBaseAddr;
+	LONG_PTR result;
 	TCHAR c;
 
 	p = lpText;
@@ -1926,7 +1942,7 @@ static int ParseRVAAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD dwParentBaseA
 
 		if(*p == _T('('))
 		{
-			result = ParseDWORD(&p[1], &dwBaseAddress, lpError);
+			result = ParseDWORDPtr(&p[1], &dwBaseAddress, lpError);
 			if(result > 0 && p[1+result] == _T(')') && p[1+result+1] == _T('.'))
 			{
 				pModuleName = NULL;
@@ -1989,7 +2005,7 @@ static int ParseRVAAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD dwParentBaseA
 	else
 		module = NULL;
 
-	result = ParseDWORD(p, &dwAddress, lpError);
+	result = ParseDWORDPtr(p, &dwAddress, lpError);
 	if(result <= 0)
 		return -(p-lpText)+result;
 
@@ -2009,10 +2025,10 @@ static int ParseRVAAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD dwParentBaseA
 	return p-lpText;
 }
 
-static int ParseDWORD(TCHAR *lpText, DWORD *pdw, TCHAR *lpError)
+static LONG_PTR ParseDWORDPtr(TCHAR *lpText, DWORD_PTR *pdw, TCHAR *lpError)
 {
 	TCHAR *p;
-	DWORD dw;
+	DWORD_PTR dw;
 	BOOL bZeroX;
 
 	p = lpText;
@@ -2027,22 +2043,22 @@ static int ParseDWORD(TCHAR *lpText, DWORD *pdw, TCHAR *lpError)
 
 	if((*p < _T('0') || *p > _T('9')) && (*p < _T('A') || *p > _T('F')) && (*p < _T('a') || *p > _T('f')))
 	{
-		lstrcpy(lpError, _T("Could not parse DWORD"));
+		lstrcpy(lpError, _T("Could not parse constant"));
 		return -(p-lpText);
 	}
 
 	dw = 0;
 
-	while(!(dw & 0xF0000000))
+	while((dw >> (sizeof(DWORD_PTR) * 8 - 4)) == 0)
 	{
 		dw <<= 4;
 
 		if(*p >= _T('0') && *p <= _T('9'))
-			dw |= *p-_T('0');
+			dw |= *p - _T('0');
 		else if(*p >= _T('A') && *p <= _T('F'))
-			dw |= *p-_T('A')+10;
+			dw |= *p - _T('A') + 10;
 		else if(*p >= _T('a') && *p <= _T('f'))
-			dw |= *p-_T('a')+10;
+			dw |= *p - _T('a') + 10;
 		else
 		{
 			dw >>= 4;
@@ -2054,7 +2070,7 @@ static int ParseDWORD(TCHAR *lpText, DWORD *pdw, TCHAR *lpError)
 
 	if((*p >= _T('0') && *p <= _T('9')) || (*p >= _T('A') && *p <= _T('F')) || (*p >= _T('a') && *p <= _T('f')))
 	{
-		lstrcpy(lpError, _T("Could not parse DWORD"));
+		lstrcpy(lpError, _T("Could not parse constant"));
 		return -(p-lpText);
 	}
 
@@ -2079,11 +2095,11 @@ static TCHAR *ReplaceLabelsInCommands(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *
 	CMD_BLOCK_NODE *cmd_block_node;
 	CMD_NODE *cmd_node;
 	ANON_LABEL_NODE *anon_label_node;
-	DWORD dwAddress;
-	DWORD dwPrevAnonAddr, dwNextAnonAddr;
+	DWORD_PTR dwAddress;
+	DWORD_PTR dwPrevAnonAddr, dwNextAnonAddr;
 	TCHAR *lpCommandWithoutLabels;
 	BYTE bCode[MAXCMDSIZE];
-	int result;
+	LONG_PTR result;
 
 	for(cmd_block_node = p_cmd_block_head->next; cmd_block_node != NULL; cmd_block_node = cmd_block_node->next)
 	{
@@ -2128,7 +2144,7 @@ static TCHAR *ReplaceLabelsInCommands(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *
 					return cmd_node->lpCommand;
 				}
 
-				result = AssembleWithGivenSize(lpCommandWithoutLabels, dwAddress, cmd_node->dwCodeSize, bCode, lpError);
+				result = AssembleWithGivenSize(lpCommandWithoutLabels, dwAddress, (int)cmd_node->nCodeSize, bCode, lpError);
 				result = ReplacedTextCorrectErrorSpot(cmd_node->lpCommand, lpCommandWithoutLabels, result);
 				HeapFree(GetProcessHeap(), 0, lpCommandWithoutLabels);
 
@@ -2138,21 +2154,21 @@ static TCHAR *ReplaceLabelsInCommands(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *
 				CopyMemory(cmd_node->bCode, bCode, result);
 			}
 
-			dwAddress += cmd_node->dwCodeSize;
+			dwAddress += cmd_node->nCodeSize;
 		}
 	}
 
 	return NULL;
 }
 
-static int ReplaceLabelsFromList(TCHAR *lpCommand, DWORD dwPrevAnonAddr, DWORD dwNextAnonAddr, 
+static LONG_PTR ReplaceLabelsFromList(TCHAR *lpCommand, DWORD_PTR dwPrevAnonAddr, DWORD_PTR dwNextAnonAddr,
 	LABEL_HEAD *p_label_head, TCHAR **ppNewCommand, TCHAR *lpError)
 {
 	LABEL_NODE *label_node;
 	TCHAR *p;
-	int text_start[4];
-	int text_end[4];
-	DWORD dwAddress[4];
+	LONG_PTR text_start[4];
+	LONG_PTR text_end[4];
+	DWORD_PTR dwAddress[4];
 	int label_count;
 	TCHAR temp_char;
 	int i;
@@ -2263,51 +2279,52 @@ static TCHAR *PatchCommands(CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpError)
 	CMD_NODE *cmd_node;
 	BYTE *bBuffer;
 	PLUGIN_MEMORY memory;
-	DWORD dwMemoryBase, dwMemorySize;
-	DWORD dwWritten;
+	DWORD_PTR dwMemoryBase;
+	SIZE_T nMemorySize;
+	SIZE_T nWritten;
 
 	for(cmd_block_node = p_cmd_block_head->next; cmd_block_node != NULL; cmd_block_node = cmd_block_node->next)
 	{
-		if(cmd_block_node->dwSize > 0)
+		if(cmd_block_node->nSize > 0)
 		{
 			memory = FindMemory(cmd_block_node->dwAddress);
 			if(!memory)
 			{
-				wsprintf(lpError, _T("Failed to find memory block for address 0x%08X"), cmd_block_node->dwAddress);
+				wsprintf(lpError, _T("Failed to find memory block for address 0x" HEXPTR_PADDED), cmd_block_node->dwAddress);
 				return cmd_block_node->cmd_head.next->lpCommand;
 			}
 
 			dwMemoryBase = GetMemoryBase(memory);
-			dwMemorySize = GetMemorySize(memory);
+			nMemorySize = GetMemorySize(memory);
 
-			if(cmd_block_node->dwAddress + cmd_block_node->dwSize > dwMemoryBase + dwMemorySize)
+			if(cmd_block_node->dwAddress + cmd_block_node->nSize > dwMemoryBase + nMemorySize)
 			{
-				wsprintf(lpError, _T("End of code block exceeds end of memory block (%u extra bytes)"), 
-					(cmd_block_node->dwAddress + cmd_block_node->dwSize) - (dwMemoryBase + dwMemorySize));
+				wsprintf(lpError, _T("End of code block exceeds end of memory block (%Iu extra bytes)"), 
+					(cmd_block_node->dwAddress + cmd_block_node->nSize) - (dwMemoryBase + nMemorySize));
 				return cmd_block_node->cmd_head.next->lpCommand;
 			}
 
-			bBuffer = (BYTE *)HeapAlloc(GetProcessHeap(), 0, cmd_block_node->dwSize);
+			bBuffer = (BYTE *)HeapAlloc(GetProcessHeap(), 0, cmd_block_node->nSize);
 			if(!bBuffer)
 			{
 				lstrcpy(lpError, _T("Allocation failed"));
 				return cmd_block_node->cmd_head.next->lpCommand;
 			}
 
-			dwWritten = 0;
+			nWritten = 0;
 
 			for(cmd_node = cmd_block_node->cmd_head.next; cmd_node != NULL; cmd_node = cmd_node->next)
 			{
-				CopyMemory(bBuffer+dwWritten, cmd_node->bCode, cmd_node->dwCodeSize);
-				dwWritten += cmd_node->dwCodeSize;
+				CopyMemory(bBuffer+nWritten, cmd_node->bCode, cmd_node->nCodeSize);
+				nWritten += cmd_node->nCodeSize;
 			}
 
 			EnsureMemoryBackup(memory);
 
-			if(!SimpleWriteMemory(bBuffer, cmd_block_node->dwAddress, cmd_block_node->dwSize))
+			if(!SimpleWriteMemory(bBuffer, cmd_block_node->dwAddress, cmd_block_node->nSize))
 			{
 				HeapFree(GetProcessHeap(), 0, bBuffer);
-				wsprintf(lpError, _T("Failed to write memory on address 0x%08X"), cmd_block_node->dwAddress);
+				wsprintf(lpError, _T("Failed to write memory on address 0x" HEXPTR_PADDED), cmd_block_node->dwAddress);
 				return cmd_block_node->cmd_head.next->lpCommand;
 			}
 
@@ -2322,14 +2339,14 @@ static TCHAR *SetComments(CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpError)
 {
 	CMD_BLOCK_NODE *cmd_block_node;
 	CMD_NODE *cmd_node;
-	DWORD dwAddress;
+	DWORD_PTR dwAddress;
 
 	for(cmd_block_node = p_cmd_block_head->next; cmd_block_node != NULL; cmd_block_node = cmd_block_node->next)
 	{
-		if(cmd_block_node->dwSize > 0)
+		if(cmd_block_node->nSize > 0)
 		{
 			dwAddress = cmd_block_node->dwAddress;
-			DeleteRangeComments(dwAddress, dwAddress+cmd_block_node->dwSize);
+			DeleteRangeComments(dwAddress, dwAddress+cmd_block_node->nSize);
 
 			for(cmd_node = cmd_block_node->cmd_head.next; cmd_node != NULL; cmd_node = cmd_node->next)
 			{
@@ -2341,12 +2358,12 @@ static TCHAR *SetComments(CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpError)
 					if(!QuickInsertComment(dwAddress, cmd_node->lpComment))
 					{
 						MergeQuickData();
-						wsprintf(lpError, _T("Failed to set comment on address 0x%08X"), dwAddress);
+						wsprintf(lpError, _T("Failed to set comment on address 0x" HEXPTR_PADDED), dwAddress);
 						return cmd_node->lpComment;
 					}
 				}
 
-				dwAddress += cmd_node->dwCodeSize;
+				dwAddress += cmd_node->nCodeSize;
 			}
 		}
 	}
@@ -2364,8 +2381,8 @@ static TCHAR *SetLabels(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_he
 	UINT i;
 
 	for(cmd_block_node = p_cmd_block_head->next; cmd_block_node != NULL; cmd_block_node = cmd_block_node->next)
-		if(cmd_block_node->dwSize > 0)
-			DeleteRangeLabels(cmd_block_node->dwAddress, cmd_block_node->dwAddress+cmd_block_node->dwSize);
+		if(cmd_block_node->nSize > 0)
+			DeleteRangeLabels(cmd_block_node->dwAddress, cmd_block_node->dwAddress+cmd_block_node->nSize);
 
 	for(label_node = p_label_head->next; label_node != NULL; label_node = label_node->next)
 	{
@@ -2405,7 +2422,7 @@ static TCHAR *SetLabels(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_he
 		if(!QuickInsertLabel(label_node->dwAddress, lpLabel))
 		{
 			MergeQuickData();
-			wsprintf(lpError, _T("Failed to set label on address 0x%08X"), label_node->dwAddress);
+			wsprintf(lpError, _T("Failed to set label on address 0x" HEXPTR_PADDED), label_node->dwAddress);
 			return lpLabel-1;
 		}
 	}
@@ -2415,11 +2432,11 @@ static TCHAR *SetLabels(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_he
 }
 
 static BOOL ReplaceTextsWithAddresses(TCHAR *lpCommand, TCHAR **ppNewCommand, 
-	int text_count, int text_start[4], int text_end[4], DWORD dwAddress[4], TCHAR *lpError)
+	int text_count, LONG_PTR text_start[4], LONG_PTR text_end[4], DWORD_PTR dwAddress[4], TCHAR *lpError)
 {
 	int address_len[4];
 	TCHAR szAddressText[4][10];
-	int new_command_len;
+	LONG_PTR new_command_len;
 	TCHAR *lpNewCommand;
 	TCHAR *dest, *src;
 	int i;
@@ -2428,7 +2445,7 @@ static BOOL ReplaceTextsWithAddresses(TCHAR *lpCommand, TCHAR **ppNewCommand,
 
 	for(i=0; i<text_count; i++)
 	{
-		address_len[i] = wsprintf(szAddressText[i], _T("0%X"), dwAddress[i]);
+		address_len[i] = wsprintf(szAddressText[i], _T("%IX"), dwAddress[i]);
 		new_command_len += address_len[i]-(text_end[i]-text_start[i]);
 	}
 
@@ -2462,7 +2479,7 @@ static BOOL ReplaceTextsWithAddresses(TCHAR *lpCommand, TCHAR **ppNewCommand,
 	return TRUE;
 }
 
-static int ReplacedTextCorrectErrorSpot(TCHAR *lpCommand, TCHAR *lpReplacedCommand, int result)
+static LONG_PTR ReplacedTextCorrectErrorSpot(TCHAR *lpCommand, TCHAR *lpReplacedCommand, LONG_PTR result)
 {
 	TCHAR *ptxt, *paddr;
 	TCHAR *pTextStart, *pAddressStart;
@@ -2621,7 +2638,7 @@ static TCHAR *SkipRVAAddress(TCHAR *p)
 	return p;
 }
 
-static BOOL IsDWORDPowerOfTwo(DWORD dw)
+static BOOL IsDWORDPtrPowerOfTwo(DWORD_PTR dw)
 {
 	return (dw != 0) && ((dw & (dw - 1)) == 0);
 }

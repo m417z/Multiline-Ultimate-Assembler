@@ -22,7 +22,7 @@ BOOL TabCtrlExInit(HWND hTabCtrlWnd, DWORD dwFlags, UINT uUserNotifyMsg)
 	}
 
 	pTabCtrlExProp->uUserNotifyMsg = uUserNotifyMsg;
-	pTabCtrlExProp->dwStyle = GetWindowLongPtr(hTabCtrlWnd, GWL_STYLE);
+	pTabCtrlExProp->dwStyle = GetWindowLong(hTabCtrlWnd, GWL_STYLE);
 
 	pTabCtrlExProp->pOldTabCtrlProc = (WNDPROC)SetWindowLongPtr(hTabCtrlWnd, GWLP_WNDPROC, (LONG_PTR)TabCtrlSubclassProc);
 	if(!pTabCtrlExProp->pOldTabCtrlProc)
@@ -249,7 +249,7 @@ static LRESULT CALLBACK TabCtrlSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam,
 				return 0;
 
 			if(SendUserNotifyMessage(hWnd, pTabCtrlExProp->uUserNotifyMsg, TCN_EX_BEGINLABELEDIT, 0, 0) || 
-				!(g_hEditCtrlWnd = TabEditLabel(hWnd, wParam)))
+				!(g_hEditCtrlWnd = TabEditLabel(hWnd, (int)wParam)))
 			{
 				g_hEditingTabCtrlWnd = NULL;
 				return 0;
@@ -418,10 +418,10 @@ static BOOL TabStripScroll(HWND hTabCtrlWnd, HWND hUpDownCtrlWnd, DWORD *pdwLast
 	if(dwTickCount - *pdwLastScrollTime < 100)
 		return FALSE;
 
-	dw = SendMessage(hUpDownCtrlWnd, UDM_GETPOS, 0, 0);
+	dw = (DWORD)SendMessage(hUpDownCtrlWnd, UDM_GETPOS, 0, 0);
 	wPos = LOWORD(dw);
 
-	dw = SendMessage(hUpDownCtrlWnd, UDM_GETRANGE, 0, 0);
+	dw = (DWORD)SendMessage(hUpDownCtrlWnd, UDM_GETRANGE, 0, 0);
 	wMin = HIWORD(dw);
 	wMax = LOWORD(dw);
 

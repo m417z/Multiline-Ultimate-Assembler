@@ -59,8 +59,8 @@ BOOL MyWritestringtoini(HINSTANCE dllinst, TCHAR *key, TCHAR *s)
 
 // Assembler functions
 
-DWORD SimpleDisasm(BYTE *cmd, DWORD cmdsize, DWORD ip, BYTE *dec, BOOL bSizeOnly,
-	TCHAR *pszResult, DWORD *jmpconst, DWORD *adrconst, DWORD *immconst)
+DWORD SimpleDisasm(BYTE *cmd, SIZE_T cmdsize, DWORD_PTR ip, BYTE *dec, BOOL bSizeOnly,
+	TCHAR *pszResult, DWORD_PTR *jmpconst, DWORD_PTR *adrconst, DWORD_PTR *immconst)
 {
 	t_disasm disasm;
 	DWORD dwCommandSize = Disasm(cmd, cmdsize, ip, dec, &disasm, bSizeOnly ? DISASM_SIZE : DISASM_FILE, 0);
@@ -79,7 +79,7 @@ DWORD SimpleDisasm(BYTE *cmd, DWORD cmdsize, DWORD ip, BYTE *dec, BOOL bSizeOnly
 	return dwCommandSize;
 }
 
-int AssembleShortest(TCHAR *lpCommand, DWORD dwAddress, BYTE *bBuffer, TCHAR *lpError)
+int AssembleShortest(TCHAR *lpCommand, DWORD_PTR dwAddress, BYTE *bBuffer, TCHAR *lpError)
 {
 	char *lpFixedCommand, *lpCommandToAssemble;
 	t_asmmodel model1, model2;
@@ -156,7 +156,7 @@ int AssembleShortest(TCHAR *lpCommand, DWORD dwAddress, BYTE *bBuffer, TCHAR *lp
 	return pm_shortest->length;
 }
 
-int AssembleWithGivenSize(TCHAR *lpCommand, DWORD dwAddress, int req_size, BYTE *bBuffer, TCHAR *lpError)
+int AssembleWithGivenSize(TCHAR *lpCommand, DWORD_PTR dwAddress, int nReqSize, BYTE *bBuffer, TCHAR *lpError)
 {
 	char *lpFixedCommand, *lpCommandToAssemble;
 	t_asmmodel model;
@@ -189,7 +189,7 @@ int AssembleWithGivenSize(TCHAR *lpCommand, DWORD dwAddress, int req_size, BYTE 
 			{
 				bHadResults = TRUE;
 
-				if(model.length == req_size)
+				if(model.length == nReqSize)
 				{
 					if(lpFixedCommand)
 						HeapFree(GetProcessHeap(), 0, lpFixedCommand);
@@ -440,34 +440,34 @@ static BOOL FindNextHexNumberStartingWithALetter(char *lpCommand, char **ppHexNu
 
 // Memory functions
 
-BOOL SimpleReadMemory(void *buf, DWORD addr, DWORD size)
+BOOL SimpleReadMemory(void *buf, DWORD_PTR addr, SIZE_T size)
 {
 	return Readmemory(buf, addr, size, MM_RESTORE|MM_SILENT) != 0;
 }
 
-BOOL SimpleWriteMemory(void *buf, DWORD addr, DWORD size)
+BOOL SimpleWriteMemory(void *buf, DWORD_PTR addr, SIZE_T size)
 {
 	return Writememory(buf, addr, size, MM_RESTORE|MM_DELANAL|MM_SILENT) != 0;
 }
 
 // Symbolic functions
 
-int GetLabel(DWORD addr, TCHAR *name)
+int GetLabel(DWORD_PTR addr, TCHAR *name)
 {
 	return Findsymbolicname(addr, name);
 }
 
-int GetComment(DWORD addr, TCHAR *name)
+int GetComment(DWORD_PTR addr, TCHAR *name)
 {
 	return Findname(addr, NM_COMMENT, name);
 }
 
-BOOL QuickInsertLabel(DWORD addr, TCHAR *s)
+BOOL QuickInsertLabel(DWORD_PTR addr, TCHAR *s)
 {
 	return Quickinsertname(addr, NM_LABEL, s) != -1;
 }
 
-BOOL QuickInsertComment(DWORD addr, TCHAR *s)
+BOOL QuickInsertComment(DWORD_PTR addr, TCHAR *s)
 {
 	return Quickinsertname(addr, NM_COMMENT, s) != -1;
 }
@@ -477,12 +477,12 @@ void MergeQuickData(void)
 	Mergequicknames();
 }
 
-void DeleteRangeLabels(DWORD addr0, DWORD addr1)
+void DeleteRangeLabels(DWORD_PTR addr0, DWORD_PTR addr1)
 {
 	Deletenamerange(addr0, addr1, NM_LABEL);
 }
 
-void DeleteRangeComments(DWORD addr0, DWORD addr1)
+void DeleteRangeComments(DWORD_PTR addr0, DWORD_PTR addr1)
 {
 	Deletenamerange(addr0, addr1, NM_COMMENT);
 }
@@ -535,17 +535,17 @@ PLUGIN_MODULE FindModuleByName(TCHAR *lpModule)
 	return NULL;
 }
 
-PLUGIN_MODULE FindModuleByAddr(DWORD dwAddress)
+PLUGIN_MODULE FindModuleByAddr(DWORD_PTR dwAddress)
 {
 	return Findmodule(dwAddress);
 }
 
-DWORD GetModuleBase(PLUGIN_MODULE module)
+DWORD_PTR GetModuleBase(PLUGIN_MODULE module)
 {
 	return module->base;
 }
 
-DWORD GetModuleSize(PLUGIN_MODULE module)
+SIZE_T GetModuleSize(PLUGIN_MODULE module)
 {
 	return module->size;
 }
@@ -564,17 +564,17 @@ BOOL IsModuleWithRelocations(PLUGIN_MODULE module)
 
 // Memory functions
 
-PLUGIN_MEMORY FindMemory(DWORD dwAddress)
+PLUGIN_MEMORY FindMemory(DWORD_PTR dwAddress)
 {
 	return Findmemory(dwAddress);
 }
 
-DWORD GetMemoryBase(PLUGIN_MEMORY mem)
+DWORD_PTR GetMemoryBase(PLUGIN_MEMORY mem)
 {
 	return mem->base;
 }
 
-DWORD GetMemorySize(PLUGIN_MEMORY mem)
+SIZE_T GetMemorySize(PLUGIN_MEMORY mem)
 {
 	return mem->size;
 }
@@ -598,7 +598,7 @@ void EnsureMemoryBackup(PLUGIN_MEMORY mem)
 
 // Analysis functions
 
-BYTE *FindDecode(DWORD addr, DWORD *psize)
+BYTE *FindDecode(DWORD_PTR addr, SIZE_T *psize)
 {
 	return Finddecode(addr, psize);
 }
@@ -654,7 +654,7 @@ void ResumeAllThreads()
 	// It's recommended to call for OllyDbg v2, though
 }
 
-DWORD GetCpuBaseAddr()
+DWORD_PTR GetCpuBaseAddr()
 {
 	t_dump *td = (t_dump *)Plugingetvalue(VAL_CPUDASM);
 	if(!td)

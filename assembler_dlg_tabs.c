@@ -510,7 +510,7 @@ void OnTabChanging(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 
 	tci.header.mask = TCIF_PARAM;
 	SendMessage(hAsmEditWnd, EM_EXGETSEL, 0, (LPARAM)&tci.extra.char_range);
-	tci.extra.first_visible_line = SendMessage(hAsmEditWnd, EM_GETFIRSTVISIBLELINE, 0, 0);
+	tci.extra.first_visible_line = (int)SendMessage(hAsmEditWnd, EM_GETFIRSTVISIBLELINE, 0, 0);
 
 	TabCtrl_SetItem(hTabCtrlWnd, TabCtrl_GetCurSel(hTabCtrlWnd), &tci);
 
@@ -539,7 +539,7 @@ void OnTabFileUpdated(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 	CHARRANGE char_range;
 
 	SendMessage(hAsmEditWnd, EM_EXGETSEL, 0, (LPARAM)&char_range);
-	first_visible_line = SendMessage(hAsmEditWnd, EM_GETFIRSTVISIBLELINE, 0, 0);
+	first_visible_line = (int)SendMessage(hAsmEditWnd, EM_GETFIRSTVISIBLELINE, 0, 0);
 
 	LoadFileOfTab(hTabCtrlWnd, hAsmEditWnd);
 

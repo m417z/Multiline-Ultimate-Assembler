@@ -8,7 +8,7 @@
 
 typedef struct _label_node {
 	struct _label_node *next;
-	DWORD dwAddress;
+	DWORD_PTR dwAddress;
 	TCHAR *lpLabel;
 } LABEL_NODE;
 
@@ -22,7 +22,7 @@ typedef struct _label_head {
 typedef struct _cmd_node {
 	struct _cmd_node *next;
 	BYTE *bCode;
-	DWORD dwCodeSize;
+	SIZE_T nCodeSize;
 	TCHAR *lpCommand;
 	TCHAR *lpComment;
 	TCHAR *lpResolvedCommandWithLabels;
@@ -37,7 +37,7 @@ typedef struct _cmd_head {
 
 typedef struct _anon_label_node {
 	struct _anon_label_node *next;
-	DWORD dwAddress;
+	DWORD_PTR dwAddress;
 } ANON_LABEL_NODE;
 
 typedef struct _anon_label_head {
@@ -49,7 +49,8 @@ typedef struct _anon_label_head {
 
 typedef struct _cmd_block_node {
 	struct _cmd_block_node *next;
-	DWORD dwAddress, dwSize;
+	DWORD_PTR dwAddress;
+	SIZE_T nSize;
 	CMD_HEAD cmd_head;
 	ANON_LABEL_HEAD anon_label_head;
 } CMD_BLOCK_NODE;
@@ -66,31 +67,31 @@ typedef struct _cmd_block_head {
 
 // functions
 
-int WriteAsm(TCHAR *lpText, TCHAR *lpError);
+LONG_PTR WriteAsm(TCHAR *lpText, TCHAR *lpError);
 
 // 1
 static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpText, TCHAR *lpError);
-static int ParseAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD *pdwEndAddress, DWORD *pdwBaseAddress, TCHAR *lpError);
-static BOOL NewCmdBlock(CMD_BLOCK_HEAD *p_cmd_block_head, DWORD dwAddress, TCHAR *lpError);
-static int ParseAnonLabel(TCHAR *lpText, DWORD dwAddress, ANON_LABEL_HEAD *p_anon_label_head, TCHAR *lpError);
-static int ParseLabel(TCHAR *lpText, DWORD dwAddress, LABEL_HEAD *p_label_head, DWORD *pdwPaddingSize, TCHAR *lpError);
-static int ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeInBytes, TCHAR *lpError);
-static int ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, DWORD *pdwSizeInBytes, TCHAR *lpError);
-static int ParseCommand(TCHAR *lpText, DWORD dwAddress, DWORD dwBaseAddress, CMD_HEAD *p_cmd_head, DWORD *pdwSizeInBytes, TCHAR *lpError);
-static int ResolveCommand(TCHAR *lpCommand, DWORD dwBaseAddress, TCHAR **ppNewCommand, TCHAR **ppComment, TCHAR *lpError);
-static int ReplaceLabelsWithFooAddress(TCHAR *lpCommand, DWORD dwCommandAddress, BOOL bAddDelta, TCHAR **ppNewCommand, TCHAR *lpError);
-static int ParseSpecialCommand(TCHAR *lpText, UINT *pnSpecialCmd, TCHAR *lpError);
-static int ParseAlignSpecialCommand(TCHAR *lpText, int nArgsOffset, DWORD dwAddress, DWORD *pdwPaddingSize, TCHAR *lpError);
-static int ParsePadSpecialCommand(TCHAR *lpText, int nArgsOffset, BYTE *pbPaddingByteValue, TCHAR *lpError);
-static BOOL GetAlignPaddingSize(DWORD dwAddress, DWORD dwAlignValue, DWORD *pdwPaddingSize, TCHAR *lpError);
-static BOOL InsertBytes(TCHAR *lpText, DWORD dwBytesCount, BYTE bByteValue, CMD_HEAD *p_cmd_head, TCHAR *lpError);
+static LONG_PTR ParseAddress(TCHAR *lpText, DWORD_PTR *pdwAddress, DWORD_PTR *pdwEndAddress, DWORD_PTR *pdwBaseAddress, TCHAR *lpError);
+static BOOL NewCmdBlock(CMD_BLOCK_HEAD *p_cmd_block_head, DWORD_PTR dwAddress, TCHAR *lpError);
+static LONG_PTR ParseAnonLabel(TCHAR *lpText, DWORD_PTR dwAddress, ANON_LABEL_HEAD *p_anon_label_head, TCHAR *lpError);
+static LONG_PTR ParseLabel(TCHAR *lpText, DWORD_PTR dwAddress, LABEL_HEAD *p_label_head, DWORD_PTR *pdwPaddingSize, TCHAR *lpError);
+static LONG_PTR ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, SIZE_T *pnSizeInBytes, TCHAR *lpError);
+static LONG_PTR ParseUnicodeString(TCHAR *lpText, CMD_HEAD *p_cmd_head, SIZE_T *pnSizeInBytes, TCHAR *lpError);
+static LONG_PTR ParseCommand(TCHAR *lpText, DWORD_PTR dwAddress, DWORD_PTR dwBaseAddress, CMD_HEAD *p_cmd_head, SIZE_T *pnSizeInBytes, TCHAR *lpError);
+static LONG_PTR ResolveCommand(TCHAR *lpCommand, DWORD_PTR dwBaseAddress, TCHAR **ppNewCommand, TCHAR **ppComment, TCHAR *lpError);
+static LONG_PTR ReplaceLabelsWithFooAddress(TCHAR *lpCommand, DWORD_PTR dwCommandAddress, BOOL bAddDelta, TCHAR **ppNewCommand, TCHAR *lpError);
+static LONG_PTR ParseSpecialCommand(TCHAR *lpText, UINT *pnSpecialCmd, TCHAR *lpError);
+static LONG_PTR ParseAlignSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, DWORD_PTR dwAddress, DWORD_PTR *pdwPaddingSize, TCHAR *lpError);
+static LONG_PTR ParsePadSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, BYTE *pbPaddingByteValue, TCHAR *lpError);
+static BOOL GetAlignPaddingSize(DWORD_PTR dwAddress, DWORD_PTR dwAlignValue, DWORD_PTR *pdwPaddingSize, TCHAR *lpError);
+static BOOL InsertBytes(TCHAR *lpText, SIZE_T nBytesCount, BYTE bByteValue, CMD_HEAD *p_cmd_head, TCHAR *lpError);
 
-static int ParseRVAAddress(TCHAR *lpText, DWORD *pdwAddress, DWORD dwParentBaseAddress, DWORD *pdwBaseAddress, TCHAR *lpError);
-static int ParseDWORD(TCHAR *lpText, DWORD *pdw, TCHAR *lpError);
+static LONG_PTR ParseRVAAddress(TCHAR *lpText, DWORD_PTR *pdwAddress, DWORD_PTR dwParentBaseAddress, DWORD_PTR *pdwBaseAddress, TCHAR *lpError);
+static LONG_PTR ParseDWORDPtr(TCHAR *lpText, DWORD_PTR *pdw, TCHAR *lpError);
 
 // 2
 static TCHAR *ReplaceLabelsInCommands(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpError);
-static int ReplaceLabelsFromList(TCHAR *lpCommand, DWORD dwPrevAnonAddr, DWORD dwNextAnonAddr, 
+static LONG_PTR ReplaceLabelsFromList(TCHAR *lpCommand, DWORD_PTR dwPrevAnonAddr, DWORD_PTR dwNextAnonAddr,
 	LABEL_HEAD *p_label_head, TCHAR **ppNewCommand, TCHAR *lpError);
 
 // 3
@@ -100,14 +101,14 @@ static TCHAR *SetLabels(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_he
 
 // Helper functions
 static BOOL ReplaceTextsWithAddresses(TCHAR *lpCommand, TCHAR **ppNewCommand, 
-	int text_count, int text_start[4], int text_end[4], DWORD dwAddress[4], TCHAR *lpError);
-static int ReplacedTextCorrectErrorSpot(TCHAR *lpCommand, TCHAR *lpReplacedCommand, int result);
+	int text_count, LONG_PTR text_start[4], LONG_PTR text_end[4], DWORD_PTR dwAddress[4], TCHAR *lpError);
+static LONG_PTR ReplacedTextCorrectErrorSpot(TCHAR *lpCommand, TCHAR *lpReplacedCommand, LONG_PTR result);
 static TCHAR *NullTerminateLine(TCHAR *p);
 static TCHAR *SkipSpaces(TCHAR *p);
 static TCHAR *SkipDWORD(TCHAR *p);
 static TCHAR *SkipLabel(TCHAR *p);
 static TCHAR *SkipRVAAddress(TCHAR *p);
-static BOOL IsDWORDPowerOfTwo(DWORD dw);
+static BOOL IsDWORDPtrPowerOfTwo(DWORD_PTR dw);
 
 // Cleanup function
 static void FreeLabelList(LABEL_HEAD *p_label_head);

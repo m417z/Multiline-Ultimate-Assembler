@@ -7,19 +7,21 @@ HWND hwollymain;
 
 BOOL MyGetintfromini(HINSTANCE dllinst, TCHAR *key, int *p_val, int min, int max, int def)
 {
-	int val;
+	duint val;
 
-	if(!BridgeSettingGetUint(DEF_PLUGINNAME, key, &val))
+	if(!BridgeSettingGetUint(DEF_PLUGINNAME, key, &val) || (val & ~0xFFFFFFFF) != 0)
 	{
 		*p_val = def;
 
 		return FALSE;
 	}
 
-	if(min && max && (val < min || val > max))
+	int val_int = (int)val;
+
+	if(min && max && (val_int < min || val_int > max))
 		*p_val = def;
 	else
-		*p_val = val;
+		*p_val = val_int;
 
 	return TRUE;
 }
@@ -74,8 +76,8 @@ BOOL MyWritestringtoini(HINSTANCE dllinst, TCHAR *key, TCHAR *s)
 
 // Assembler functions
 
-DWORD SimpleDisasm(BYTE *cmd, DWORD cmdsize, DWORD ip, BYTE *dec, BOOL bSizeOnly,
-	TCHAR *pszResult, DWORD *jmpconst, DWORD *adrconst, DWORD *immconst)
+DWORD SimpleDisasm(BYTE *cmd, SIZE_T cmdsize, DWORD_PTR ip, BYTE *dec, BOOL bSizeOnly,
+	TCHAR *pszResult, DWORD_PTR *jmpconst, DWORD_PTR *adrconst, DWORD_PTR *immconst)
 {
 	BYTE cmd_safe[MAXCMDSIZE];
 	if(cmdsize < MAXCMDSIZE)
@@ -101,7 +103,7 @@ DWORD SimpleDisasm(BYTE *cmd, DWORD cmdsize, DWORD ip, BYTE *dec, BOOL bSizeOnly
 	return basicinfo.size;
 }
 
-int AssembleShortest(TCHAR *lpCommand, DWORD dwAddress, BYTE *bBuffer, TCHAR *lpError)
+int AssembleShortest(TCHAR *lpCommand, DWORD_PTR dwAddress, BYTE *bBuffer, TCHAR *lpError)
 {
 	int size;
 	if(!DbgFunctions()->Assemble(dwAddress, bBuffer, &size, lpCommand, lpError))
@@ -110,20 +112,20 @@ int AssembleShortest(TCHAR *lpCommand, DWORD dwAddress, BYTE *bBuffer, TCHAR *lp
 	return size;
 }
 
-int AssembleWithGivenSize(TCHAR *lpCommand, DWORD dwAddress, int req_size, BYTE *bBuffer, TCHAR *lpError)
+int AssembleWithGivenSize(TCHAR *lpCommand, DWORD_PTR dwAddress, int nReqSize, BYTE *bBuffer, TCHAR *lpError)
 {
 	int size;
 	if(!DbgFunctions()->Assemble(dwAddress, bBuffer, &size, lpCommand, lpError))
 		return 0;
 
 	// TODO: fix when implemented
-	if(size > req_size)
+	if(size > nReqSize)
 	{
 		lstrcpy(lpError, "AssembleWithGivenSize: internal assembler error");
 		return 0;
 	}
 
-	while(size < req_size)
+	while(size < nReqSize)
 		bBuffer[size++] = 0x90; // Fill with NOPs
 
 	return size;
@@ -131,19 +133,19 @@ int AssembleWithGivenSize(TCHAR *lpCommand, DWORD dwAddress, int req_size, BYTE 
 
 // Memory functions
 
-BOOL SimpleReadMemory(void *buf, DWORD addr, DWORD size)
+BOOL SimpleReadMemory(void *buf, DWORD_PTR addr, SIZE_T size)
 {
 	return DbgMemRead(addr, buf, size);
 }
 
-BOOL SimpleWriteMemory(void *buf, DWORD addr, DWORD size)
+BOOL SimpleWriteMemory(void *buf, DWORD_PTR addr, SIZE_T size)
 {
 	return DbgFunctions()->MemPatch(addr, buf, size);
 }
 
 // Symbolic functions
 
-int GetLabel(DWORD addr, TCHAR *name)
+int GetLabel(DWORD_PTR addr, TCHAR *name)
 {
 	if(!DbgGetLabelAt(addr, SEG_DEFAULT, name))
 		return 0;
@@ -151,7 +153,7 @@ int GetLabel(DWORD addr, TCHAR *name)
 	return lstrlen(name);
 }
 
-int GetComment(DWORD addr, TCHAR *name)
+int GetComment(DWORD_PTR addr, TCHAR *name)
 {
 	if(!DbgGetCommentAt(addr, name))
 		return 0;
@@ -159,12 +161,12 @@ int GetComment(DWORD addr, TCHAR *name)
 	return lstrlen(name);
 }
 
-BOOL QuickInsertLabel(DWORD addr, TCHAR *s)
+BOOL QuickInsertLabel(DWORD_PTR addr, TCHAR *s)
 {
 	return DbgSetAutoLabelAt(addr, s);
 }
 
-BOOL QuickInsertComment(DWORD addr, TCHAR *s)
+BOOL QuickInsertComment(DWORD_PTR addr, TCHAR *s)
 {
 	return DbgSetAutoCommentAt(addr, s);
 }
@@ -173,12 +175,12 @@ void MergeQuickData(void)
 {
 }
 
-void DeleteRangeLabels(DWORD addr0, DWORD addr1)
+void DeleteRangeLabels(DWORD_PTR addr0, DWORD_PTR addr1)
 {
 	DbgClearAutoLabelRange(addr0, addr1);
 }
 
-void DeleteRangeComments(DWORD addr0, DWORD addr1)
+void DeleteRangeComments(DWORD_PTR addr0, DWORD_PTR addr1)
 {
 	DbgClearAutoCommentRange(addr0, addr1);
 }
@@ -190,17 +192,17 @@ PLUGIN_MODULE FindModuleByName(TCHAR *lpModule)
 	return (PLUGIN_MODULE)DbgFunctions()->ModBaseFromName(lpModule);
 }
 
-PLUGIN_MODULE FindModuleByAddr(DWORD dwAddress)
+PLUGIN_MODULE FindModuleByAddr(DWORD_PTR dwAddress)
 {
 	return (PLUGIN_MODULE)DbgFunctions()->ModBaseFromAddr(dwAddress);
 }
 
-DWORD GetModuleBase(PLUGIN_MODULE module)
+DWORD_PTR GetModuleBase(PLUGIN_MODULE module)
 {
-	return (DWORD)module;
+	return (DWORD_PTR)module;
 }
 
-DWORD GetModuleSize(PLUGIN_MODULE module)
+SIZE_T GetModuleSize(PLUGIN_MODULE module)
 {
 	return DbgFunctions()->ModSizeFromAddr((duint)module);
 }
@@ -239,19 +241,19 @@ BOOL IsModuleWithRelocations(PLUGIN_MODULE module)
 
 // Memory functions
 
-PLUGIN_MEMORY FindMemory(DWORD dwAddress)
+PLUGIN_MEMORY FindMemory(DWORD_PTR dwAddress)
 {
 	return (PLUGIN_MEMORY)DbgMemFindBaseAddr(dwAddress, NULL);
 }
 
-DWORD GetMemoryBase(PLUGIN_MEMORY mem)
+DWORD_PTR GetMemoryBase(PLUGIN_MEMORY mem)
 {
-	return (DWORD)mem;
+	return (DWORD_PTR)mem;
 }
 
-DWORD GetMemorySize(PLUGIN_MEMORY mem)
+SIZE_T GetMemorySize(PLUGIN_MEMORY mem)
 {
-	ULONG_PTR size;
+	SIZE_T size;
 	if(!DbgMemFindBaseAddr((duint)mem, &size))
 		return 0;
 
@@ -264,7 +266,7 @@ void EnsureMemoryBackup(PLUGIN_MEMORY mem)
 
 // Analysis functions
 
-BYTE *FindDecode(DWORD addr, DWORD *psize)
+BYTE *FindDecode(DWORD_PTR addr, SIZE_T *psize)
 {
 	// TODO: not implemented
 	return NULL;
@@ -299,7 +301,7 @@ void ResumeAllThreads()
 	//ThreaderResumeAllThreads(false);
 }
 
-DWORD GetCpuBaseAddr()
+DWORD_PTR GetCpuBaseAddr()
 {
 	SELECTIONDATA selection;
 

@@ -28,47 +28,47 @@ int MyGetstringfromini(HINSTANCE dllinst, TCHAR *key, TCHAR *s, int length);
 BOOL MyWritestringtoini(HINSTANCE dllinst, TCHAR *key, TCHAR *s);
 
 // Assembler functions
-DWORD SimpleDisasm(BYTE *cmd, DWORD cmdsize, DWORD ip, BYTE *dec, BOOL bSizeOnly,
-	TCHAR *pszResult, DWORD *jmpconst, DWORD *adrconst, DWORD *immconst);
-int AssembleShortest(TCHAR *lpCommand, DWORD dwAddress, BYTE *bBuffer, TCHAR *lpError);
-int AssembleWithGivenSize(TCHAR *lpCommand, DWORD dwAddress, int req_size, BYTE *bBuffer, TCHAR *lpError);
+DWORD SimpleDisasm(BYTE *cmd, SIZE_T cmdsize, DWORD_PTR ip, BYTE *dec, BOOL bSizeOnly,
+	TCHAR *pszResult, DWORD_PTR *jmpconst, DWORD_PTR *adrconst, DWORD_PTR *immconst);
+int AssembleShortest(TCHAR *lpCommand, DWORD_PTR dwAddress, BYTE *bBuffer, TCHAR *lpError);
+int AssembleWithGivenSize(TCHAR *lpCommand, DWORD_PTR dwAddress, int nReqSize, BYTE *bBuffer, TCHAR *lpError);
 
 // Memory functions
-BOOL SimpleReadMemory(void *buf, DWORD addr, DWORD size);
-BOOL SimpleWriteMemory(void *buf, DWORD addr, DWORD size);
+BOOL SimpleReadMemory(void *buf, DWORD_PTR addr, SIZE_T size);
+BOOL SimpleWriteMemory(void *buf, DWORD_PTR addr, SIZE_T size);
 
 // Symbolic functions
-int GetLabel(DWORD addr, TCHAR *name);
-int GetComment(DWORD addr, TCHAR *name);
-BOOL QuickInsertLabel(DWORD addr, TCHAR *s);
-BOOL QuickInsertComment(DWORD addr, TCHAR *s);
+int GetLabel(DWORD_PTR addr, TCHAR *name);
+int GetComment(DWORD_PTR addr, TCHAR *name);
+BOOL QuickInsertLabel(DWORD_PTR addr, TCHAR *s);
+BOOL QuickInsertComment(DWORD_PTR addr, TCHAR *s);
 void MergeQuickData(void);
-void DeleteRangeLabels(DWORD addr0, DWORD addr1);
-void DeleteRangeComments(DWORD addr0, DWORD addr1);
+void DeleteRangeLabels(DWORD_PTR addr0, DWORD_PTR addr1);
+void DeleteRangeComments(DWORD_PTR addr0, DWORD_PTR addr1);
 
 // Module functions
 PLUGIN_MODULE FindModuleByName(TCHAR *lpModule);
-PLUGIN_MODULE FindModuleByAddr(DWORD dwAddress);
-DWORD GetModuleBase(PLUGIN_MODULE module);
-DWORD GetModuleSize(PLUGIN_MODULE module);
+PLUGIN_MODULE FindModuleByAddr(DWORD_PTR dwAddress);
+DWORD_PTR GetModuleBase(PLUGIN_MODULE module);
+SIZE_T GetModuleSize(PLUGIN_MODULE module);
 BOOL GetModuleName(PLUGIN_MODULE module, TCHAR *pszModuleName);
 BOOL IsModuleWithRelocations(PLUGIN_MODULE module);
 
 // Memory functions
-PLUGIN_MEMORY FindMemory(DWORD dwAddress);
-DWORD GetMemoryBase(PLUGIN_MEMORY mem);
-DWORD GetMemorySize(PLUGIN_MEMORY mem);
+PLUGIN_MEMORY FindMemory(DWORD_PTR dwAddress);
+DWORD_PTR GetMemoryBase(PLUGIN_MEMORY mem);
+SIZE_T GetMemorySize(PLUGIN_MEMORY mem);
 void EnsureMemoryBackup(PLUGIN_MEMORY mem);
 
 // Analysis functions
-BYTE *FindDecode(DWORD addr, DWORD *psize);
+BYTE *FindDecode(DWORD_PTR addr, SIZE_T *psize);
 int DecodeGetType(BYTE decode);
 
 // Misc.
 BOOL IsProcessLoaded();
 void SuspendAllThreads();
 void ResumeAllThreads();
-DWORD GetCpuBaseAddr();
+DWORD_PTR GetCpuBaseAddr();
 void InvalidateGui();
 
 #endif // _PLUGIN_H_

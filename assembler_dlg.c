@@ -75,7 +75,7 @@ void AssemblerCloseDlg()
 		CloseAsmDlg(hAsmDlg);
 }
 
-void AssemblerLoadCode(DWORD dwAddress, DWORD dwSize)
+void AssemblerLoadCode(DWORD_PTR dwAddress, DWORD_PTR dwSize)
 {
 	AssemblerShowDlg();
 
@@ -108,7 +108,7 @@ static void CloseAsmDlg(HWND hWnd)
 static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	ASM_DIALOG_PARAM *p_dialog_param;
-	DWORD dwAddress, dwSize;
+	DWORD_PTR dwAddress, dwSize;
 	FINDREPLACE *p_findreplace;
 	POINT pt;
 	RECT rc;
@@ -161,8 +161,8 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 		break;
 
 	case UWM_LOADCODE:
-		dwAddress = (DWORD)wParam;
-		dwSize = (DWORD)lParam;
+		dwAddress = (DWORD_PTR)wParam;
+		dwSize = (DWORD_PTR)lParam;
 
 		if(dwAddress && dwSize)
 		{
@@ -295,7 +295,7 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			switch(((UNMTABCTRLEX *)lParam)->hdr.code)
 			{
 			case TCN_EX_DRAGDROP:
-				OnTabDrag(GetDlgItem(hWnd, IDC_TABS), ((UNMTABCTRLEX *)lParam)->wParam, ((UNMTABCTRLEX *)lParam)->lParam);
+				OnTabDrag(GetDlgItem(hWnd, IDC_TABS), (int)((UNMTABCTRLEX *)lParam)->wParam, (int)((UNMTABCTRLEX *)lParam)->lParam);
 				break;
 
 			case TCN_EX_DBLCLK:
@@ -328,7 +328,7 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 		break;
 
 	case UWM_ERRORMSG:
-		AsmDlgMessageBox(hWnd, (TCHAR *)lParam, NULL, wParam);
+		AsmDlgMessageBox(hWnd, (TCHAR *)lParam, NULL, (UINT)wParam);
 		break;
 
 	case WM_COMMAND:
@@ -745,7 +745,7 @@ static void DoFind(ASM_DIALOG_PARAM *p_dialog_param)
 	DoFindCustom(p_dialog_param, 0, 0);
 }
 
-static void DoFindCustom(ASM_DIALOG_PARAM *p_dialog_param, DWORD dwFlagsSet, DWORD dwFlagsRemove)
+static void DoFindCustom(ASM_DIALOG_PARAM *p_dialog_param, WPARAM wFlagsSet, WPARAM wFlagsRemove)
 {
 	FINDREPLACE *p_findreplace;
 	HWND hWnd;
@@ -761,8 +761,8 @@ static void DoFindCustom(ASM_DIALOG_PARAM *p_dialog_param, DWORD dwFlagsSet, DWO
 	hWnd = p_findreplace->hwndOwner;
 
 	wFlagsParam = p_findreplace->Flags & (FR_DOWN | FR_WHOLEWORD | FR_MATCHCASE);
-	wFlagsParam |= dwFlagsSet;
-	wFlagsParam &= ~dwFlagsRemove;
+	wFlagsParam |= wFlagsSet;
+	wFlagsParam &= ~wFlagsRemove;
 
 	SendDlgItemMessage(hWnd, IDC_ASSEMBLER, EM_EXGETSEL, 0, (LPARAM)&selrange);
 
@@ -912,7 +912,7 @@ static void OptionsChanged(HWND hWnd)
 	SendDlgItemMessage(hWnd, IDC_ASSEMBLER, REM_TABWIDTH, tabwidth_variants[options.edit_tabwidth], 0);
 }
 
-static BOOL LoadCode(HWND hWnd, DWORD dwAddress, DWORD dwSize)
+static BOOL LoadCode(HWND hWnd, DWORD_PTR dwAddress, DWORD_PTR dwSize)
 {
 	TCHAR szLabelPerfix[32];
 	TCHAR szError[1024+1]; // safe to use for wsprintf
@@ -943,8 +943,8 @@ static BOOL PatchCode(HWND hWnd)
 {
 	TCHAR szError[1024+1]; // safe to use for wsprintf
 	TCHAR *lpText;
-	DWORD dwTextSize;
-	int result;
+	SIZE_T nTextSize;
+	LONG_PTR result;
 
 	if(!IsProcessLoaded())
 	{
@@ -952,16 +952,16 @@ static BOOL PatchCode(HWND hWnd)
 		return FALSE;
 	}
 
-	dwTextSize = SendDlgItemMessage(hWnd, IDC_ASSEMBLER, WM_GETTEXTLENGTH, 0, 0);
+	nTextSize = SendDlgItemMessage(hWnd, IDC_ASSEMBLER, WM_GETTEXTLENGTH, 0, 0);
 
-	lpText = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, (dwTextSize+1)*sizeof(TCHAR));
+	lpText = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, (nTextSize+1)*sizeof(TCHAR));
 	if(!lpText)
 	{
 		AsmDlgMessageBox(hWnd, _T("Allocation failed"), NULL, MB_ICONHAND);
 		return FALSE;
 	}
 
-	SendDlgItemMessage(hWnd, IDC_ASSEMBLER, WM_GETTEXT, dwTextSize+1, (LPARAM)lpText);
+	SendDlgItemMessage(hWnd, IDC_ASSEMBLER, WM_GETTEXT, nTextSize+1, (LPARAM)lpText);
 
 	SuspendAllThreads();
 
