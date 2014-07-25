@@ -1,8 +1,6 @@
 #ifndef _ASSEMBLER_DLG_H_
 #define _ASSEMBLER_DLG_H_
 
-#include "functions.h"
-#include "pointer_redirection.h"
 #include "plugin.h"
 #include "raedit.h"
 #include "options_def.h"
@@ -129,12 +127,11 @@ typedef struct _asm_dialog_param {
 
 TCHAR *AssemblerInit();
 void AssemblerExit();
+BOOL AssemblerPreTranslateMessage(LPMSG lpMsg);
 void AssemblerShowDlg();
 void AssemblerCloseDlg();
 void AssemblerLoadCode(DWORD dwAddress, DWORD dwSize);
 void AssemblerOptionsChanged();
-static BOOL WINAPI TranslateMDISysAccelHook(HWND hWndClient, LPMSG lpMsg);
-static BOOL AssemblerPreTranslateMessage(LPMSG lpMsg);
 static HWND CreateAsmDlg();
 static void CloseAsmDlg(HWND hWnd);
 static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

@@ -162,7 +162,8 @@ typedef enum
     DBG_SET_AUTO_FUNCTION_AT,       // param1=duint addr,                param2=const char* text
     DBG_DELETE_AUTO_FUNCTION_RANGE, // param1=duint start,               param2=duint end
     DBG_GET_STRING_AT,              // param1=duint addr,                param2=unused
-    DBG_GET_FUNCTIONS               // param1=unused,                    param2=unused
+    DBG_GET_FUNCTIONS,              // param1=unused,                    param2=unused
+    DBG_WIN_EVENT,                  // param1=MSG* message,              param2=long* result
 } DBGMSG;
 
 typedef enum
@@ -270,10 +271,10 @@ typedef enum
 
 //Debugger typedefs
 typedef MEMORY_SIZE VALUE_SIZE;
-struct SYMBOLINFO_;
-struct DBGFUNCTIONS_;
+typedef struct SYMBOLINFO_ SYMBOLINFO;
+typedef struct DBGFUNCTIONS_ DBGFUNCTIONS;
 
-typedef void (*CBSYMBOLENUM)(struct SYMBOLINFO_* symbol, void* user);
+typedef void (*CBSYMBOLENUM)(SYMBOLINFO* symbol, void* user);
 
 //Debugger structs
 typedef struct
@@ -561,7 +562,8 @@ BRIDGE_IMPEXP void DbgClearAutoBookmarkRange(duint start, duint end);
 BRIDGE_IMPEXP bool DbgSetAutoFunctionAt(duint start, duint end);
 BRIDGE_IMPEXP void DbgClearAutoFunctionRange(duint start, duint end);
 BRIDGE_IMPEXP bool DbgGetStringAt(duint addr, char* text);
-BRIDGE_IMPEXP const struct DBGFUNCTIONS_* DbgFunctions();
+BRIDGE_IMPEXP const DBGFUNCTIONS* DbgFunctions();
+BRIDGE_IMPEXP bool DbgWinEvent(MSG* message, long* result);
 
 //Gui defines
 #define GUI_PLUGIN_MENU 0
@@ -627,7 +629,8 @@ typedef enum
     GUI_ADD_MSG_TO_STATUSBAR,       // param1=const char* msg,      param2=unused
     GUI_UPDATE_SIDEBAR,             // param1=unused,               param2=unused
     GUI_REPAINT_TABLE_VIEW,         // param1=unused,               param2=unused
-    GUI_UPDATE_PATCHES              // param1=unused,               param2=unused
+    GUI_UPDATE_PATCHES,             // param1=unused,               param2=unused
+    GUI_UPDATE_CALLSTACK            // param1=unused,               param2=unused
 } GUIMSG;
 
 //GUI structures
@@ -699,6 +702,7 @@ BRIDGE_IMPEXP void GuiAddStatusBarMessage(const char* msg);
 BRIDGE_IMPEXP void GuiUpdateSideBar();
 BRIDGE_IMPEXP void GuiRepaintTableView();
 BRIDGE_IMPEXP void GuiUpdatePatches();
+BRIDGE_IMPEXP void GuiUpdateCallStack();
 
 #ifdef __cplusplus
 }

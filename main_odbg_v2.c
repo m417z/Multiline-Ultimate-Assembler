@@ -3,11 +3,22 @@
 #include "plugin.h"
 #include "assembler_dlg.h"
 #include "options_dlg.h"
+#include "functions.h"
+#include "pointer_redirection.h"
 
 extern HINSTANCE hDllInst;
 
+// hooks
+static void **ppTranslateMDISysAccel;
+POINTER_REDIRECTION_VAR(static POINTER_REDIRECTION prTranslateMDISysAccel);
+
 static int MainMenuFunc(t_table *pt, wchar_t *name, ulong index, int mode);
 static int DisasmMenuFunc(t_table *pt, wchar_t *name, ulong index, int mode);
+
+// PreTranslateMessage
+static BOOL RegisterPreTranslateMessage();
+static void UnregisterPreTranslateMessage();
+static BOOL WINAPI TranslateMDISysAccelHook(HWND hWndClient, LPMSG lpMsg);
 
 // ODBG2_Pluginquery() is a "must" for valid OllyDbg plugin. It must check
 // whether given OllyDbg version is correctly supported, and return 0 if not.
@@ -44,6 +55,13 @@ extc int __cdecl ODBG2_Plugininit(void)
 	WCHAR *pError;
 
 	pError = PluginInit(hDllInst);
+
+	if(!pError && !RegisterPreTranslateMessage())
+	{
+		PluginExit();
+		pError = L"Couldn't register the PreTranslateMessage callback function";
+	}
+
 	if(pError)
 	{
 		MessageBox(hwollymain, pError, L"Multiline Ultimate Assembler error", MB_ICONHAND);
@@ -111,6 +129,7 @@ extc int __cdecl ODBG2_Pluginclose(void)
 // window classes, files, memory etc.
 extc void __cdecl ODBG2_Plugindestroy(void)
 {
+	UnregisterPreTranslateMessage();
 	PluginExit();
 }
 
@@ -201,4 +220,31 @@ static int DisasmMenuFunc(t_table *pt, wchar_t *name, ulong index, int mode)
 	}
 
 	return MENU_ABSENT;
+}
+
+// PreTranslateMessage
+
+static BOOL RegisterPreTranslateMessage()
+{
+	// Below is a hack, which allows us to define a PreTranslateMessage-like function.
+	// We hook the TranslateMDISysAccel function, and use it to do our pre-translation.
+	ppTranslateMDISysAccel = FindImportPtr(GetModuleHandle(NULL), "user32.dll", "TranslateMDISysAccel");
+	if(!ppTranslateMDISysAccel)
+		return FALSE;
+
+	PointerRedirectionAdd(ppTranslateMDISysAccel, TranslateMDISysAccelHook, &prTranslateMDISysAccel);
+	return TRUE;
+}
+
+static void UnregisterPreTranslateMessage()
+{
+	PointerRedirectionRemove(ppTranslateMDISysAccel, &prTranslateMDISysAccel);
+}
+
+static BOOL WINAPI TranslateMDISysAccelHook(HWND hWndClient, LPMSG lpMsg)
+{
+	if(AssemblerPreTranslateMessage(lpMsg))
+		return TRUE;
+
+	return ((BOOL(WINAPI *)(HWND, LPMSG))prTranslateMDISysAccel.pOriginalAddress)(hWndClient, lpMsg);
 }

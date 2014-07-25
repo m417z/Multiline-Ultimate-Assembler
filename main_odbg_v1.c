@@ -3,8 +3,19 @@
 #include "plugin.h"
 #include "assembler_dlg.h"
 #include "options_dlg.h"
+#include "functions.h"
+#include "pointer_redirection.h"
 
 extern HINSTANCE hDllInst;
+
+// hooks
+static void **ppTranslateMDISysAccel;
+POINTER_REDIRECTION_VAR(static POINTER_REDIRECTION prTranslateMDISysAccel);
+
+// PreTranslateMessage
+static BOOL RegisterPreTranslateMessage();
+static void UnregisterPreTranslateMessage();
+static BOOL WINAPI TranslateMDISysAccelHook(HWND hWndClient, LPMSG lpMsg);
 
 // ODBG_Plugindata() is a "must" for valid OllyDbg plugin. It must fill in
 // plugin name and return version of plugin interface. If function is absent,
@@ -40,6 +51,13 @@ extc int _export cdecl ODBG_Plugininit(int ollydbgversion, HWND hWnd, ulong *fea
 
 	// Init stuff
 	pError = PluginInit(hDllInst);
+
+	if(!pError && !RegisterPreTranslateMessage())
+	{
+		PluginExit();
+		pError = "Couldn't register the PreTranslateMessage callback function";
+	}
+
 	if(pError)
 	{
 		MessageBox(hWnd, pError, "Multiline Ultimate Assembler error", MB_ICONHAND);
@@ -185,5 +203,33 @@ extc int _export cdecl ODBG_Pluginclose(void)
 // window classes, files, memory and so on.
 extc void _export cdecl ODBG_Plugindestroy(void)
 {
+	UnregisterPreTranslateMessage();
 	PluginExit();
+}
+
+// PreTranslateMessage
+
+static BOOL RegisterPreTranslateMessage()
+{
+	// Below is a hack, which allows us to define a PreTranslateMessage-like function.
+	// We hook the TranslateMDISysAccel function, and use it to do our pre-translation.
+	ppTranslateMDISysAccel = FindImportPtr(GetModuleHandle(NULL), "user32.dll", "TranslateMDISysAccel");
+	if(!ppTranslateMDISysAccel)
+		return FALSE;
+
+	PointerRedirectionAdd(ppTranslateMDISysAccel, TranslateMDISysAccelHook, &prTranslateMDISysAccel);
+	return TRUE;
+}
+
+static void UnregisterPreTranslateMessage()
+{
+	PointerRedirectionRemove(ppTranslateMDISysAccel, &prTranslateMDISysAccel);
+}
+
+static BOOL WINAPI TranslateMDISysAccelHook(HWND hWndClient, LPMSG lpMsg)
+{
+	if(AssemblerPreTranslateMessage(lpMsg))
+		return TRUE;
+
+	return ((BOOL(WINAPI *)(HWND, LPMSG))prTranslateMDISysAccel.pOriginalAddress)(hWndClient, lpMsg);
 }

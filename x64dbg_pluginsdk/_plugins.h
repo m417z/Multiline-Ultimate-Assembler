@@ -1,6 +1,10 @@
 #ifndef _PLUGINS_H
 #define _PLUGINS_H
 
+#ifndef __cplusplus
+#include <stdbool.h>
+#endif
+
 #ifndef PLUG_IMPEXP
 #ifdef BUILD_DBG
 #define PLUG_IMPEXP __declspec(dllexport)
@@ -142,6 +146,13 @@ typedef struct
     int hEntry;
 } PLUG_CB_MENUENTRY;
 
+typedef struct
+{
+    MSG* message;
+    long* result;
+    bool retval;
+} PLUG_CB_WINEVENT;
+
 //enums
 typedef enum
 {
@@ -163,7 +174,8 @@ typedef enum
     CB_ATTACH, //PLUG_CB_ATTACHED (before attaching, after CB_INITDEBUG)
     CB_DETACH, //PLUG_CB_DETACH (before detaching, before CB_STOPDEBUG)
     CB_DEBUGEVENT, //PLUG_CB_DEBUGEVENT (called on any debug event)
-    CB_MENUENTRY //PLUG_CB_MENUENTRY
+    CB_MENUENTRY, //PLUG_CB_MENUENTRY
+    CB_WINEVENT //PLUG_CB_WINEVENT
 } CBTYPE;
 
 //typedefs

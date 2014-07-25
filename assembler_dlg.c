@@ -8,39 +8,37 @@ static HACCEL hAccelerators;
 static HWND hAsmDlg;
 static ASM_DIALOG_PARAM AsmDlgParam;
 
-// hooks
-static void **ppTranslateMDISysAccel;
-POINTER_REDIRECTION_VAR(static POINTER_REDIRECTION prTranslateMDISysAccel);
-
 TCHAR *AssemblerInit()
 {
-#if defined(TARGET_ODBG) || defined(TARGET_IMMDBG) || defined(TARGET_ODBG2)
-	// Below is a hack, which allows us to define a PreTranslateMessage-like function.
-	// We hook the TranslateMDISysAccel function, and use it to do our pre-translation.
-	ppTranslateMDISysAccel = FindImportPtr(GetModuleHandle(NULL), "user32.dll", "TranslateMDISysAccel");
-	if(!ppTranslateMDISysAccel)
-		return _T("Couldn't find the TranslateMDISysAccel function in User32.dll");
-
-	PointerRedirectionAdd(ppTranslateMDISysAccel, TranslateMDISysAccelHook, &prTranslateMDISysAccel);
-#elif defined(TARGET_X64DBG)
-	// TODO: fix for x64_dbg
-#else
-#error Unknonw target
-#endif
-
 	hAccelerators = LoadAccelerators(hDllInst, MAKEINTRESOURCE(IDR_MAINACCELERATOR));
 	return NULL;
 }
 
 void AssemblerExit()
 {
-#if defined(TARGET_ODBG) || defined(TARGET_IMMDBG) || defined(TARGET_ODBG2)
-	PointerRedirectionRemove(ppTranslateMDISysAccel, &prTranslateMDISysAccel);
-#elif defined(TARGET_X64DBG)
-	// TODO: fix for x64_dbg
-#else
-#error Unknonw target
-#endif
+}
+
+BOOL AssemblerPreTranslateMessage(LPMSG lpMsg)
+{
+	if(hAsmDlg)
+	{
+		HWND hWnd = hAsmDlg;
+		HWND hFindReplaceWnd = AsmDlgParam.hFindReplaceWnd;
+
+		if(hFindReplaceWnd && IsDialogMessage(hFindReplaceWnd, lpMsg))
+			return TRUE;
+
+		if(GetActiveWindow() == hWnd)
+		{
+			if(hAccelerators && TranslateAccelerator(hWnd, hAccelerators, lpMsg))
+				return TRUE;
+		}
+
+		if(IsDialogMessage(hWnd, lpMsg))
+			return TRUE;
+	}
+
+	return FALSE;
 }
 
 void AssemblerShowDlg()
@@ -89,37 +87,6 @@ void AssemblerOptionsChanged()
 {
 	if(hAsmDlg)
 		PostMessage(hAsmDlg, UWM_OPTIONSCHANGED, 0, 0);
-}
-
-static BOOL WINAPI TranslateMDISysAccelHook(HWND hWndClient, LPMSG lpMsg)
-{
-	if(AssemblerPreTranslateMessage(lpMsg))
-		return TRUE;
-
-	return ((BOOL(WINAPI *)(HWND, LPMSG))prTranslateMDISysAccel.pOriginalAddress)(hWndClient, lpMsg);
-}
-
-static BOOL AssemblerPreTranslateMessage(LPMSG lpMsg)
-{
-	if(hAsmDlg)
-	{
-		HWND hWnd = hAsmDlg;
-		HWND hFindReplaceWnd = AsmDlgParam.hFindReplaceWnd;
-
-		if(hFindReplaceWnd && IsDialogMessage(hFindReplaceWnd, lpMsg))
-			return TRUE;
-
-		if(GetActiveWindow() == hWnd)
-		{
-			if(hAccelerators && TranslateAccelerator(hWnd, hAccelerators, lpMsg))
-				return TRUE;
-		}
-
-		if(IsDialogMessage(hWnd, lpMsg))
-			return TRUE;
-	}
-
-	return FALSE;
 }
 
 static HWND CreateAsmDlg()
