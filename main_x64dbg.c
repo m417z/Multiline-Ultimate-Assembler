@@ -11,7 +11,7 @@ static int hMenu;
 
 #ifndef DLL_EXPORT
 #define DLL_EXPORT __declspec(dllexport)
-#endif //DLL_EXPORT
+#endif // DLL_EXPORT
 
 #define MENU_MAIN             0
 #define MENU_DISASM           1
@@ -58,7 +58,7 @@ DLL_EXPORT bool pluginit(PLUG_INITSTRUCT* initStruct)
 
 DLL_EXPORT bool plugstop()
 {
-    _plugin_menuclear(hMenu);
+	_plugin_menuclear(hMenu);
 
 	AssemblerCloseDlg();
 	PluginExit();
