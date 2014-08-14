@@ -65,9 +65,9 @@ DLL_EXPORT bool plugstop()
 	return true;
 }
 
-DLL_EXPORT CDECL void CBWINEVENT(CBTYPE cbType, void *callbackInfo)
+DLL_EXPORT CDECL void CBWINEVENTGLOBAL(CBTYPE cbType, void *callbackInfo)
 {
-	PLUG_CB_WINEVENT *info = (PLUG_CB_WINEVENT *)callbackInfo;
+	PLUG_CB_WINEVENTGLOBAL *info = (PLUG_CB_WINEVENTGLOBAL *)callbackInfo;
 
 	info->retval = AssemblerPreTranslateMessage(info->message);
 }

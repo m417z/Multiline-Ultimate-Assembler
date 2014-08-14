@@ -37,7 +37,7 @@ extern "C"
 
 //Bridge defines
 #define MAX_SETTING_SIZE 65536
-#define DBG_VERSION 20
+#define DBG_VERSION 21
 
 //Bridge functions
 BRIDGE_IMPEXP const char* BridgeInit();
@@ -87,20 +87,20 @@ typedef enum
 
 typedef enum
 {
-    flagmodule=1,
-    flaglabel=2,
-    flagcomment=4,
-    flagbookmark=8,
-    flagfunction=16,
-    flagloop=32
+    flagmodule = 1,
+    flaglabel = 2,
+    flagcomment = 4,
+    flagbookmark = 8,
+    flagfunction = 16,
+    flagloop = 32
 } ADDRINFOFLAGS;
 
 typedef enum
 {
-    bp_none=0,
-    bp_normal=1,
-    bp_hardware=2,
-    bp_memory=4
+    bp_none = 0,
+    bp_normal = 1,
+    bp_hardware = 2,
+    bp_memory = 4
 } BPXTYPE;
 
 typedef enum
@@ -137,7 +137,7 @@ typedef enum
     DBG_SYMBOL_ENUM,                // param1=SYMBOLCBINFO* cbInfo,      param2=unused
     DBG_ASSEMBLE_AT,                // param1=duint addr,                param2=const char* instruction
     DBG_MODBASE_FROM_NAME,          // param1=const char* modname,       param2=unused
-    DBG_DISASM_AT,                  // param1=duint addr,				 param2=DISASM_INSTR* instr
+    DBG_DISASM_AT,                  // param1=duint addr,                 param2=DISASM_INSTR* instr
     DBG_STACK_COMMENT_GET,          // param1=duint addr,                param2=STACK_COMMENT* comment
     DBG_GET_THREAD_LIST,            // param1=THREADALLINFO* list,       param2=unused
     DBG_SETTINGS_UPDATED,           // param1=unused,                    param2=unused
@@ -164,6 +164,7 @@ typedef enum
     DBG_GET_STRING_AT,              // param1=duint addr,                param2=unused
     DBG_GET_FUNCTIONS,              // param1=unused,                    param2=unused
     DBG_WIN_EVENT,                  // param1=MSG* message,              param2=long* result
+    DBG_WIN_EVENT_GLOBAL            // param1=MSG* message,              param2=unused
 } DBGMSG;
 
 typedef enum
@@ -263,10 +264,10 @@ typedef enum
 
 typedef enum
 {
-    size_byte,
-    size_word,
-    size_dword,
-    size_qword
+    size_byte = 1,
+    size_word = 2,
+    size_dword = 4,
+    size_qword = 8
 } MEMORY_SIZE;
 
 //Debugger typedefs
@@ -475,7 +476,7 @@ typedef struct
     bool branch; //jumps/calls
     bool call; //instruction is a call
     int size;
-    char instruction[MAX_MNEMONIC_SIZE*4];
+    char instruction[MAX_MNEMONIC_SIZE * 4];
 } BASIC_INSTRUCTION_INFO;
 
 typedef struct
@@ -564,6 +565,7 @@ BRIDGE_IMPEXP void DbgClearAutoFunctionRange(duint start, duint end);
 BRIDGE_IMPEXP bool DbgGetStringAt(duint addr, char* text);
 BRIDGE_IMPEXP const DBGFUNCTIONS* DbgFunctions();
 BRIDGE_IMPEXP bool DbgWinEvent(MSG* message, long* result);
+BRIDGE_IMPEXP bool DbgWinEventGlobal(MSG* message);
 
 //Gui defines
 #define GUI_PLUGIN_MENU 0
@@ -573,6 +575,7 @@ BRIDGE_IMPEXP bool DbgWinEvent(MSG* message, long* result);
 #define GUI_STACK 2
 
 #define GUI_MAX_LINE_SIZE 65536
+#define GUI_MAX_DISASSEMBLY_SIZE 2048
 
 //Gui enums
 typedef enum
@@ -607,7 +610,7 @@ typedef enum
     GUI_REF_GETCELLCONTENT,         // param1=int row,              param2=int col
     GUI_REF_RELOADDATA,             // param1=unused,               param2=unused
     GUI_REF_SETSINGLESELECTION,     // param1=int index,            param2=bool scroll
-    GUI_REF_SETPROGRESS,            // param1=int progress,			param2=unused
+    GUI_REF_SETPROGRESS,            // param1=int progress,            param2=unused
     GUI_REF_SETSEARCHSTARTCOL,      // param1=int col               param2=unused
     GUI_STACK_DUMP_AT,              // param1=duint addr,           param2=duint csp
     GUI_UPDATE_DUMP_VIEW,           // param1=unused,               param2=unused
@@ -630,7 +633,8 @@ typedef enum
     GUI_UPDATE_SIDEBAR,             // param1=unused,               param2=unused
     GUI_REPAINT_TABLE_VIEW,         // param1=unused,               param2=unused
     GUI_UPDATE_PATCHES,             // param1=unused,               param2=unused
-    GUI_UPDATE_CALLSTACK            // param1=unused,               param2=unused
+    GUI_UPDATE_CALLSTACK,           // param1=unused,               param2=unused
+    GUI_SYMBOL_REFRESH_CURRENT      // param1=unused,               param2=unused
 } GUIMSG;
 
 //GUI structures
@@ -672,6 +676,7 @@ BRIDGE_IMPEXP void GuiSymbolLogAdd(const char* message);
 BRIDGE_IMPEXP void GuiSymbolLogClear();
 BRIDGE_IMPEXP void GuiSymbolSetProgress(int percent);
 BRIDGE_IMPEXP void GuiSymbolUpdateModuleList(int count, SYMBOLMODULEINFO* modules);
+BRIDGE_IMPEXP void GuiSymbolRefreshCurrent();
 BRIDGE_IMPEXP void GuiReferenceAddColumn(int width, const char* title);
 BRIDGE_IMPEXP void GuiReferenceSetRowCount(int count);
 BRIDGE_IMPEXP int GuiReferenceGetRowCount();
