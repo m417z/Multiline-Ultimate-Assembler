@@ -19,7 +19,7 @@ static int hMenu;
 #define MENU_HELP             3
 #define MENU_ABOUT            4
 
-static void cbMenuEntry(CBTYPE cbType, void *callbackInfo);
+static int GetPluginVersion();
 static void DisassembleSelection();
 
 DLL_EXPORT void plugsetup(PLUG_SETUPSTRUCT *setupStruct)
@@ -38,7 +38,7 @@ DLL_EXPORT void plugsetup(PLUG_SETUPSTRUCT *setupStruct)
 
 DLL_EXPORT bool pluginit(PLUG_INITSTRUCT* initStruct)
 {
-	initStruct->pluginVersion = 0;
+	initStruct->pluginVersion = GetPluginVersion();
 	initStruct->sdkVersion = PLUG_SDKVERSION;
 	lstrcpy(initStruct->pluginName, DEF_PLUGINNAME);
 	pluginHandle = initStruct->pluginHandle;
@@ -54,6 +54,26 @@ DLL_EXPORT bool pluginit(PLUG_INITSTRUCT* initStruct)
 	_plugin_logputs("  " DEF_COPYRIGHT);
 
 	return true;
+}
+
+static int GetPluginVersion()
+{
+	char *p = DEF_VERSION;
+	int nVersion = 0;
+
+	while(*p != '\0')
+	{
+		char c = *p;
+		if(c >= '0' && c <= '9')
+		{
+			nVersion *= 10;
+			nVersion += c - '0';
+		}
+
+		p++;
+	}
+
+	return nVersion;
 }
 
 DLL_EXPORT bool plugstop()
@@ -84,7 +104,10 @@ DLL_EXPORT CDECL void CBMENUENTRY(CBTYPE cbType, void *callbackInfo)
 		break;
 
 	case MENU_DISASM:
-		DisassembleSelection();
+		if(DbgIsDebugging())
+			DisassembleSelection();
+		else
+			MessageBox(hwollymain, "No process is loaded", NULL, MB_ICONASTERISK);
 		break;
 
 	case MENU_OPTIONS:

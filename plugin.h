@@ -12,7 +12,11 @@
 #endif
 
 #define DEF_PLUGINNAME        _T("Multiline Ultimate Assembler")
+#if defined(TARGET_X64DBG)
+#define DEF_VERSION           _T("2.2.5 (experimental)")
+#else
 #define DEF_VERSION           _T("2.2.5")
+#endif
 #define DEF_COPYRIGHT         _T("Copyright (C) 2009-2014 RaMMicHaeL")
 
 #define DECODE_UNKNOWN        0
