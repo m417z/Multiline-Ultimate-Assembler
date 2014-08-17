@@ -34,6 +34,10 @@ TCHAR *PluginInit(HINSTANCE hInst)
 	icex.dwICC = ICC_TAB_CLASSES;
 	InitCommonControlsEx(&icex);
 
+	// For drag'n'drop support
+	if(FAILED(OleInitialize(NULL)))
+		return _T("OleInitialize() failed");
+
 	// Install RAEdit control
 	InstallRAEdit(hInst, FALSE);
 
@@ -64,6 +68,7 @@ void PluginExit()
 {
 	AssemblerExit();
 	UnInstallRAEdit();
+	OleUninitialize();
 }
 
 BOOL OpenHelp(HWND hWnd, HINSTANCE hInst)
