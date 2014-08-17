@@ -74,100 +74,100 @@
 #define CMD_SHIFT				1024
 
 // Private edit messages
-#define REM_RAINIT				WM_USER+9999	// wParam=0, lParam=pointer to controls DIALOG struct
-#define REM_BASE				WM_USER+1000
-#define REM_SETHILITEWORDS		REM_BASE+0		// wParam=Color, lParam=lpszWords
-#define REM_SETFONT				REM_BASE+1		// wParam=nLineSpacing, lParam=lpRAFONT
-#define REM_GETFONT				REM_BASE+2		// wParam=0, lParam=lpRAFONT
-#define REM_SETCOLOR			REM_BASE+3		// wParam=0, lParam=lpRACOLOR
-#define REM_GETCOLOR			REM_BASE+4		// wParam=0, lParam=lpRACOLOR
-#define REM_SETHILITELINE		REM_BASE+5		// wParam=Line, lParam=Color
-#define REM_GETHILITELINE		REM_BASE+6		// wParam=Line, lParam=0
-#define REM_SETBOOKMARK			REM_BASE+7		// wParam=Line, lParam=Type
-#define REM_GETBOOKMARK			REM_BASE+8		// wParam=Line, lParam=0
-#define REM_CLRBOOKMARKS		REM_BASE+9		// wParam=0, lParam=Type
-#define REM_NXTBOOKMARK			REM_BASE+10		// wParam=Line, lParam=Type
-#define REM_PRVBOOKMARK			REM_BASE+11		// wParam=Line, lParam=Type
-#define REM_FINDBOOKMARK		REM_BASE+12		// wParam=BmID, lParam=0
-#define REM_SETBLOCKS			REM_BASE+13		// wParam=[lpLINERANGE], lParam=0
-#define REM_ISLINE				REM_BASE+14		// wParam=Line, lParam=lpszDef
-#define REM_GETWORD				REM_BASE+15		// wParam=BuffSize, lParam=lpBuff
-#define REM_COLLAPSE			REM_BASE+16		// wParam=Line, lParam=0
-#define REM_COLLAPSEALL			REM_BASE+17		// wParam=0, lParam=0
-#define REM_EXPAND				REM_BASE+18		// wParam=Line, lParam=0
-#define REM_EXPANDALL			REM_BASE+19		// wParam=0, lParam=0
-#define REM_LOCKLINE			REM_BASE+20		// wParam=Line, lParam=TRUE/FALSE
-#define REM_ISLINELOCKED		REM_BASE+21		// wParam=Line, lParam=0
-#define REM_HIDELINE			REM_BASE+22		// wParam=Line, lParam=TRUE/FALSE
-#define REM_ISLINEHIDDEN		REM_BASE+23		// wParam=Line, lParam=0
-#define REM_AUTOINDENT			REM_BASE+24		// wParam=0, lParam=TRUE/FALSE
-#define REM_TABWIDTH			REM_BASE+25		// wParam=nChars, lParam=TRUE/FALSE (Expand tabs)
-#define REM_SELBARWIDTH			REM_BASE+26		// wParam=nWidth, lParam=0
-#define REM_LINENUMBERWIDTH		REM_BASE+27		// wParam=nWidth, lParam=0
-#define REM_MOUSEWHEEL			REM_BASE+28		// wParam=nLines, lParam=0
-#define REM_SUBCLASS			REM_BASE+29		// wParam=0, lParam=lpWndProc
-#define REM_SETSPLIT			REM_BASE+30		// wParam=nSplit, lParam=0
-#define REM_GETSPLIT			REM_BASE+31		// wParam=0, lParam=0
-#define REM_VCENTER				REM_BASE+32		// wParam=0, lParam=0
-#define REM_REPAINT				REM_BASE+33		// wParam=0, lParam=TRUE/FALSE (Paint Now)
-#define REM_BMCALLBACK			REM_BASE+34		// wParam=0, lParam=lpBmProc
-#define REM_READONLY			REM_BASE+35		// wParam=0, lParam=TRUE/FALSE
-#define REM_INVALIDATELINE		REM_BASE+36		// wParam=Line, lParam=0
-#define REM_SETPAGESIZE			REM_BASE+37		// wParam=nLines, lParam=0
-#define REM_GETPAGESIZE			REM_BASE+38		// wParam=0, lParam=0
-#define REM_GETCHARTAB			REM_BASE+39		// wParam=nChar, lParam=0
-#define REM_SETCHARTAB			REM_BASE+40		// wParam=nChar, lParam=nValue
-#define REM_SETCOMMENTBLOCKS	REM_BASE+41		// wParam=lpStart, lParam=lpEnd
-#define REM_SETWORDGROUP		REM_BASE+42		// wParam=0, lParam=nGroup (0-15)
-#define REM_GETWORDGROUP		REM_BASE+43		// wParam=0, lParam=0
-#define REM_SETBMID				REM_BASE+44		// wParam=nLine, lParam=nBmID
-#define REM_GETBMID				REM_BASE+45		// wParam=nLine, lParam=0
-#define REM_ISCHARPOS			REM_BASE+46		// wParam=CP, lParam=0, returns 1 if comment block, 2 if comment, 3 if string
-#define REM_HIDELINES			REM_BASE+47		// wParam=nLine, lParam=nLines
-#define REM_SETDIVIDERLINE		REM_BASE+48		// wParam=nLine, lParam=TRUE/FALSE
-#define REM_ISINBLOCK			REM_BASE+49		// wParam=nLine, lParam=lpRABLOCKDEF
-#define REM_TRIMSPACE			REM_BASE+50		// wParam=nLine, lParam=fLeft
-#define REM_SAVESEL				REM_BASE+51		// wParam=0, lParam=0
-#define REM_RESTORESEL			REM_BASE+52		// wParam=0, lParam=0
-#define REM_GETCURSORWORD		REM_BASE+53		// wParam=BuffSize, lParam=lpBuff, Returns line number
-#define REM_SETSEGMENTBLOCK		REM_BASE+54		// wParam=nLine, lParam=TRUE/FALSE
-#define REM_GETMODE				REM_BASE+55		// wParam=0, lParam=0
-#define REM_SETMODE				REM_BASE+56		// wParam=nMode, lParam=0
-#define REM_GETBLOCK			REM_BASE+57		// wParam=0, lParam=lpBLOCKRANGE
-#define REM_SETBLOCK			REM_BASE+58		// wParam=0, lParam=lpBLOCKRANGE
-#define REM_BLOCKINSERT			REM_BASE+59		// wParam=0, lParam=lpText
-#define REM_LOCKUNDOID			REM_BASE+60		// wParam=TRUE/FALSE, lParam=0
-#define REM_ADDBLOCKDEF			REM_BASE+61		// wParam=0, lParam=lpRABLOCKDEF
-#define REM_CONVERT				REM_BASE+62		// wParam=nType, lParam=0
-#define REM_BRACKETMATCH		REM_BASE+63		// wParam=0, lParam=lpDef {[(,}]),_
-#define REM_COMMAND				REM_BASE+64		// wParam=nCommand, lParam=0
-#define REM_CASEWORD			REM_BASE+65		// wParam=cp, lParam=lpWord
-#define REM_GETBLOCKEND			REM_BASE+66		// wParam=Line, lParam=0
-#define REM_SETLOCK				REM_BASE+67		// wParam=TRUE/FALSE, lParam=0
-#define REM_GETLOCK				REM_BASE+68		// wParam=0, lParam=0
-#define REM_GETWORDFROMPOS		REM_BASE+69		// wParam=cp, lParam=lpBuff
-#define REM_SETNOBLOCKLINE		REM_BASE+70		// wParam=Line, lParam=TRUE/FALSE
-#define REM_ISLINENOBLOCK		REM_BASE+71		// wParam=Line, lParam=0
-#define REM_SETALTHILITELINE	REM_BASE+72		// wParam=Line, lParam=TRUE/FALSE
-#define REM_ISLINEALTHILITE		REM_BASE+73		// wParam=Line, lParam=0
-#define REM_SETCURSORWORDTYPE	REM_BASE+74		// wParam=nType, lParam=0
-#define REM_SETBREAKPOINT		REM_BASE+75		// wParam=nLine, lParam=TRUE/FALSE
-#define REM_NEXTBREAKPOINT		REM_BASE+76		// wParam=nLine, lParam=0
-#define REM_GETLINESTATE		REM_BASE+77		// wParam=nLine, lParam=0
-#define REM_SETERROR			REM_BASE+78		// wParam=nLine, lParam=nErrID
-#define REM_GETERROR			REM_BASE+79		// wParam=nLine, lParam=0
-#define REM_NEXTERROR			REM_BASE+80		// wParam=nLine, lParam=0
-#define REM_CHARTABINIT			REM_BASE+81		// wParam=0, lParam=0
-#define REM_LINEREDTEXT			REM_BASE+82		// wParam=nLine, lParam=TRUE/FALSE
-#define REM_SETSTYLEEX			REM_BASE+83		// wParam=nStyleEx, lParam=0
-#define REM_GETUNICODE			REM_BASE+84		// wParam=0, lParam=0
-#define REM_SETUNICODE			REM_BASE+85		// wParam=TRUE/FALSE, lParam=0
-#define REM_SETCHANGEDSTATE		REM_BASE+86		// wParam=TRUE/FALSE, lParam=0
-#define REM_SETTOOLTIP			REM_BASE+87		// wParam=n (1-6), lParam=lpText
-#define REM_HILITEACTIVELINE	REM_BASE+88		// wParam=0, lParam=nColor
-#define REM_GETUNDO				REM_BASE+89		// wParam=nSize, lParam=lpMem
-#define REM_SETUNDO				REM_BASE+90		// wParam=nSize, lParam=lpMem
-#define REM_GETLINEBEGIN		REM_BASE+91		// wParam=nLine, lParam=0
+#define REM_RAINIT				(WM_USER+9999)	// wParam=0, lParam=pointer to controls DIALOG struct
+#define REM_BASE				(WM_USER+1000)
+#define REM_SETHILITEWORDS		(REM_BASE+0)		// wParam=Color, lParam=lpszWords
+#define REM_SETFONT				(REM_BASE+1)		// wParam=nLineSpacing, lParam=lpRAFONT
+#define REM_GETFONT				(REM_BASE+2)		// wParam=0, lParam=lpRAFONT
+#define REM_SETCOLOR			(REM_BASE+3)		// wParam=0, lParam=lpRACOLOR
+#define REM_GETCOLOR			(REM_BASE+4)		// wParam=0, lParam=lpRACOLOR
+#define REM_SETHILITELINE		(REM_BASE+5)		// wParam=Line, lParam=Color
+#define REM_GETHILITELINE		(REM_BASE+6)		// wParam=Line, lParam=0
+#define REM_SETBOOKMARK			(REM_BASE+7)		// wParam=Line, lParam=Type
+#define REM_GETBOOKMARK			(REM_BASE+8)		// wParam=Line, lParam=0
+#define REM_CLRBOOKMARKS		(REM_BASE+9)		// wParam=0, lParam=Type
+#define REM_NXTBOOKMARK			(REM_BASE+10)		// wParam=Line, lParam=Type
+#define REM_PRVBOOKMARK			(REM_BASE+11)		// wParam=Line, lParam=Type
+#define REM_FINDBOOKMARK		(REM_BASE+12)		// wParam=BmID, lParam=0
+#define REM_SETBLOCKS			(REM_BASE+13)		// wParam=[lpLINERANGE], lParam=0
+#define REM_ISLINE				(REM_BASE+14)		// wParam=Line, lParam=lpszDef
+#define REM_GETWORD				(REM_BASE+15)		// wParam=BuffSize, lParam=lpBuff
+#define REM_COLLAPSE			(REM_BASE+16)		// wParam=Line, lParam=0
+#define REM_COLLAPSEALL			(REM_BASE+17)		// wParam=0, lParam=0
+#define REM_EXPAND				(REM_BASE+18)		// wParam=Line, lParam=0
+#define REM_EXPANDALL			(REM_BASE+19)		// wParam=0, lParam=0
+#define REM_LOCKLINE			(REM_BASE+20)		// wParam=Line, lParam=TRUE/FALSE
+#define REM_ISLINELOCKED		(REM_BASE+21)		// wParam=Line, lParam=0
+#define REM_HIDELINE			(REM_BASE+22)		// wParam=Line, lParam=TRUE/FALSE
+#define REM_ISLINEHIDDEN		(REM_BASE+23)		// wParam=Line, lParam=0
+#define REM_AUTOINDENT			(REM_BASE+24)		// wParam=0, lParam=TRUE/FALSE
+#define REM_TABWIDTH			(REM_BASE+25)		// wParam=nChars, lParam=TRUE/FALSE (Expand tabs)
+#define REM_SELBARWIDTH			(REM_BASE+26)		// wParam=nWidth, lParam=0
+#define REM_LINENUMBERWIDTH		(REM_BASE+27)		// wParam=nWidth, lParam=0
+#define REM_MOUSEWHEEL			(REM_BASE+28)		// wParam=nLines, lParam=0
+#define REM_SUBCLASS			(REM_BASE+29)		// wParam=0, lParam=lpWndProc
+#define REM_SETSPLIT			(REM_BASE+30)		// wParam=nSplit, lParam=0
+#define REM_GETSPLIT			(REM_BASE+31)		// wParam=0, lParam=0
+#define REM_VCENTER				(REM_BASE+32)		// wParam=0, lParam=0
+#define REM_REPAINT				(REM_BASE+33)		// wParam=0, lParam=TRUE/FALSE (Paint Now)
+#define REM_BMCALLBACK			(REM_BASE+34)		// wParam=0, lParam=lpBmProc
+#define REM_READONLY			(REM_BASE+35)		// wParam=0, lParam=TRUE/FALSE
+#define REM_INVALIDATELINE		(REM_BASE+36)		// wParam=Line, lParam=0
+#define REM_SETPAGESIZE			(REM_BASE+37)		// wParam=nLines, lParam=0
+#define REM_GETPAGESIZE			(REM_BASE+38)		// wParam=0, lParam=0
+#define REM_GETCHARTAB			(REM_BASE+39)		// wParam=nChar, lParam=0
+#define REM_SETCHARTAB			(REM_BASE+40)		// wParam=nChar, lParam=nValue
+#define REM_SETCOMMENTBLOCKS	(REM_BASE+41)		// wParam=lpStart, lParam=lpEnd
+#define REM_SETWORDGROUP		(REM_BASE+42)		// wParam=0, lParam=nGroup (0-15)
+#define REM_GETWORDGROUP		(REM_BASE+43)		// wParam=0, lParam=0
+#define REM_SETBMID				(REM_BASE+44)		// wParam=nLine, lParam=nBmID
+#define REM_GETBMID				(REM_BASE+45)		// wParam=nLine, lParam=0
+#define REM_ISCHARPOS			(REM_BASE+46)		// wParam=CP, lParam=0, returns 1 if comment block, 2 if comment, 3 if string
+#define REM_HIDELINES			(REM_BASE+47)		// wParam=nLine, lParam=nLines
+#define REM_SETDIVIDERLINE		(REM_BASE+48)		// wParam=nLine, lParam=TRUE/FALSE
+#define REM_ISINBLOCK			(REM_BASE+49)		// wParam=nLine, lParam=lpRABLOCKDEF
+#define REM_TRIMSPACE			(REM_BASE+50)		// wParam=nLine, lParam=fLeft
+#define REM_SAVESEL				(REM_BASE+51)		// wParam=0, lParam=0
+#define REM_RESTORESEL			(REM_BASE+52)		// wParam=0, lParam=0
+#define REM_GETCURSORWORD		(REM_BASE+53)		// wParam=BuffSize, lParam=lpBuff, Returns line number
+#define REM_SETSEGMENTBLOCK		(REM_BASE+54)		// wParam=nLine, lParam=TRUE/FALSE
+#define REM_GETMODE				(REM_BASE+55)		// wParam=0, lParam=0
+#define REM_SETMODE				(REM_BASE+56)		// wParam=nMode, lParam=0
+#define REM_GETBLOCK			(REM_BASE+57)		// wParam=0, lParam=lpBLOCKRANGE
+#define REM_SETBLOCK			(REM_BASE+58)		// wParam=0, lParam=lpBLOCKRANGE
+#define REM_BLOCKINSERT			(REM_BASE+59)		// wParam=0, lParam=lpText
+#define REM_LOCKUNDOID			(REM_BASE+60)		// wParam=TRUE/FALSE, lParam=0
+#define REM_ADDBLOCKDEF			(REM_BASE+61)		// wParam=0, lParam=lpRABLOCKDEF
+#define REM_CONVERT				(REM_BASE+62)		// wParam=nType, lParam=0
+#define REM_BRACKETMATCH		(REM_BASE+63)		// wParam=0, lParam=lpDef {[(,}]),_
+#define REM_COMMAND				(REM_BASE+64)		// wParam=nCommand, lParam=0
+#define REM_CASEWORD			(REM_BASE+65)		// wParam=cp, lParam=lpWord
+#define REM_GETBLOCKEND			(REM_BASE+66)		// wParam=Line, lParam=0
+#define REM_SETLOCK				(REM_BASE+67)		// wParam=TRUE/FALSE, lParam=0
+#define REM_GETLOCK				(REM_BASE+68)		// wParam=0, lParam=0
+#define REM_GETWORDFROMPOS		(REM_BASE+69)		// wParam=cp, lParam=lpBuff
+#define REM_SETNOBLOCKLINE		(REM_BASE+70)		// wParam=Line, lParam=TRUE/FALSE
+#define REM_ISLINENOBLOCK		(REM_BASE+71)		// wParam=Line, lParam=0
+#define REM_SETALTHILITELINE	(REM_BASE+72)		// wParam=Line, lParam=TRUE/FALSE
+#define REM_ISLINEALTHILITE		(REM_BASE+73)		// wParam=Line, lParam=0
+#define REM_SETCURSORWORDTYPE	(REM_BASE+74)		// wParam=nType, lParam=0
+#define REM_SETBREAKPOINT		(REM_BASE+75)		// wParam=nLine, lParam=TRUE/FALSE
+#define REM_NEXTBREAKPOINT		(REM_BASE+76)		// wParam=nLine, lParam=0
+#define REM_GETLINESTATE		(REM_BASE+77)		// wParam=nLine, lParam=0
+#define REM_SETERROR			(REM_BASE+78)		// wParam=nLine, lParam=nErrID
+#define REM_GETERROR			(REM_BASE+79)		// wParam=nLine, lParam=0
+#define REM_NEXTERROR			(REM_BASE+80)		// wParam=nLine, lParam=0
+#define REM_CHARTABINIT			(REM_BASE+81)		// wParam=0, lParam=0
+#define REM_LINEREDTEXT			(REM_BASE+82)		// wParam=nLine, lParam=TRUE/FALSE
+#define REM_SETSTYLEEX			(REM_BASE+83)		// wParam=nStyleEx, lParam=0
+#define REM_GETUNICODE			(REM_BASE+84)		// wParam=0, lParam=0
+#define REM_SETUNICODE			(REM_BASE+85)		// wParam=TRUE/FALSE, lParam=0
+#define REM_SETCHANGEDSTATE		(REM_BASE+86)		// wParam=TRUE/FALSE, lParam=0
+#define REM_SETTOOLTIP			(REM_BASE+87)		// wParam=n (1-6), lParam=lpText
+#define REM_HILITEACTIVELINE	(REM_BASE+88)		// wParam=0, lParam=nColor
+#define REM_GETUNDO				(REM_BASE+89)		// wParam=nSize, lParam=lpMem
+#define REM_SETUNDO				(REM_BASE+90)		// wParam=nSize, lParam=lpMem
+#define REM_GETLINEBEGIN		(REM_BASE+91)		// wParam=nLine, lParam=0
 
 // Convert types
 #define CONVERT_TABTOSPACE		0
@@ -303,7 +303,7 @@ struct tagBLOCKRANGE {
 };
 typedef struct tagBLOCKRANGE BLOCKRANGE;
 
-extern void __stdcall InstallRAEdit(HINSTANCE hInst, BOOL fGlobal);
-extern void __stdcall UnInstallRAEdit();
+extern void WINAPI InstallRAEdit(HINSTANCE hInst, BOOL fGlobal);
+extern void WINAPI UnInstallRAEdit();
 
 #endif // _RAEDIT_H_
