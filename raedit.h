@@ -1,30 +1,31 @@
-#ifndef _RAEDIT_H_
-#define _RAEDIT_H_
+#pragma once
 
 #include <windows.h>
 #include <richedit.h>
 
+#pragma pack(push, 1)
+
 // Default colors
-#define DEFBCKCOLOR			0x00C0F0F0
-#define DEFTXTCOLOR			0x00000000
-#define DEFSELBCKCOLOR		0x00800000
-#define DEFSELTXTCOLOR		0x00FFFFFF
-#define DEFCMNTCOLOR		0x02008000
-#define DEFSTRCOLOR			0x00A00000
-#define DEFOPRCOLOR			0x000000A0
-#define DEFHILITE1			0x00F0C0C0
-#define DEFHILITE2			0x00C0F0C0
-#define DEFHILITE3			0x00C0C0F0
-#define DEFSELBARCOLOR		0x00C0C0C0
-#define DEFSELBARPEN		0x00808080
-#define DEFLNRCOLOR			0x00800000
-#define DEFNUMCOLOR			0x00808080
-#define DEFCMNTBCK			0x00C0F0F0
-#define DEFSTRBCK			0x00C0F0F0
-#define DEFNUMBCK			0x00C0F0F0
-#define DEFOPRBCK			0x00C0F0F0
-#define DEFCHANGEDCLR		0x0000F0F0
-#define DEFCHANGESAVEDCLR	0x0000F000
+#define BCKCLR				0x00C0F0F0
+#define TXTCLR				0x00000000
+#define SELBCKCLR			0x00800000
+#define SELTXTCLR			0x00FFFFFF
+#define CMNTCLR				0x02008000
+#define STRCLR				0x00A00000
+#define OPRCLR				0x000000A0
+#define HILITE1				0x00F0C0C0
+#define HILITE2				0x00C0F0C0
+#define HILITE3				0x00C0C0F0
+#define SELBARCLR			0x00C0C0C0
+#define SELBARPEN			0x00808080
+#define LNRCLR				0x00800000
+#define NUMCLR				0x00808080
+#define CMNTBCK				0x00C0F0F0
+#define STRBCK				0x00C0F0F0
+#define NUMBCK				0x00C0F0F0
+#define OPRBCK				0x00C0F0F0
+#define CHANGEDCLR			0x0000F0F0
+#define CHANGESAVEDCLR		0x0000F000
 
 // Window styles
 #define STYLE_NOSPLITT			0x0001			// No splitt button
@@ -260,12 +261,12 @@ struct tagRASELCHANGE {
 	NMHDR       nmhdr;
 	CHARRANGE   chrg;                       // Current selection
 	WORD        seltyp;                     // SEL_TEXT or SEL_OBJECT
-	int         line;                       // Line number
-	int         cpLine;                     // Character position of first character
-	DWORD       lpLine;                     // Pointer to line
+	DWORD       line;                       // Line number
+	DWORD       cpLine;                     // Character position of first character
+	HANDLE      lpLine;                     // Pointer to line
 	DWORD       nlines;                     // Total number of lines
 	DWORD       nhidden;                    // Total number of hidden lines
-	DWORD       fchanged;                   // TRUE if changed since last
+	BOOL        fchanged;                   // TRUE if changed since last
 	DWORD       npage;                      // Page number
 	DWORD       nWordGroup;                 // Hilite word group(0-15)
 };
@@ -303,7 +304,7 @@ struct tagBLOCKRANGE {
 };
 typedef struct tagBLOCKRANGE BLOCKRANGE;
 
-extern void WINAPI InstallRAEdit(HINSTANCE hInst, BOOL fGlobal);
-extern void WINAPI UnInstallRAEdit();
+void WINAPI InstallRAEdit(HINSTANCE hInst, BOOL fGlobal);
+void WINAPI UnInstallRAEdit(void);
 
-#endif // _RAEDIT_H_
+#pragma pack(pop)

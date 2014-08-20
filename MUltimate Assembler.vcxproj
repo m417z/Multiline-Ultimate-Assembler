@@ -271,7 +271,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>comctl32.lib;shlwapi.lib;minicrt\minicrt64.lib;ollydbglib\ollydbg.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;shlwapi.lib;raeditlib\RAEditC64.lib;minicrt\minicrt64.lib;ollydbglib\ollydbg.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
     </Link>
@@ -323,7 +323,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>comctl32.lib;shlwapi.lib;minicrt\minicrt64.lib;ollydbglib\ollydbg.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;shlwapi.lib;raeditlib\RAEditC64.lib;minicrt\minicrt64.lib;ollydbglib\ollydbg.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
     </Link>
@@ -375,7 +375,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>comctl32.lib;shlwapi.lib;minicrt\minicrt64.lib;x64dbg_pluginsdk\x64_dbg.lib;x64dbg_pluginsdk\x64_bridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;shlwapi.lib;raeditlib\RAEditC64.lib;minicrt\minicrt64.lib;x64dbg_pluginsdk\x64_dbg.lib;x64dbg_pluginsdk\x64_bridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
     </Link>
@@ -427,7 +427,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>comctl32.lib;shlwapi.lib;minicrt\minicrt64.lib;ollydbglib\ollydbg2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;shlwapi.lib;raeditlib\RAEditC64.lib;minicrt\minicrt64.lib;ollydbglib\ollydbg2.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
     </Link>
@@ -479,7 +479,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EntryPointSymbol>DllMain</EntryPointSymbol>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
-      <AdditionalDependencies>comctl32.lib;shlwapi.lib;minicrt\minicrt64.lib;ollydbglib\immdbg.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>comctl32.lib;shlwapi.lib;raeditlib\RAEditC64.lib;minicrt\minicrt64.lib;ollydbglib\immdbg.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
     </Link>
