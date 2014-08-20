@@ -57,7 +57,7 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 	DWORD_PTR dwPaddingSize;
 	LONG_PTR result;
 
-	for(p = lpText; p != NULL; p = lpNextLine)
+	for(p = lpText; ; p = lpNextLine)
 	{
 		p = SkipSpaces(p);
 		if(*p == _T('<'))
@@ -68,13 +68,15 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 			break;
 		}
 
-		lpNextLine = NullTerminateLine(p);
-
 		if(*p != _T('\0') && *p != _T(';'))
 		{
 			lstrcpy(lpError, _T("Address expected"));
 			return p;
 		}
+
+		lpNextLine = NullTerminateLine(p);
+		if(!lpNextLine)
+			return NULL;
 	}
 
 	for(; p != NULL; p = lpNextLine)
