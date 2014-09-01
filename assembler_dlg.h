@@ -62,7 +62,9 @@ typedef struct _asm_dialog_param {
 	"cmovng cmovg cmovnle cmpxchg486 cmpxchg8b loadall loadall286 ibts icebp " \
 	"int1 int3 int01 int03 iretw popaw popfw pushaw pushfw rdmsr rdpmc rdshr " \
 	"rdtsc rsdc rsldt rsm rsts salc smi smint smintold svdc svldt svts " \
-	"syscall sysenter sysexit sysret ud0 ud1 ud2 umov xbts wrmsr wrshr"
+	"syscall sysenter sysexit sysret ud0 ud1 ud2 umov xbts wrmsr wrshr " \
+	\
+	"comment+"
 
 #define HILITE_ASM_FPU_CMD \
 	"f2xm1 fabs fadd faddp fbld fbstp fchs fclex fcom fcomp fcompp fdecstp " \

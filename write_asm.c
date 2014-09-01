@@ -51,36 +51,31 @@ static TCHAR *TextToData(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_h
 	TCHAR *p, *lpNextLine, *lpBlockDeclaration;
 	DWORD_PTR dwAddress, dwEndAddress;
 	DWORD_PTR dwBaseAddress;
-	//TCHAR chCommentChar;
+	TCHAR chCommentChar;
 	LONG_PTR result;
+
+	cmd_block_node = NULL;
+	dwAddress = 0;
+	dwEndAddress = 0;
+	dwBaseAddress = 0;
+	chCommentChar = _T('\0');
 
 	for(p = lpText; p != NULL; p = lpNextLine)
 	{
 		p = SkipSpaces(p);
-		if(*p == _T('<'))
-			break;
-
 		lpNextLine = NullTerminateLine(p);
 
-		if(*p != _T('\0') && *p != _T(';'))
-		{
-			lstrcpy(lpError, _T("Address expected"));
-			return p;
-		}
-	}
-
-	dwAddress = 0;
-	dwEndAddress = 0;
-	dwBaseAddress = 0;
-	//chCommentChar = _T('\0');
-
-	for(; p != NULL; p = lpNextLine)
-	{
-		p = SkipSpaces(p);
-		lpNextLine = NullTerminateLine(p);
+		if(IsInComment(&chCommentChar, p, lpError))
+			continue;
 
 		while(*p != _T('\0') && *p != _T(';'))
 		{
+			if(!cmd_block_node && *p != _T('<'))
+			{
+				lstrcpy(lpError, _T("Address expected"));
+				return p;
+			}
+
 			switch(*p)
 			{
 			case _T('<'): // address
@@ -251,6 +246,51 @@ static LONG_PTR CommandToData(CMD_BLOCK_NODE *cmd_block_node, DWORD_PTR *pdwAddr
 	*pdwAddress = dwAddress;
 
 	return result;
+}
+
+static BOOL IsInComment(TCHAR *pchCommentChar, TCHAR *lpText, TCHAR *lpError)
+{
+	TCHAR chCommentChar = *pchCommentChar;
+	TCHAR *p = lpText;
+
+	if(chCommentChar != _T('\0'))
+	{
+		while(*p != _T('\0'))
+		{
+			if(*p == chCommentChar)
+			{
+				*pchCommentChar = _T('\0');
+				break;
+			}
+
+			p++;
+		}
+
+		return TRUE;
+	}
+
+	char *pszComment = _T("COMMENT");
+	while(*pszComment != _T('\0'))
+	{
+		TCHAR c = *p;
+
+		if(c >= _T('a') && c <= _T('z'))
+			c += -_T('a') + _T('A');
+
+		if(c != *pszComment)
+			return FALSE;
+
+		p++;
+		pszComment++;
+	}
+
+	TCHAR *p2 = SkipSpaces(p);
+	if(p2 == p || *p2 == _T('\0'))
+		return FALSE;
+
+	*pchCommentChar = *p2;
+
+	return TRUE;
 }
 
 static LONG_PTR ParseAddress(TCHAR *lpText, DWORD_PTR *pdwAddress, DWORD_PTR *pdwEndAddress, DWORD_PTR *pdwBaseAddress, TCHAR *lpError)

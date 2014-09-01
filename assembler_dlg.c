@@ -274,8 +274,9 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 		break;
 
 	case WM_NOTIFY:
-		if(((NMHDR *)lParam)->idFrom == IDC_TABS)
+		switch(((NMHDR *)lParam)->idFrom)
 		{
+		case IDC_TABS:
 			switch(((NMHDR *)lParam)->code)
 			{
 			case TCN_SELCHANGING:
@@ -286,6 +287,20 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 				OnTabChanged(GetDlgItem(hWnd, IDC_TABS), GetDlgItem(hWnd, IDC_ASSEMBLER));
 				break;
 			}
+			break;
+
+		case IDC_ASSEMBLER:
+			switch(((NMHDR *)lParam)->code)
+			{
+			case EN_SELCHANGE:
+				if(((RASELCHANGE *)lParam)->seltyp != SEL_OBJECT)
+				{
+					if(((RASELCHANGE *)lParam)->fchanged)
+						SendDlgItemMessage(hWnd, IDC_ASSEMBLER, REM_SETCOMMENTBLOCKS, (WPARAM)"comment +", (LPARAM)"-");
+				}
+				break;
+			}
+			break;
 		}
 		break;
 
