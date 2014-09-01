@@ -15,8 +15,8 @@ LONG_PTR WriteAsm(TCHAR *lpText, TCHAR *lpError)
 	CMD_BLOCK_HEAD cmd_block_head = {NULL, (CMD_BLOCK_NODE *)&cmd_block_head};
 	TCHAR *lpErrorSpot;
 
-	// Fill the lists using the given text, without replacing labels in commands yet
-	lpErrorSpot = FillListsFromText(&label_head, &cmd_block_head, lpText, lpError);
+	// Fill the data linked lists using the given text, without replacing labels in commands yet
+	lpErrorSpot = TextToData(&label_head, &cmd_block_head, lpText, lpError);
 
 	// Replace labels in commands with addresses
 	if(!lpErrorSpot)
@@ -45,39 +45,34 @@ LONG_PTR WriteAsm(TCHAR *lpText, TCHAR *lpError)
 		return 1;
 }
 
-static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpText, TCHAR *lpError)
+static TCHAR *TextToData(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpText, TCHAR *lpError)
 {
 	CMD_BLOCK_NODE *cmd_block_node;
-	TCHAR *p, *lpNextLine;
+	TCHAR *p, *lpNextLine, *lpBlockDeclaration;
 	DWORD_PTR dwAddress, dwEndAddress;
 	DWORD_PTR dwBaseAddress;
-	SIZE_T nSize;
-	UINT nSpecialCmd;
-	BYTE bPaddingByteValue;
-	DWORD_PTR dwPaddingSize;
+	//TCHAR chCommentChar;
 	LONG_PTR result;
 
-	for(p = lpText; ; p = lpNextLine)
+	for(p = lpText; p != NULL; p = lpNextLine)
 	{
 		p = SkipSpaces(p);
 		if(*p == _T('<'))
-		{
-			dwAddress = 0;
-			dwEndAddress = 0;
-			dwBaseAddress = 0;
 			break;
-		}
+
+		lpNextLine = NullTerminateLine(p);
 
 		if(*p != _T('\0') && *p != _T(';'))
 		{
 			lstrcpy(lpError, _T("Address expected"));
 			return p;
 		}
-
-		lpNextLine = NullTerminateLine(p);
-		if(!lpNextLine)
-			return NULL;
 	}
+
+	dwAddress = 0;
+	dwEndAddress = 0;
+	dwBaseAddress = 0;
+	//chCommentChar = _T('\0');
 
 	for(; p != NULL; p = lpNextLine)
 	{
@@ -92,102 +87,29 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 				if(dwEndAddress != 0 && dwAddress > dwEndAddress)
 				{
 					wsprintf(lpError, _T("End of code block exceeds the block end address (%Iu extra bytes)"), dwAddress - dwEndAddress);
-					return cmd_block_node->cmd_head.next->lpCommand;
+					return lpBlockDeclaration;
 				}
 
-				result = ParseAddress(p, &dwAddress, &dwEndAddress, &dwBaseAddress, lpError);
-				if(result <= 0)
-					return p+(-result);
+				lpBlockDeclaration = p;
 
-				if(!NewCmdBlock(p_cmd_block_head, dwAddress, lpError))
-					return p;
-
-				cmd_block_node = p_cmd_block_head->last;
+				result = AddressToData(p_cmd_block_head, &cmd_block_node, &dwAddress, &dwEndAddress, &dwBaseAddress, p, lpError);
 				break;
 
 			case _T('@'): // label
-				dwPaddingSize = 0;
-
-				if(p[1] == _T('@'))
-					result = ParseAnonLabel(p, dwAddress, &cmd_block_node->anon_label_head, lpError);
-				else
-					result = ParseLabel(p, dwAddress, p_label_head, &dwPaddingSize, lpError);
-
-				if(result <= 0)
-					return p+(-result);
-
-				if(dwPaddingSize > 0)
-				{
-					if(!InsertBytes(p, dwPaddingSize, 0, &cmd_block_node->cmd_head, lpError))
-						return p;
-
-					cmd_block_node->nSize += dwPaddingSize;
-					dwAddress += dwPaddingSize;
-				}
+				result = LabelToData(p_label_head, cmd_block_node, &dwAddress, p, lpError);
 				break;
 
 			case _T('!'): // special command
-				result = ParseSpecialCommand(p, &nSpecialCmd, lpError);
-				if(result <= 0)
-					return p+(-result);
-
-				switch(nSpecialCmd)
-				{
-				case SPECIAL_CMD_ALIGN:
-					result = ParseAlignSpecialCommand(p, result, dwAddress, &dwPaddingSize, lpError);
-					if(result <= 0)
-						return p+(-result);
-
-					if(dwPaddingSize > 0)
-					{
-						if(!InsertBytes(p, dwPaddingSize, 0, &cmd_block_node->cmd_head, lpError))
-							return p;
-
-						cmd_block_node->nSize += dwPaddingSize;
-						dwAddress += dwPaddingSize;
-					}
-					break;
-
-				case SPECIAL_CMD_PAD:
-					result = ParsePadSpecialCommand(p, result, &bPaddingByteValue, lpError);
-					if(result <= 0)
-						return p+(-result);
-
-					if(dwEndAddress == 0)
-					{
-						lstrcpy(lpError, _T("The !pad special command can only be used with a defined block end address"));
-						return p;
-					}
-
-					if(dwEndAddress > dwAddress)
-					{
-						dwPaddingSize = dwEndAddress - dwAddress;
-
-						if(!InsertBytes(p, dwPaddingSize, bPaddingByteValue, &cmd_block_node->cmd_head, lpError))
-							return p;
-
-						cmd_block_node->nSize += dwPaddingSize;
-						dwAddress += dwPaddingSize;
-					}
-					break;
-				}
+				result = SpecialCommandToData(cmd_block_node, &dwAddress, dwEndAddress, p, lpError);
 				break;
 
 			default: // an asm command or a string
-				if(*p == _T('\"'))
-					result = ParseAsciiString(p, &cmd_block_node->cmd_head, &nSize, lpError);
-				else if(*p == _T('L') && p[1] == _T('\"'))
-					result = ParseUnicodeString(p, &cmd_block_node->cmd_head, &nSize, lpError);
-				else
-					result = ParseCommand(p, dwAddress, dwBaseAddress, &cmd_block_node->cmd_head, &nSize, lpError);
-
-				if(result <= 0)
-					return p+(-result);
-
-				cmd_block_node->nSize += nSize;
-				dwAddress += nSize;
+				result = CommandToData(cmd_block_node, &dwAddress, dwBaseAddress, p, lpError);
 				break;
 			}
+
+			if(result <= 0)
+				return p + (-result);
 
 			p += result;
 			p = SkipSpaces(p);
@@ -197,10 +119,138 @@ static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_
 	if(dwEndAddress != 0 && dwAddress > dwEndAddress)
 	{
 		wsprintf(lpError, _T("End of code block exceeds the block end address (%Iu extra bytes)"), dwAddress - dwEndAddress);
-		return cmd_block_node->cmd_head.next->lpCommand;
+		return lpBlockDeclaration;
 	}
 
 	return NULL;
+}
+
+static LONG_PTR AddressToData(CMD_BLOCK_HEAD *p_cmd_block_head, CMD_BLOCK_NODE **p_cmd_block_node,
+	DWORD_PTR *pdwAddress, DWORD_PTR *pdwEndAddress, DWORD_PTR *pdwBaseAddress, TCHAR *lpText, TCHAR *lpError)
+{
+	DWORD_PTR dwAddress;
+
+	LONG_PTR result = ParseAddress(lpText, &dwAddress, pdwEndAddress, pdwBaseAddress, lpError);
+	if(result <= 0)
+		return result;
+
+	if(!NewCmdBlock(p_cmd_block_head, dwAddress, lpError))
+		return 0;
+
+	*p_cmd_block_node = p_cmd_block_head->last;
+
+	*pdwAddress = dwAddress;
+
+	return result;
+}
+
+static LONG_PTR LabelToData(LABEL_HEAD *p_label_head, CMD_BLOCK_NODE *cmd_block_node, DWORD_PTR *pdwAddress, TCHAR *lpText, TCHAR *lpError)
+{
+	DWORD_PTR dwAddress = *pdwAddress;
+
+	if(lpText[0] == _T('@') && lpText[1] == _T('@'))
+		return ParseAnonLabel(lpText, dwAddress, &cmd_block_node->anon_label_head, lpError);
+
+	DWORD_PTR dwPaddingSize = 0;
+	LONG_PTR result = ParseLabel(lpText, dwAddress, p_label_head, &dwPaddingSize, lpError);
+	if(result <= 0)
+		return result;
+
+	if(dwPaddingSize > 0)
+	{
+		if(!InsertBytes(lpText, dwPaddingSize, 0, &cmd_block_node->cmd_head, lpError))
+			return 0;
+
+		cmd_block_node->nSize += dwPaddingSize;
+		dwAddress += dwPaddingSize;
+
+		*pdwAddress = dwAddress;
+	}
+
+	return result;
+}
+
+static LONG_PTR SpecialCommandToData(CMD_BLOCK_NODE *cmd_block_node, DWORD_PTR *pdwAddress, DWORD_PTR dwEndAddress, TCHAR *lpText, TCHAR *lpError)
+{
+	UINT nSpecialCmd;
+	LONG_PTR result = ParseSpecialCommand(lpText, &nSpecialCmd, lpError);
+	if(result <= 0)
+		return result;
+
+	DWORD_PTR dwAddress = *pdwAddress;
+	DWORD_PTR dwPaddingSize;
+	BYTE bPaddingByteValue;
+
+	switch(nSpecialCmd)
+	{
+	case SPECIAL_CMD_ALIGN:
+		result = ParseAlignSpecialCommand(lpText, result, dwAddress, &dwPaddingSize, lpError);
+		if(result <= 0)
+			return result;
+
+		if(dwPaddingSize > 0)
+		{
+			if(!InsertBytes(lpText, dwPaddingSize, 0, &cmd_block_node->cmd_head, lpError))
+				return 0;
+
+			cmd_block_node->nSize += dwPaddingSize;
+			dwAddress += dwPaddingSize;
+
+			*pdwAddress = dwAddress;
+		}
+		break;
+
+	case SPECIAL_CMD_PAD:
+		result = ParsePadSpecialCommand(lpText, result, &bPaddingByteValue, lpError);
+		if(result <= 0)
+			return result;
+
+		if(dwEndAddress == 0)
+		{
+			lstrcpy(lpError, _T("The !pad special command can only be used with a defined block end address"));
+			return 0;
+		}
+
+		if(dwEndAddress > dwAddress)
+		{
+			dwPaddingSize = dwEndAddress - dwAddress;
+
+			if(!InsertBytes(lpText, dwPaddingSize, bPaddingByteValue, &cmd_block_node->cmd_head, lpError))
+				return 0;
+
+			cmd_block_node->nSize += dwPaddingSize;
+			dwAddress += dwPaddingSize;
+
+			*pdwAddress = dwAddress;
+		}
+		break;
+	}
+
+	return result;
+}
+
+static LONG_PTR CommandToData(CMD_BLOCK_NODE *cmd_block_node, DWORD_PTR *pdwAddress, DWORD_PTR dwBaseAddress, TCHAR *lpText, TCHAR *lpError)
+{
+	DWORD_PTR dwAddress = *pdwAddress;
+	SIZE_T nSize;
+	LONG_PTR result;
+
+	if(lpText[0] == _T('\"'))
+		result = ParseAsciiString(lpText, &cmd_block_node->cmd_head, &nSize, lpError);
+	else if(lpText[0] == _T('L') && lpText[1] == _T('\"'))
+		result = ParseUnicodeString(lpText, &cmd_block_node->cmd_head, &nSize, lpError);
+	else
+		result = ParseCommand(lpText, dwAddress, dwBaseAddress, &cmd_block_node->cmd_head, &nSize, lpError);
+
+	if(result <= 0)
+		return result;
+
+	cmd_block_node->nSize += nSize;
+	dwAddress += nSize;
+
+	*pdwAddress = dwAddress;
+
+	return result;
 }
 
 static LONG_PTR ParseAddress(TCHAR *lpText, DWORD_PTR *pdwAddress, DWORD_PTR *pdwEndAddress, DWORD_PTR *pdwBaseAddress, TCHAR *lpError)

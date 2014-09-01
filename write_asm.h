@@ -70,7 +70,13 @@ typedef struct _cmd_block_head {
 LONG_PTR WriteAsm(TCHAR *lpText, TCHAR *lpError);
 
 // 1
-static TCHAR *FillListsFromText(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpText, TCHAR *lpError);
+static TCHAR *TextToData(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_head, TCHAR *lpText, TCHAR *lpError);
+static LONG_PTR AddressToData(CMD_BLOCK_HEAD *p_cmd_block_head, CMD_BLOCK_NODE **p_cmd_block_node, 
+	DWORD_PTR *pdwAddress, DWORD_PTR *pdwEndAddress, DWORD_PTR *pdwBaseAddress, TCHAR *lpText, TCHAR *lpError);
+static LONG_PTR LabelToData(LABEL_HEAD *p_label_head, CMD_BLOCK_NODE *cmd_block_node, DWORD_PTR *pdwAddress, TCHAR *lpText, TCHAR *lpError);
+static LONG_PTR SpecialCommandToData(CMD_BLOCK_NODE *cmd_block_node, DWORD_PTR *pdwAddress, DWORD_PTR dwEndAddress, TCHAR *lpText, TCHAR *lpError);
+static LONG_PTR CommandToData(CMD_BLOCK_NODE *cmd_block_node, DWORD_PTR *pdwAddress, DWORD_PTR dwBaseAddress, TCHAR *lpText, TCHAR *lpError);
+
 static LONG_PTR ParseAddress(TCHAR *lpText, DWORD_PTR *pdwAddress, DWORD_PTR *pdwEndAddress, DWORD_PTR *pdwBaseAddress, TCHAR *lpError);
 static BOOL NewCmdBlock(CMD_BLOCK_HEAD *p_cmd_block_head, DWORD_PTR dwAddress, TCHAR *lpError);
 static LONG_PTR ParseAnonLabel(TCHAR *lpText, DWORD_PTR dwAddress, ANON_LABEL_HEAD *p_anon_label_head, TCHAR *lpError);
