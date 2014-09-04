@@ -269,7 +269,7 @@ static BOOL IsInComment(TCHAR *pchCommentChar, TCHAR *lpText, TCHAR *lpError)
 		return TRUE;
 	}
 
-	char *pszComment = _T("COMMENT");
+	TCHAR *pszComment = _T("COMMENT");
 	while(*pszComment != _T('\0'))
 	{
 		TCHAR c = *p;
