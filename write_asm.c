@@ -288,7 +288,23 @@ static BOOL IsInComment(TCHAR *pchCommentChar, TCHAR *lpText, TCHAR *lpError)
 	if(p2 == p || *p2 == _T('\0'))
 		return FALSE;
 
-	*pchCommentChar = *p2;
+	chCommentChar = *p2;
+	p = p2 + 1;
+
+	// A second occurrence of the char on the line
+	// terminates the comment
+	while(*p != _T('\0'))
+	{
+		if(*p == chCommentChar)
+		{
+			chCommentChar = _T('\0');
+			break;
+		}
+
+		p++;
+	}
+
+	*pchCommentChar = chCommentChar;
 
 	return TRUE;
 }
