@@ -13,7 +13,7 @@
 
 #define DEF_PLUGINNAME        _T("Multiline Ultimate Assembler")
 #if defined(TARGET_X64DBG)
-#define DEF_VERSION           _T("2.2.5 (experimental)")
+#define DEF_VERSION           _T("2.2.5 (alpha)")
 #else
 #define DEF_VERSION           _T("2.2.5")
 #endif
