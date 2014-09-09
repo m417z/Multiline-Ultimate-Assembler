@@ -80,13 +80,13 @@ void AssemblerLoadCode(DWORD_PTR dwAddress, DWORD_PTR dwSize)
 	AssemblerShowDlg();
 
 	if(hAsmDlg)
-		PostMessage(hAsmDlg, UWM_LOADCODE, dwAddress, dwSize);
+		SendMessage(hAsmDlg, UWM_LOADCODE, dwAddress, dwSize);
 }
 
 void AssemblerOptionsChanged()
 {
 	if(hAsmDlg)
-		PostMessage(hAsmDlg, UWM_OPTIONSCHANGED, 0, 0);
+		SendMessage(hAsmDlg, UWM_OPTIONSCHANGED, 0, 0);
 }
 
 static HWND CreateAsmDlg()
@@ -102,7 +102,7 @@ static HWND CreateAsmDlg()
 
 static void CloseAsmDlg(HWND hWnd)
 {
-	PostMessage(hWnd, WM_CLOSE, 0, 0);
+	SendMessage(hWnd, WM_CLOSE, 0, 0);
 }
 
 static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -445,24 +445,24 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			SaveFileOfTab(GetDlgItem(hWnd, IDC_TABS), GetDlgItem(hWnd, IDC_ASSEMBLER));
 			PatchCode(hWnd);
 			break;
-
-		case IDCANCEL:
-			if(!IsWindowEnabled(hWnd))
-			{
-				hPopupWnd = GetWindow(hWnd, GW_ENABLEDPOPUP);
-				if(hPopupWnd && hPopupWnd != hWnd)
-					SendMessage(hPopupWnd, WM_CLOSE, 0, 0);
-			}
-
-			if(p_dialog_param->hFindReplaceWnd)
-				SendMessage(p_dialog_param->hFindReplaceWnd, WM_CLOSE, 0, 0);
-
-			SaveWindowPos(hWnd, hDllInst);
-			SaveFileOfTab(GetDlgItem(hWnd, IDC_TABS), GetDlgItem(hWnd, IDC_ASSEMBLER));
-			DestroyWindow(hWnd);
-			hAsmDlg = NULL;
-			break;
 		}
+		break;
+
+	case WM_CLOSE:
+		if(!IsWindowEnabled(hWnd))
+		{
+			hPopupWnd = GetWindow(hWnd, GW_ENABLEDPOPUP);
+			if(hPopupWnd && hPopupWnd != hWnd)
+				SendMessage(hPopupWnd, WM_CLOSE, 0, 0);
+		}
+
+		if(p_dialog_param->hFindReplaceWnd)
+			SendMessage(p_dialog_param->hFindReplaceWnd, WM_CLOSE, 0, 0);
+
+		SaveWindowPos(hWnd, hDllInst);
+		SaveFileOfTab(GetDlgItem(hWnd, IDC_TABS), GetDlgItem(hWnd, IDC_ASSEMBLER));
+		DestroyWindow(hWnd);
+		hAsmDlg = NULL;
 		break;
 
 	case WM_DESTROY:
