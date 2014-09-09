@@ -213,9 +213,26 @@ static BOOL RegisterPreTranslateMessage()
 {
 	// Below is a hack, which allows us to define a PreTranslateMessage-like function.
 	// We hook the TranslateMDISysAccel function, and use it to do our pre-translation.
-	ppTranslateMDISysAccel = FindImportPtr(GetModuleHandle(NULL), "user32.dll", "TranslateMDISysAccel");
+
+	HMODULE hMainModule = GetModuleHandle(NULL);
+
+	ppTranslateMDISysAccel = FindImportPtr(hMainModule, "user32.dll", "TranslateMDISysAccel");
 	if(!ppTranslateMDISysAccel)
-		return FALSE;
+	{
+		// 0x10D984 is the RVA of the pointer to TranslateMDISysAccel in OllyDbg v1.10
+		// We use this hack in case there's no import table, e.g. OllyDbg is compressed
+		void **pp = (void **)((char *)hMainModule + 0x10D984);
+		void *p;
+		size_t nNumberOfBytesRead;
+		if(!ReadProcessMemory(GetCurrentProcess(), pp, &p, sizeof(void *), &nNumberOfBytesRead) || 
+			nNumberOfBytesRead != sizeof(void *) || 
+			p != TranslateMDISysAccel)
+		{
+			return FALSE;
+		}
+
+		ppTranslateMDISysAccel = pp;
+	}
 
 	PointerRedirectionAdd(ppTranslateMDISysAccel, TranslateMDISysAccelHook, &prTranslateMDISysAccel);
 	return TRUE;
