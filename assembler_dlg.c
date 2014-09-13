@@ -463,7 +463,8 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 		SaveFileOfTab(GetDlgItem(hWnd, IDC_TABS), GetDlgItem(hWnd, IDC_ASSEMBLER));
 		DestroyWindow(hWnd);
 		hAsmDlg = NULL;
-		break;
+		SetWindowLongPtr(hWnd, DWLP_MSGRESULT, 0);
+		return TRUE;
 
 	case WM_DESTROY:
 		if(p_dialog_param->hSmallIcon)
