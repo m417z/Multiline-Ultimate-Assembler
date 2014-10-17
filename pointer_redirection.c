@@ -1,15 +1,19 @@
 #include "stdafx.h"
 #include "pointer_redirection.h"
 
+static void PatchPtr(void **ppAddress, void *pPtr)
+{
+	DWORD dwOldProtect, dwOtherProtect;
+
+	VirtualProtect(ppAddress, sizeof(void *), PAGE_EXECUTE_READWRITE, &dwOldProtect);
+	*ppAddress = pPtr;
+	VirtualProtect(ppAddress, sizeof(void *), dwOldProtect, &dwOtherProtect);
+}
+
 void PointerRedirectionAdd(void **pp, void *pNew, POINTER_REDIRECTION *ppr)
 {
-	POINTER_REDIRECTION prTemp;
-
-	prTemp.pOriginalAddress = *pp;
-	prTemp.pRedirectionAddress = pNew;
-	CopyMemory(&prTemp.bAsmCommand, POINTER_REDIRECTION_ASM_COMMAND, sizeof(prTemp.bAsmCommand));
-
-	PatchMemory(ppr, &prTemp, sizeof(POINTER_REDIRECTION));
+	PatchPtr(&ppr->pOriginalAddress, *pp);
+	PatchPtr(&ppr->pRedirectionAddress, pNew);
 
 	PatchPtr(pp, &ppr->bAsmCommand);
 }
@@ -20,9 +24,9 @@ void PointerRedirectionRemove(void **pp, POINTER_REDIRECTION *ppr)
 
 	if(*pp != ppr->bAsmCommand)
 	{
-		pprTemp = (POINTER_REDIRECTION *)((char *)*pp - offsetof(POINTER_REDIRECTION, bAsmCommand));
-		while(pprTemp->pOriginalAddress != &ppr->bAsmCommand)
-			pprTemp = (POINTER_REDIRECTION *)((char *)pprTemp->pOriginalAddress - offsetof(POINTER_REDIRECTION, bAsmCommand));
+		pprTemp = (POINTER_REDIRECTION *)((BYTE *)*pp - offsetof(POINTER_REDIRECTION, bAsmCommand));
+		while(pprTemp->pOriginalAddress != ppr->bAsmCommand)
+			pprTemp = (POINTER_REDIRECTION *)((BYTE *)pprTemp->pOriginalAddress - offsetof(POINTER_REDIRECTION, bAsmCommand));
 
 		PatchPtr(&pprTemp->pOriginalAddress, ppr->pOriginalAddress);
 	}
@@ -30,20 +34,23 @@ void PointerRedirectionRemove(void **pp, POINTER_REDIRECTION *ppr)
 		PatchPtr(pp, ppr->pOriginalAddress);
 }
 
-static void PatchPtr(void **ppAddress, void *pPtr)
+void *PointerRedirectionGetOriginalPtr(void **pp)
 {
-	DWORD dwOldProtect, dwOtherProtect;
+	void *p = *pp;
 
-	VirtualProtect(ppAddress, sizeof(void *), PAGE_EXECUTE_READWRITE, &dwOldProtect);
-	*ppAddress = pPtr;
-	VirtualProtect(ppAddress, sizeof(void *), dwOldProtect, &dwOtherProtect);
-}
+	for(;;)
+	{
+		const BYTE *pCompare = POINTER_REDIRECTION_ASM_COMMAND POINTER_REDIRECTION_SIGNATURE;
+		int nCompareLen = sizeof(POINTER_REDIRECTION_ASM_COMMAND POINTER_REDIRECTION_SIGNATURE) - 1;
+		BYTE *pByte = p;
 
-static void PatchMemory(void *pDest, void *pSrc, size_t nSize)
-{
-	DWORD dwOldProtect, dwOtherProtect;
+		for(int i = 0; i < nCompareLen; i++)
+		{
+			if(pByte[i] != pCompare[i])
+				return p;
+		}
 
-	VirtualProtect(pDest, nSize, PAGE_EXECUTE_READWRITE, &dwOldProtect);
-	CopyMemory(pDest, pSrc, nSize);
-	VirtualProtect(pDest, nSize, dwOldProtect, &dwOtherProtect);
+		POINTER_REDIRECTION *pprTemp = (POINTER_REDIRECTION *)(pByte - offsetof(POINTER_REDIRECTION, bAsmCommand));
+		p = pprTemp->pOriginalAddress;
+	}
 }

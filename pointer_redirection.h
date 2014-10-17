@@ -7,24 +7,23 @@
 #define POINTER_REDIRECTION_ASM_COMMAND "\xE8\x00\x00\x00\x00\x58\xFF\x60\xF7"
 #endif
 
-#pragma pack(push, 1)
+#define POINTER_REDIRECTION_SIGNATURE "ptr_redr"
 
 typedef struct {
 	void *pOriginalAddress;
 	void *pRedirectionAddress;
-	BYTE bAsmCommand[sizeof(POINTER_REDIRECTION_ASM_COMMAND)-1];
+	BYTE bAsmCommand[sizeof(POINTER_REDIRECTION_ASM_COMMAND) - 1];
+	BYTE bSignature[sizeof(POINTER_REDIRECTION_SIGNATURE) - 1];
 } POINTER_REDIRECTION;
-
-#pragma pack(pop)
 
 #define POINTER_REDIRECTION_VAR(var) \
 	__pragma(code_seg(push, stack1, ".text")) \
-	__declspec(allocate(".text")) var; \
+	__declspec(allocate(".text")) var = \
+		{ DebugBreak, DebugBreak, POINTER_REDIRECTION_ASM_COMMAND, POINTER_REDIRECTION_SIGNATURE }; \
 	__pragma(code_seg(pop, stack1))
 
 void PointerRedirectionAdd(void **pp, void *pNew, POINTER_REDIRECTION *ppr);
 void PointerRedirectionRemove(void **pp, POINTER_REDIRECTION *ppr);
-static void PatchPtr(void **ppAddress, void *pPtr);
-static void PatchMemory(void *pDest, void *pSrc, size_t nSize);
+void *PointerRedirectionGetOriginalPtr(void **pp);
 
 #endif // _POINTER_REDIRECTION_H_
