@@ -219,7 +219,7 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 					0, HIWORD(lParam)-p_dialog_param->dlg_last_ch, 0, 0);
 
 			if(hDwp)
-				hDwp = ChildRelativeDeferWindowPos(hDwp, hWnd, IDCANCEL, 
+				hDwp = ChildRelativeDeferWindowPos(hDwp, hWnd, IDC_CLOSE, 
 					LOWORD(lParam)-p_dialog_param->dlg_last_cw, HIWORD(lParam)-p_dialog_param->dlg_last_ch, 0, 0);
 
 			if(hDwp)
@@ -446,7 +446,7 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			PatchCode(hWnd);
 			break;
 
-		case IDCANCEL:
+		case IDC_CLOSE:
 			SendMessage(hWnd, WM_CLOSE, 0, 0);
 			break;
 		}
@@ -644,7 +644,7 @@ static void LoadWindowPos(HWND hWnd, HINSTANCE hInst, long *p_min_w, long *p_min
 	GetWindowRect(GetDlgItem(hWnd, IDOK), &rc);
 	min_w = cur_w + rc.right;
 
-	GetWindowRect(GetDlgItem(hWnd, IDCANCEL), &rc);
+	GetWindowRect(GetDlgItem(hWnd, IDC_CLOSE), &rc);
 	min_w -= rc.left;
 
 	GetWindowRect(GetDlgItem(hWnd, IDC_ASSEMBLER), &rc);

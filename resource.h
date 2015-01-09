@@ -9,16 +9,17 @@
 #define IDD_OPTIONS                     112
 #define IDC_TABS                        1001
 #define IDC_ASSEMBLER                   1002
-#define IDC_DISASM_RVA                  1003
-#define IDC_DISASM_RVA_RELOCONLY        1004
-#define IDC_DISASM_LABEL                1005
-#define IDC_DISASM_EXTJMP               1006
-#define IDC_DISASM_HEX                  1007
-#define IDC_DISASM_LABELGEN             1008
-#define IDC_ASM_COMMENTS                1009
-#define IDC_ASM_LABELS                  1010
-#define IDC_EDIT_SAVEPOS                1011
-#define IDC_EDIT_TABWIDTH               1012
+#define IDC_CLOSE                       1003
+#define IDC_DISASM_RVA                  1004
+#define IDC_DISASM_RVA_RELOCONLY        1005
+#define IDC_DISASM_LABEL                1006
+#define IDC_DISASM_EXTJMP               1007
+#define IDC_DISASM_HEX                  1008
+#define IDC_DISASM_LABELGEN             1009
+#define IDC_ASM_COMMENTS                1010
+#define IDC_ASM_LABELS                  1011
+#define IDC_EDIT_SAVEPOS                1012
+#define IDC_EDIT_TABWIDTH               1013
 #define ID_RCM_UNDO                     40001
 #define ID_RCM_REDO                     40002
 #define ID_RCM_CUT                      40003
@@ -47,7 +48,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        113
 #define _APS_NEXT_COMMAND_VALUE         40022
-#define _APS_NEXT_CONTROL_VALUE         1013
+#define _APS_NEXT_CONTROL_VALUE         1014
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
