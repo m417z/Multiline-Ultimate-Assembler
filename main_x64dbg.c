@@ -8,6 +8,7 @@ extern HINSTANCE hDllInst;
 
 static int pluginHandle;
 static int hMenu;
+static int hMenuDisasm;;
 
 #ifndef DLL_EXPORT
 #define DLL_EXPORT __declspec(dllexport)
@@ -19,6 +20,8 @@ static int hMenu;
 #define MENU_HELP             3
 #define MENU_ABOUT            4
 
+#define MENU_CPU_DISASM       5
+
 static int GetPluginVersion();
 static void DisassembleSelection();
 
@@ -26,6 +29,7 @@ DLL_EXPORT void plugsetup(PLUG_SETUPSTRUCT *setupStruct)
 {
 	hwollymain = setupStruct->hwndDlg;
 	hMenu = setupStruct->hMenu;
+	hMenuDisasm = setupStruct->hMenuDisasm;
 
 	_plugin_menuaddentry(hMenu, MENU_MAIN, "&Multiline Ultimate Assembler");
 	_plugin_menuaddentry(hMenu, MENU_DISASM, "&Disassemble selection");
@@ -34,6 +38,8 @@ DLL_EXPORT void plugsetup(PLUG_SETUPSTRUCT *setupStruct)
 	_plugin_menuaddseparator(hMenu);
 	_plugin_menuaddentry(hMenu, MENU_HELP, "&Help");
 	_plugin_menuaddentry(hMenu, MENU_ABOUT, "&About");
+
+	_plugin_menuaddentry(hMenuDisasm, MENU_CPU_DISASM, "&Disassemble selection");
 }
 
 DLL_EXPORT bool pluginit(PLUG_INITSTRUCT* initStruct)
@@ -79,6 +85,7 @@ static int GetPluginVersion()
 DLL_EXPORT bool plugstop()
 {
 	_plugin_menuclear(hMenu);
+	_plugin_menuclear(hMenuDisasm);
 
 	AssemblerCloseDlg();
 	PluginExit();
@@ -104,6 +111,7 @@ DLL_EXPORT CDECL void CBMENUENTRY(CBTYPE cbType, void *callbackInfo)
 		break;
 
 	case MENU_DISASM:
+	case MENU_CPU_DISASM:
 		if(DbgIsDebugging())
 			DisassembleSelection();
 		else
