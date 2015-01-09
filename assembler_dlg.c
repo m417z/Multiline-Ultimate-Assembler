@@ -445,6 +445,10 @@ static LRESULT CALLBACK DlgAsmProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
 			SaveFileOfTab(GetDlgItem(hWnd, IDC_TABS), GetDlgItem(hWnd, IDC_ASSEMBLER));
 			PatchCode(hWnd);
 			break;
+
+		case IDCANCEL:
+			SendMessage(hWnd, WM_CLOSE, 0, 0);
+			break;
 		}
 		break;
 
