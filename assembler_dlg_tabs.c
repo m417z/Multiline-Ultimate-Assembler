@@ -652,17 +652,28 @@ BOOL LoadFileOfTab(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 {
 	TCHAR szFileName[MAX_PATH];
 	HANDLE hFile;
+	OVERLAPPED overlapped;
 	EDITSTREAM es;
 
 	SendMessage(hAsmEditWnd, WM_SETTEXT, 0, (LPARAM)_T(""));
 
 	GetTabFileName(hTabCtrlWnd, -1, szFileName);
 
-	hFile = CreateFile(szFileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	hFile = CreateFile(szFileName, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, 
+		NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hFile == INVALID_HANDLE_VALUE)
 	{
 		ZeroMemory(&ftCurrentTabLastWriteTime, sizeof(FILETIME));
 		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)_T("Could not read content of file"));
+		return FALSE;
+	}
+
+	ZeroMemory(&overlapped, sizeof(OVERLAPPED));
+	if(!LockFileEx(hFile, 0, 0, 0xFFFFFFFF, 0xFFFFFFFF, &overlapped))
+	{
+		CloseHandle(hFile);
+		ZeroMemory(&ftCurrentTabLastWriteTime, sizeof(FILETIME));
+		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)_T("Could not lock file for reading"));
 		return FALSE;
 	}
 
@@ -672,6 +683,7 @@ BOOL LoadFileOfTab(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 
 	SendMessage(hAsmEditWnd, EM_STREAMIN, SF_TEXT, (LPARAM)&es);
 
+	UnlockFileEx(hFile, 0, 0xFFFFFFFF, 0xFFFFFFFF, &overlapped);
 	CloseHandle(hFile);
 
 	GetFileLastWriteTime(szFileName, &ftCurrentTabLastWriteTime);
@@ -685,6 +697,7 @@ BOOL SaveFileOfTab(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 {
 	TCHAR szFileName[MAX_PATH];
 	HANDLE hFile;
+	OVERLAPPED overlapped;
 	EDITSTREAM es;
 
 	if(!SendMessage(hAsmEditWnd, EM_GETMODIFY, 0, 0))
@@ -698,10 +711,19 @@ BOOL SaveFileOfTab(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 
 	GetTabFileName(hTabCtrlWnd, -1, szFileName);
 
-	hFile = CreateFile(szFileName, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	hFile = CreateFile(szFileName, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, 
+		NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if(hFile == INVALID_HANDLE_VALUE)
 	{
 		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)_T("Could not save content to file"));
+		return FALSE;
+	}
+
+	ZeroMemory(&overlapped, sizeof(OVERLAPPED));
+	if(!LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK, 0, 0xFFFFFFFF, 0xFFFFFFFF, &overlapped))
+	{
+		CloseHandle(hFile);
+		PostMessage(hPostErrorWnd, uPostErrorMsg, MB_ICONEXCLAMATION, (LPARAM)_T("Could not lock file for writing"));
 		return FALSE;
 	}
 
@@ -711,6 +733,7 @@ BOOL SaveFileOfTab(HWND hTabCtrlWnd, HWND hAsmEditWnd)
 
 	SendMessage(hAsmEditWnd, EM_STREAMOUT, SF_TEXT, (LPARAM)&es);
 
+	UnlockFileEx(hFile, 0, 0xFFFFFFFF, 0xFFFFFFFF, &overlapped);
 	CloseHandle(hFile);
 
 	GetFileLastWriteTime(szFileName, &ftCurrentTabLastWriteTime);
