@@ -37,7 +37,7 @@ extern "C"
 
 //Bridge defines
 #define MAX_SETTING_SIZE 65536
-#define DBG_VERSION 21
+#define DBG_VERSION 24
 
 //Bridge functions
 BRIDGE_IMPEXP const char* BridgeInit();
@@ -59,11 +59,14 @@ BRIDGE_IMPEXP int BridgeGetDbgVersion();
 #define MAX_THREAD_NAME_SIZE 256
 #define MAX_STRING_SIZE 512
 #define MAX_ERROR_SIZE 512
+#define RIGHTS_STRING_SIZE (sizeof("ERWCG") + 1)
+#define MAX_SECTION_SIZE 10
 
 #define TYPE_VALUE 1
 #define TYPE_MEMORY 2
 #define TYPE_ADDR 4
 #define MAX_MNEMONIC_SIZE 64
+#define PAGE_SIZE 0x1000
 
 //Debugger enums
 typedef enum
@@ -367,39 +370,146 @@ typedef struct
 
 typedef struct
 {
-    duint cax;
-    duint ccx;
-    duint cdx;
-    duint cbx;
-    duint csp;
-    duint cbp;
-    duint csi;
-    duint cdi;
+    bool FZ;
+    bool PM;
+    bool UM;
+    bool OM;
+    bool ZM;
+    bool IM;
+    bool DM;
+    bool DAZ;
+    bool PE;
+    bool UE;
+    bool OE;
+    bool ZE;
+    bool DE;
+    bool IE;
+
+    unsigned short RC;
+} MXCSRFIELDS;
+
+typedef struct
+{
+    bool B;
+    bool C3;
+    bool C2;
+    bool C1;
+    bool C0;
+    bool IR;
+    bool SF;
+    bool P;
+    bool U;
+    bool O;
+    bool Z;
+    bool D;
+    bool I;
+
+    unsigned short TOP;
+
+} X87STATUSWORDFIELDS;
+
+typedef struct
+{
+    bool IC;
+    bool IEM;
+    bool PM;
+    bool UM;
+    bool OM;
+    bool ZM;
+    bool DM;
+    bool IM;
+
+    unsigned short RC;
+    unsigned short PC;
+
+} X87CONTROLWORDFIELDS;
+
+typedef struct DECLSPEC_ALIGN(16) _XMMREGISTER
+{
+    ULONGLONG Low;
+    LONGLONG High;
+} XMMREGISTER;
+
+typedef struct
+{
+    XMMREGISTER Low; //XMM/SSE part
+    XMMREGISTER High; //AVX part
+} YMMREGISTER;
+
+typedef struct
+{
+    BYTE    data[10];
+    int     st_value;
+    int     tag;
+} X87FPUREGISTER;
+
+typedef struct
+{
+    WORD   ControlWord;
+    WORD   StatusWord;
+    WORD   TagWord;
+    DWORD   ErrorOffset;
+    DWORD   ErrorSelector;
+    DWORD   DataOffset;
+    DWORD   DataSelector;
+    DWORD   Cr0NpxState;
+} X87FPU;
+
+typedef struct
+{
+    ULONG_PTR cax;
+    ULONG_PTR ccx;
+    ULONG_PTR cdx;
+    ULONG_PTR cbx;
+    ULONG_PTR csp;
+    ULONG_PTR cbp;
+    ULONG_PTR csi;
+    ULONG_PTR cdi;
 #ifdef _WIN64
-    duint r8;
-    duint r9;
-    duint r10;
-    duint r11;
-    duint r12;
-    duint r13;
-    duint r14;
-    duint r15;
+    ULONG_PTR r8;
+    ULONG_PTR r9;
+    ULONG_PTR r10;
+    ULONG_PTR r11;
+    ULONG_PTR r12;
+    ULONG_PTR r13;
+    ULONG_PTR r14;
+    ULONG_PTR r15;
 #endif //_WIN64
-    duint cip;
-    unsigned int eflags;
-    FLAGS flags;
+    ULONG_PTR cip;
+    ULONG_PTR eflags;
     unsigned short gs;
     unsigned short fs;
     unsigned short es;
     unsigned short ds;
     unsigned short cs;
     unsigned short ss;
-    duint dr0;
-    duint dr1;
-    duint dr2;
-    duint dr3;
-    duint dr6;
-    duint dr7;
+    ULONG_PTR dr0;
+    ULONG_PTR dr1;
+    ULONG_PTR dr2;
+    ULONG_PTR dr3;
+    ULONG_PTR dr6;
+    ULONG_PTR dr7;
+    BYTE RegisterArea[80];
+    X87FPU x87fpu;
+    DWORD MxCsr;
+#ifdef _WIN64
+    XMMREGISTER XmmRegisters[16];
+    YMMREGISTER YmmRegisters[16];
+#else // x86
+    XMMREGISTER XmmRegisters[8];
+    YMMREGISTER YmmRegisters[8];
+#endif
+} REGISTERCONTEXT;
+
+typedef struct
+{
+    REGISTERCONTEXT regcontext;
+    FLAGS flags;
+    X87FPUREGISTER x87FPURegisters[8];
+    unsigned long long mmx[8];
+    MXCSRFIELDS MxCsrFields;
+    X87STATUSWORDFIELDS x87StatusWordFields;
+    X87CONTROLWORDFIELDS x87ControlWordFields;
 } REGDUMP;
 
 typedef struct
@@ -569,6 +679,9 @@ BRIDGE_IMPEXP bool DbgWinEventGlobal(MSG* message);
 
 //Gui defines
 #define GUI_PLUGIN_MENU 0
+#define GUI_DISASM_MENU 1
+#define GUI_DUMP_MENU 2
+#define GUI_STACK_MENU 3
 
 #define GUI_DISASSEMBLY 0
 #define GUI_DUMP 1
@@ -627,14 +740,16 @@ typedef enum
     GUI_GETLINE_WINDOW,             // param1=const char* title,    param2=char* text
     GUI_AUTOCOMPLETE_ADDCMD,        // param1=const char* cmd,      param2=ununsed
     GUI_AUTOCOMPLETE_DELCMD,        // param1=const char* cmd,      param2=ununsed
-    GUI_AUTOCOMPLETE_CLEARALL,      // param1=ununsed,              param2=unused
+    GUI_AUTOCOMPLETE_CLEARALL,      // param1=unused,              param2=unused
     GUI_SCRIPT_ENABLEHIGHLIGHTING,  // param1=bool enable,          param2=unused
     GUI_ADD_MSG_TO_STATUSBAR,       // param1=const char* msg,      param2=unused
     GUI_UPDATE_SIDEBAR,             // param1=unused,               param2=unused
     GUI_REPAINT_TABLE_VIEW,         // param1=unused,               param2=unused
     GUI_UPDATE_PATCHES,             // param1=unused,               param2=unused
     GUI_UPDATE_CALLSTACK,           // param1=unused,               param2=unused
-    GUI_SYMBOL_REFRESH_CURRENT      // param1=unused,               param2=unused
+    GUI_SYMBOL_REFRESH_CURRENT,     // param1=unused,               param2=unused
+    GUI_UPDATE_MEMORY_VIEW,         // param1=unused,               param2=unused
+    GUI_REF_INITIALIZE              // param1=const char* name      param2=unused
 } GUIMSG;
 
 //GUI structures
@@ -681,6 +796,7 @@ BRIDGE_IMPEXP void GuiReferenceAddColumn(int width, const char* title);
 BRIDGE_IMPEXP void GuiReferenceSetRowCount(int count);
 BRIDGE_IMPEXP int GuiReferenceGetRowCount();
 BRIDGE_IMPEXP void GuiReferenceDeleteAllColumns();
+BRIDGE_IMPEXP void GuiReferenceInitialize(const char* name);
 BRIDGE_IMPEXP void GuiReferenceSetCellContent(int row, int col, const char* str);
 BRIDGE_IMPEXP const char* GuiReferenceGetCellContent(int row, int col);
 BRIDGE_IMPEXP void GuiReferenceReloadData();
@@ -690,6 +806,7 @@ BRIDGE_IMPEXP void GuiReferenceSetSearchStartCol(int col);
 BRIDGE_IMPEXP void GuiStackDumpAt(duint addr, duint csp);
 BRIDGE_IMPEXP void GuiUpdateDumpView();
 BRIDGE_IMPEXP void GuiUpdateThreadView();
+BRIDGE_IMPEXP void GuiUpdateMemoryView();
 BRIDGE_IMPEXP void GuiAddRecentFile(const char* file);
 BRIDGE_IMPEXP void GuiSetLastException(unsigned int exception);
 BRIDGE_IMPEXP bool GuiGetDisassembly(duint addr, char* text);
@@ -708,6 +825,7 @@ BRIDGE_IMPEXP void GuiUpdateSideBar();
 BRIDGE_IMPEXP void GuiRepaintTableView();
 BRIDGE_IMPEXP void GuiUpdatePatches();
 BRIDGE_IMPEXP void GuiUpdateCallStack();
+BRIDGE_IMPEXP void GuiUpdateMemoryView();
 
 #ifdef __cplusplus
 }

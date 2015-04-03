@@ -54,9 +54,17 @@ typedef void (*MEMUPDATEMAP)();
 typedef void (*GETCALLSTACK)(DBGCALLSTACK* callstack);
 typedef void (*SYMBOLDOWNLOADALLSYMBOLS)(const char* szSymbolStore);
 typedef bool (*GETJIT)(char* jit, bool x64);
-typedef bool (*GETJITAUTO)(bool*);
-typedef bool (*GETDEFJIT)(char*);
+typedef bool (*GETJITAUTO)(bool* jitauto);
+typedef bool (*GETDEFJIT)(char* defjit);
 typedef bool (*GETPROCESSLIST)(DBGPROCESSINFO** entries, int* count);
+typedef bool (*GETPAGERIGHTS)(duint addr, char* rights);
+typedef bool (*SETPAGERIGHTS)(duint addr, const char* rights);
+typedef bool (*PAGERIGHTSTOSTRING)(DWORD protect, char* rights);
+typedef bool (*ISPROCESSELEVATED)();
+typedef bool (*GETCMDLINE)(char* cmdline, size_t* cbsize);
+typedef bool (*SETCMDLINE)(const char* cmdline);
+typedef duint (*FILEOFFSETTOVA)(const char* modname, duint offset);
+typedef duint (*VATOFILEOFFSET)(duint va);
 
 typedef struct DBGFUNCTIONS_
 {
@@ -84,6 +92,14 @@ typedef struct DBGFUNCTIONS_
     GETJIT GetJit;
     GETDEFJIT GetDefJit;
     GETPROCESSLIST GetProcessList;
+    GETPAGERIGHTS GetPageRights;
+    SETPAGERIGHTS SetPageRights;
+    PAGERIGHTSTOSTRING PageRightsToString;
+    ISPROCESSELEVATED IsProcessElevated;
+    GETCMDLINE GetCmdline;
+    SETCMDLINE SetCmdline;
+    FILEOFFSETTOVA FileOffsetToVa;
+    VATOFILEOFFSET VaToFileOffset;
 } DBGFUNCTIONS;
 
 #ifdef BUILD_DBG
