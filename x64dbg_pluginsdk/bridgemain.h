@@ -37,7 +37,7 @@ extern "C"
 
 //Bridge defines
 #define MAX_SETTING_SIZE 65536
-#define DBG_VERSION 24
+#define DBG_VERSION 25
 
 //Bridge functions
 BRIDGE_IMPEXP const char* BridgeInit();
@@ -503,6 +503,12 @@ typedef struct
 
 typedef struct
 {
+    DWORD code;
+    const char* name;
+} LASTERROR;
+
+typedef struct
+{
     REGISTERCONTEXT regcontext;
     FLAGS flags;
     X87FPUREGISTER x87FPURegisters[8];
@@ -510,6 +516,7 @@ typedef struct
     MXCSRFIELDS MxCsrFields;
     X87STATUSWORDFIELDS x87StatusWordFields;
     X87CONTROLWORDFIELDS x87ControlWordFields;
+    LASTERROR lastError;
 } REGDUMP;
 
 typedef struct
@@ -540,8 +547,8 @@ typedef struct
 typedef struct
 {
     int ThreadNumber;
-    HANDLE hThread;
-    DWORD dwThreadId;
+    HANDLE Handle;
+    DWORD ThreadId;
     duint ThreadStartAddress;
     duint ThreadLocalBase;
     char threadName[MAX_THREAD_NAME_SIZE];
@@ -749,7 +756,10 @@ typedef enum
     GUI_UPDATE_CALLSTACK,           // param1=unused,               param2=unused
     GUI_SYMBOL_REFRESH_CURRENT,     // param1=unused,               param2=unused
     GUI_UPDATE_MEMORY_VIEW,         // param1=unused,               param2=unused
-    GUI_REF_INITIALIZE              // param1=const char* name      param2=unused
+    GUI_REF_INITIALIZE,             // param1=const char* name,     param2=unused
+    GUI_LOAD_SOURCE_FILE,           // param1=const char* path,     param2=line
+    GUI_MENU_SET_ICON,              // param1=int hMenu,            param2=ICONINFO*
+    GUI_MENU_SET_ENTRY_ICON         // param1=int hEntry,           param2=ICONINFO*
 } GUIMSG;
 
 //GUI structures
@@ -765,6 +775,12 @@ typedef struct
     duint start;
     duint end;
 } SELECTIONDATA;
+
+typedef struct
+{
+    const void* data;
+    duint size;
+} ICONDATA;
 
 //GUI functions
 BRIDGE_IMPEXP void GuiDisasmAt(duint addr, duint cip);
@@ -826,6 +842,9 @@ BRIDGE_IMPEXP void GuiRepaintTableView();
 BRIDGE_IMPEXP void GuiUpdatePatches();
 BRIDGE_IMPEXP void GuiUpdateCallStack();
 BRIDGE_IMPEXP void GuiUpdateMemoryView();
+BRIDGE_IMPEXP void GuiLoadSourceFile(const char* path, int line);
+BRIDGE_IMPEXP void GuiMenuSetIcon(int hMenu, const ICONDATA* icon);
+BRIDGE_IMPEXP void GuiMenuSetEntryIcon(int hEntry, const ICONDATA* icon);
 
 #ifdef __cplusplus
 }
