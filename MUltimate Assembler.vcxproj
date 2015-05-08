@@ -252,6 +252,9 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
     </Link>
+    <ResourceCompile>
+      <PreprocessorDefinitions>TARGET_ODBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -275,6 +278,9 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
     </Link>
+    <ResourceCompile>
+      <PreprocessorDefinitions>TARGET_ODBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -301,6 +307,9 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
     </Link>
+    <ResourceCompile>
+      <PreprocessorDefinitions>TARGET_ODBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -327,6 +336,9 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
     </Link>
+    <ResourceCompile>
+      <PreprocessorDefinitions>TARGET_ODBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Rel_x64dbg|Win32'">
     <ClCompile>
@@ -353,6 +365,9 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
     </Link>
+    <ResourceCompile>
+      <PreprocessorDefinitions>TARGET_X64DBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Rel_x64dbg|x64'">
     <ClCompile>
@@ -379,6 +394,9 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
     </Link>
+    <ResourceCompile>
+      <PreprocessorDefinitions>TARGET_X64DBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Rel_odbg_v2|Win32'">
     <ClCompile>
@@ -405,6 +423,9 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
     </Link>
+    <ResourceCompile>
+      <PreprocessorDefinitions>TARGET_ODBG2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Rel_odbg_v2|x64'">
     <ClCompile>
@@ -431,6 +452,9 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
     </Link>
+    <ResourceCompile>
+      <PreprocessorDefinitions>TARGET_ODBG2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Rel_immdbg|Win32'">
     <ClCompile>
@@ -457,6 +481,9 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
     </Link>
+    <ResourceCompile>
+      <PreprocessorDefinitions>TARGET_IMMDBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Rel_immdbg|x64'">
     <ClCompile>
@@ -483,6 +510,9 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
     </Link>
+    <ResourceCompile>
+      <PreprocessorDefinitions>TARGET_IMMDBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="assembler_dlg.c" />
@@ -614,6 +644,9 @@
     <None Include="raeditlib\Res\Select.cur" />
     <None Include="raeditlib\Res\SplitH.cur" />
     <None Include="rsrc_files\icon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="rsrc_files\icon_x64dbg.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

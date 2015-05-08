@@ -56,6 +56,19 @@ BEGIN
     "W",            ID_TABSTRIPMENU_CLOSEALLTABS, VIRTKEY, SHIFT, CONTROL, ALT, NOINVERT
 END
 
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// PNG
+//
+
+#if defined(APSTUDIO_INVOKED) || defined(TARGET_X64DBG)
+#if defined(APSTUDIO_INVOKED)
+IDB_X64DBG_ICON$(TARGET_X64DBG) PNG                     "rsrc_files\\icon_x64dbg.png"
+#else
+IDB_X64DBG_ICON         PNG                     "rsrc_files\\icon_x64dbg.png"
+#endif
+#endif
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
 

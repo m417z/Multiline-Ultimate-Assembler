@@ -7,6 +7,7 @@
 #define IDR_MAINACCELERATOR             110
 #define IDR_RIGHTCLICK                  111
 #define IDD_OPTIONS                     112
+#define IDB_X64DBG_ICON                 113
 #define IDC_TABS                        1001
 #define IDC_ASSEMBLER                   1002
 #define IDC_CLOSE                       1003
@@ -46,7 +47,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        113
+#define _APS_NEXT_RESOURCE_VALUE        114
 #define _APS_NEXT_COMMAND_VALUE         40022
 #define _APS_NEXT_CONTROL_VALUE         1014
 #define _APS_NEXT_SYMED_VALUE           101

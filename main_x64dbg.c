@@ -31,6 +31,26 @@ DLL_EXPORT void plugsetup(PLUG_SETUPSTRUCT *setupStruct)
 	hMenu = setupStruct->hMenu;
 	hMenuDisasm = setupStruct->hMenuDisasm;
 
+	HRSRC hResource = FindResource(hDllInst, MAKEINTRESOURCE(IDB_X64DBG_ICON), "PNG");
+	if(hResource)
+	{
+		HGLOBAL hMemory = LoadResource(hDllInst, hResource);
+		if(hMemory)
+		{
+			DWORD dwSize = SizeofResource(hDllInst, hResource);
+			LPVOID lpAddress = LockResource(hMemory);
+			if(lpAddress)
+			{
+				ICONDATA IconData;
+				IconData.data = lpAddress;
+				IconData.size = dwSize;
+
+				_plugin_menuseticon(hMenu, &IconData);
+				_plugin_menuseticon(hMenuDisasm, &IconData);
+			}
+		}
+	}
+
 	_plugin_menuaddentry(hMenu, MENU_MAIN, "&Multiline Ultimate Assembler");
 	_plugin_menuaddentry(hMenu, MENU_DISASM, "&Disassemble selection");
 	_plugin_menuaddseparator(hMenu);
