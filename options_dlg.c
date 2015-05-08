@@ -15,7 +15,7 @@ static LRESULT CALLBACK DlgOptionsProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	{
 	case WM_INITDIALOG:
 #if defined(TARGET_X64DBG)
-		// IDC_DISASM_EXTJMP not supported for x64_dbg
+		// IDC_DISASM_EXTJMP not supported for x64dbg
 		EnableWindow(GetDlgItem(hWnd, IDC_DISASM_EXTJMP), FALSE);
 #endif
 
@@ -48,7 +48,7 @@ static LRESULT CALLBACK DlgOptionsProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 
 		case IDC_DISASM_LABEL:
 #if defined(TARGET_X64DBG)
-			// IDC_DISASM_EXTJMP not supported for x64_dbg
+			// IDC_DISASM_EXTJMP not supported for x64dbg
 #else
 			EnableWindow(GetDlgItem(hWnd, IDC_DISASM_EXTJMP), IsDlgButtonChecked(hWnd, IDC_DISASM_LABEL));
 #endif
@@ -86,7 +86,7 @@ static void OptionsToDlg(HWND hWnd)
 		EnableWindow(GetDlgItem(hWnd, IDC_DISASM_EXTJMP), FALSE);
 
 #if defined(TARGET_X64DBG)
-// IDC_DISASM_EXTJMP not supported for x64_dbg
+// IDC_DISASM_EXTJMP not supported for x64dbg
 #else
 	if(options.disasm_extjmp)
 		CheckDlgButton(hWnd, IDC_DISASM_EXTJMP, BST_CHECKED);

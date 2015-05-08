@@ -700,7 +700,7 @@ static BOOL ProcessExternalCode(DWORD_PTR dwAddress, SIZE_T nSize, PLUGIN_MODULE
 		}
 	}
 #elif defined(TARGET_X64DBG)
-	// TODO: fix for x64_dbg
+	// TODO: fix for x64dbg
 #else
 #error Unknonw target
 #endif
