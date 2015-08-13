@@ -12,8 +12,8 @@ extern HINSTANCE hDllInst;
 static void **ppTranslateMDISysAccel;
 POINTER_REDIRECTION_VAR(static POINTER_REDIRECTION prTranslateMDISysAccel);
 
-static int MainMenuFunc(t_table *pt, wchar_t *name, ulong index, int mode);
-static int DisasmMenuFunc(t_table *pt, wchar_t *name, ulong index, int mode);
+static int __cdecl MainMenuFunc(t_table *pt, wchar_t *name, ulong index, int mode);
+static int __cdecl DisasmMenuFunc(t_table *pt, wchar_t *name, ulong index, int mode);
 
 // PreTranslateMessage
 static BOOL RegisterPreTranslateMessage();
@@ -133,7 +133,7 @@ extc void __cdecl ODBG2_Plugindestroy(void)
 	PluginExit();
 }
 
-static int MainMenuFunc(t_table *pt, wchar_t *name, ulong index, int mode)
+static int __cdecl MainMenuFunc(t_table *pt, wchar_t *name, ulong index, int mode)
 {
 	switch(mode)
 	{
@@ -195,7 +195,7 @@ static int MainMenuFunc(t_table *pt, wchar_t *name, ulong index, int mode)
 	return MENU_ABSENT;
 }
 
-static int DisasmMenuFunc(t_table *pt, wchar_t *name, ulong index, int mode)
+static int __cdecl DisasmMenuFunc(t_table *pt, wchar_t *name, ulong index, int mode)
 {
 	t_dump *pd;
 
