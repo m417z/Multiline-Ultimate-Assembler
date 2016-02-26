@@ -93,7 +93,48 @@ DWORD SimpleDisasm(BYTE *cmd, SIZE_T cmdsize, DWORD_PTR ip, BYTE *dec, BOOL bSiz
 
 	if(!bSizeOnly)
 	{
-		lstrcpy(pszResult, basicinfo.instruction); // pszResult should have at least COMMAND_MAX_LEN chars
+		if(basicinfo.type == TYPE_ADDR &&
+			basicinfo.branch &&
+			!basicinfo.call &&
+			basicinfo.size == 2)
+		{
+			// Add "short" for a short jump
+
+			// We add 6 chars, make sure that basicinfo.instruction is not too long
+			basicinfo.instruction[COMMAND_MAX_LEN - 1 - 6] = '\0';
+
+			BOOL bUppercase = (basicinfo.instruction[0] >= 'A' && basicinfo.instruction[0] <= 'Z');
+
+			char *p = basicinfo.instruction;
+			char *q = pszResult;
+
+			// Copy command name
+			while(*p != '\0' && *p != ' ' && *p != '\t')
+			{
+				*q++ = *p++;
+			}
+
+			// Copy spaces
+			while(*p == ' ' || *p == '\t')
+			{
+				*q++ = *p++;
+			}
+
+			if(*p != '\0')
+			{
+				// Add "short "
+				lstrcpy(q, bUppercase ? "SHORT " : "short ");
+				q += 6;
+			}
+
+			// Copy the rest
+			lstrcpy(q, p);
+		}
+		else
+		{
+			// pszResult should have at least COMMAND_MAX_LEN chars
+			lstrcpy(pszResult, basicinfo.instruction);
+		}
 
 		*jmpconst = basicinfo.addr;
 		*adrconst = basicinfo.memory.value;
