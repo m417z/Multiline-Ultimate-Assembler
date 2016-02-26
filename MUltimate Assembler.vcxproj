@@ -251,6 +251,7 @@
       <AdditionalDependencies>comctl32.lib;shlwapi.lib;minicrt\minicrt.lib;raeditlib\masm32.lib;raeditlib\raedit.lib;ollydbglib\ollydbg.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
+      <GenerateMapFile>true</GenerateMapFile>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>TARGET_ODBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -277,6 +278,7 @@
       <AdditionalDependencies>comctl32.lib;shlwapi.lib;raeditlib\RAEditC64.lib;minicrt\minicrt64.lib;ollydbglib\ollydbg.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
+      <GenerateMapFile>true</GenerateMapFile>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>TARGET_ODBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -306,6 +308,7 @@
       <AdditionalDependencies>comctl32.lib;shlwapi.lib;minicrt\minicrt.lib;raeditlib\masm32.lib;raeditlib\raedit.lib;ollydbglib\ollydbg.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
+      <GenerateMapFile>true</GenerateMapFile>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>TARGET_ODBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -335,6 +338,7 @@
       <AdditionalDependencies>comctl32.lib;shlwapi.lib;raeditlib\RAEditC64.lib;minicrt\minicrt64.lib;ollydbglib\ollydbg.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
+      <GenerateMapFile>true</GenerateMapFile>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>TARGET_ODBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -364,6 +368,7 @@
       <AdditionalDependencies>comctl32.lib;shlwapi.lib;minicrt\minicrt.lib;raeditlib\masm32.lib;raeditlib\raedit.lib;x64dbg_pluginsdk\x32dbg.lib;x64dbg_pluginsdk\x32bridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
+      <GenerateMapFile>true</GenerateMapFile>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>TARGET_X64DBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -393,6 +398,7 @@
       <AdditionalDependencies>comctl32.lib;shlwapi.lib;raeditlib\RAEditC64.lib;minicrt\minicrt64.lib;x64dbg_pluginsdk\x64dbg.lib;x64dbg_pluginsdk\x64bridge.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
+      <GenerateMapFile>true</GenerateMapFile>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>TARGET_X64DBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -422,6 +428,7 @@
       <AdditionalDependencies>comctl32.lib;shlwapi.lib;minicrt\minicrt.lib;raeditlib\masm32.lib;raeditlib\raedit.lib;ollydbglib\ollydbg2.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
+      <GenerateMapFile>true</GenerateMapFile>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>TARGET_ODBG2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -451,6 +458,7 @@
       <AdditionalDependencies>comctl32.lib;shlwapi.lib;raeditlib\RAEditC64.lib;minicrt\minicrt64.lib;ollydbglib\ollydbg2.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
+      <GenerateMapFile>true</GenerateMapFile>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>TARGET_ODBG2;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -480,6 +488,7 @@
       <AdditionalDependencies>comctl32.lib;shlwapi.lib;minicrt\minicrt.lib;raeditlib\masm32.lib;raeditlib\raedit.lib;ollydbglib\immdbg.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.01</MinimumRequiredVersion>
+      <GenerateMapFile>true</GenerateMapFile>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>TARGET_IMMDBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -509,6 +518,7 @@
       <AdditionalDependencies>comctl32.lib;shlwapi.lib;raeditlib\RAEditC64.lib;minicrt\minicrt64.lib;ollydbglib\immdbg.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
       <MinimumRequiredVersion>5.02</MinimumRequiredVersion>
+      <GenerateMapFile>true</GenerateMapFile>
     </Link>
     <ResourceCompile>
       <PreprocessorDefinitions>TARGET_IMMDBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
