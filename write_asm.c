@@ -1544,6 +1544,7 @@ static LONG_PTR ParseCommand(TCHAR *lpText, DWORD_PTR dwAddress, DWORD_PTR dwBas
 	TCHAR *lpCommandWithoutLabels;
 	BYTE bCode[MAXCMDSIZE];
 	SIZE_T nCodeLength;
+	UINT nDeltaSize;
 	LONG_PTR result;
 	TCHAR *lpComment;
 
@@ -1558,7 +1559,12 @@ static LONG_PTR ParseCommand(TCHAR *lpText, DWORD_PTR dwAddress, DWORD_PTR dwBas
 		lpResolvedCommand = lpText;
 
 	// Assemble command (with a foo address instead of labels)
-	result = ReplaceLabelsWithFooAddress(lpResolvedCommand, dwAddress, TRUE, &lpCommandWithoutLabels, lpError);
+#ifdef _WIN64
+	nDeltaSize = 64;
+#else // _WIN64
+	nDeltaSize = 32;
+#endif // _WIN64
+	result = ReplaceLabelsWithFooAddress(lpResolvedCommand, dwAddress, nDeltaSize, &lpCommandWithoutLabels, lpError);
 	if(result > 0)
 	{
 		if(lpCommandWithoutLabels)
@@ -1567,9 +1573,24 @@ static LONG_PTR ParseCommand(TCHAR *lpText, DWORD_PTR dwAddress, DWORD_PTR dwBas
 			result = ReplacedTextCorrectErrorSpot(lpText, lpCommandWithoutLabels, result);
 			HeapFree(GetProcessHeap(), 0, lpCommandWithoutLabels);
 
+#ifdef _WIN64
 			if(result <= 0)
 			{
-				result = ReplaceLabelsWithFooAddress(lpResolvedCommand, dwAddress, FALSE, &lpCommandWithoutLabels, lpError);
+				nDeltaSize = 32;
+				result = ReplaceLabelsWithFooAddress(lpResolvedCommand, dwAddress, nDeltaSize, &lpCommandWithoutLabels, lpError);
+				if(result > 0 && lpCommandWithoutLabels)
+				{
+					result = AssembleShortest(lpCommandWithoutLabels, dwAddress, bCode, lpError);
+					result = ReplacedTextCorrectErrorSpot(lpText, lpCommandWithoutLabels, result);
+					HeapFree(GetProcessHeap(), 0, lpCommandWithoutLabels);
+				}
+			}
+#endif // _WIN64
+
+			if(result <= 0)
+			{
+				nDeltaSize = 0;
+				result = ReplaceLabelsWithFooAddress(lpResolvedCommand, dwAddress, nDeltaSize, &lpCommandWithoutLabels, lpError);
 				if(result > 0 && lpCommandWithoutLabels)
 				{
 					result = AssembleShortest(lpCommandWithoutLabels, dwAddress, bCode, lpError);
@@ -1705,7 +1726,7 @@ static LONG_PTR ResolveCommand(TCHAR *lpCommand, DWORD_PTR dwBaseAddress, TCHAR 
 	return p-lpCommand;
 }
 
-static LONG_PTR ReplaceLabelsWithFooAddress(TCHAR *lpCommand, DWORD_PTR dwCommandAddress, BOOL bAddDelta, TCHAR **ppNewCommand, TCHAR *lpError)
+static LONG_PTR ReplaceLabelsWithFooAddress(TCHAR *lpCommand, DWORD_PTR dwCommandAddress, UINT nDeltaSize, TCHAR **ppNewCommand, TCHAR *lpError)
 {
 	TCHAR *p;
 	DWORD_PTR dwReplaceAddress;
@@ -1749,17 +1770,19 @@ static LONG_PTR ReplaceLabelsWithFooAddress(TCHAR *lpCommand, DWORD_PTR dwComman
 				return -text_start[label_count];
 			}
 
-			if(bAddDelta)
+			switch(nDeltaSize)
 			{
-#ifdef _WIN64
-				dwReplaceAddress += 0x1111111111111111;
+			case 64:
+				dwReplaceAddress += (DWORD_PTR)0x1111111111111111;
 
 				if((dwReplaceAddress & 0xFFFFFFFF00000000) == 0x0000000000000000 ||
 					(dwReplaceAddress & 0xFFFFFFFF00000000) == 0xFFFFFFFF00000000)
 				{
-					dwReplaceAddress += 0x1111111111111111;
+					dwReplaceAddress += (DWORD_PTR)0x1111111111111111;
 				}
-#else // _WIN64
+				break;
+
+			case 32:
 				dwReplaceAddress += 0x11111111;
 
 				if((dwReplaceAddress & 0xFFFF0000) == 0x00000000 ||
@@ -1767,7 +1790,14 @@ static LONG_PTR ReplaceLabelsWithFooAddress(TCHAR *lpCommand, DWORD_PTR dwComman
 				{
 					dwReplaceAddress += 0x11111111;
 				}
-#endif // _WIN64
+				break;
+
+			case 0:
+				break;
+
+			default:
+				lstrcpy(lpError, _T("Internal disassembler error"));
+				return -text_start[label_count];
 			}
 
 			dwAddress[label_count] = dwReplaceAddress;
