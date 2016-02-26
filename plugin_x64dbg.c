@@ -158,17 +158,20 @@ int GetComment(DWORD_PTR addr, TCHAR *name)
 	if(!DbgGetCommentAt(addr, name))
 		return 0;
 
+	if(name[0] == '\1') // Automatic comment
+		return 0;
+
 	return lstrlen(name);
 }
 
 BOOL QuickInsertLabel(DWORD_PTR addr, TCHAR *s)
 {
-	return DbgSetAutoLabelAt(addr, s);
+	return DbgSetLabelAt(addr, s);
 }
 
 BOOL QuickInsertComment(DWORD_PTR addr, TCHAR *s)
 {
-	return DbgSetAutoCommentAt(addr, s);
+	return DbgSetCommentAt(addr, s);
 }
 
 void MergeQuickData(void)
@@ -177,12 +180,14 @@ void MergeQuickData(void)
 
 void DeleteRangeLabels(DWORD_PTR addr0, DWORD_PTR addr1)
 {
-	DbgClearAutoLabelRange(addr0, addr1);
+	for(DWORD_PTR addr = addr0; addr < addr1; addr++)
+		DbgSetLabelAt(addr, "");
 }
 
 void DeleteRangeComments(DWORD_PTR addr0, DWORD_PTR addr1)
 {
-	DbgClearAutoCommentRange(addr0, addr1);
+	for(DWORD_PTR addr = addr0; addr < addr1; addr++)
+		DbgSetCommentAt(addr, "");
 }
 
 // Module functions
