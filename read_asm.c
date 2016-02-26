@@ -1155,6 +1155,7 @@ static int MakeRVAText(TCHAR szText[1 + MODULE_MAX_LEN + 2 + 1], PLUGIN_MODULE m
 static BOOL ReplaceAddressWithText(TCHAR **ppCommand, DWORD_PTR dwAddress, TCHAR *lpText, TCHAR *lpError)
 {
 	TCHAR *p;
+	TCHAR c;
 	TCHAR szTextAddress[9];
 	int address_len;
 	int address_count;
@@ -1175,24 +1176,34 @@ static BOOL ReplaceAddressWithText(TCHAR **ppCommand, DWORD_PTR dwAddress, TCHAR
 
 	while(*p != _T('\0') && address_count < 3)
 	{
-		if((*p >= _T('0') && *p <= _T('9')) || (*p >= _T('A') && *p <= _T('F')))
+		if((*p >= _T('0') && *p <= _T('9')) || (*p >= _T('A') && *p <= _T('F')) || (*p >= _T('a') && *p <= _T('f')))
 		{
 			address_start[address_count] = p - *ppCommand;
+
+			// Allow and ignore 0x prefix
+			if(p[0] == _T('0') && (p[1] == _T('X') || p[1] == _T('x')))
+				p += 2;
 
 			while(*p == _T('0'))
 				p++;
 
 			for(i=0; i<address_len; i++)
-				if(p[i] != szTextAddress[i])
+			{
+				c = p[i];
+				if(c >= _T('a') && c <= _T('f'))
+					c += -_T('a') + _T('A');
+
+				if(c != szTextAddress[i])
 					break;
+			}
 
 			p += i;
 
-			if((*p >= _T('0') && *p <= _T('9')) || (*p >= _T('A') && *p <= _T('F')))
+			if((*p >= _T('0') && *p <= _T('9')) || (*p >= _T('A') && *p <= _T('F')) || (*p >= _T('a') && *p <= _T('f')))
 			{
 				do {
 					p++;
-				} while((*p >= _T('0') && *p <= _T('9')) || (*p >= _T('A') && *p <= _T('F')));
+				} while((*p >= _T('0') && *p <= _T('9')) || (*p >= _T('A') && *p <= _T('F')) || (*p >= _T('a') && *p <= _T('f')));
 			}
 			else if(i == address_len)
 			{
