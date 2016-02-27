@@ -32,15 +32,15 @@ limitations under the License.
 
 // Concatenation that macro-expands its arguments.
 
-#define CONCAT(arg1, arg2) _CONCAT(arg1, arg2) // expands the arguments.
-#define _CONCAT(arg1, arg2) arg1 ## arg2       // do the actual concatenation.
+#define CONCAT_ARGS(arg1, arg2) _CONCAT(arg1, arg2) // expands the arguments.
+#define _CONCAT_ARGS(arg1, arg2) arg1 ## arg2       // do the actual concatenation.
 
 
-#define module_declarations CONCAT(MODULE_NAME, __declarations)
-#define module_load CONCAT(MODULE_NAME, __load)
-#define module_unload CONCAT(MODULE_NAME, __unload)
-#define module_initialize CONCAT(MODULE_NAME, __initialize)
-#define module_finalize CONCAT(MODULE_NAME, __finalize)
+#define module_declarations CONCAT_ARGS(MODULE_NAME, __declarations)
+#define module_load CONCAT_ARGS(MODULE_NAME, __load)
+#define module_unload CONCAT_ARGS(MODULE_NAME, __unload)
+#define module_initialize CONCAT_ARGS(MODULE_NAME, __initialize)
+#define module_finalize CONCAT_ARGS(MODULE_NAME, __finalize)
 
 #define begin_declarations \
     int module_declarations(YR_OBJECT* module) { \
@@ -338,10 +338,10 @@ limitations under the License.
 
 
 #define return_float(double_) { \
+      double d = (double) (double_); \
       assertf( \
           __function_obj->return_obj->type == OBJECT_TYPE_FLOAT, \
           "return type differs from function declaration"); \
-      double d = (double) (double_); \
       yr_object_set_float( \
           (d != (double) UNDEFINED) ? d : NAN, \
           __function_obj->return_obj, \
@@ -351,10 +351,10 @@ limitations under the License.
 
 
 #define return_string(string) { \
+      char* s = (char*) (string); \
       assertf( \
           __function_obj->return_obj->type == OBJECT_TYPE_STRING, \
           "return type differs from function declaration"); \
-      char* s = (char*) (string); \
       yr_object_set_string( \
           (s != (char*) UNDEFINED) ? s : NULL, \
           (s != (char*) UNDEFINED) ? strlen(s) : 0, \
@@ -392,8 +392,6 @@ typedef int (*YR_EXT_UNLOAD_FUNC)(
 
 typedef struct _YR_MODULE
 {
-    tidx_mask_t is_loaded;
-
     char* name;
 
     YR_EXT_DECLARATIONS_FUNC declarations;
