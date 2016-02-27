@@ -221,14 +221,12 @@ void MergeQuickData(void)
 
 void DeleteRangeLabels(DWORD_PTR addr0, DWORD_PTR addr1)
 {
-	for(DWORD_PTR addr = addr0; addr < addr1; addr++)
-		DbgSetLabelAt(addr, "");
+	DbgClearLabelRange(addr0, addr1);
 }
 
 void DeleteRangeComments(DWORD_PTR addr0, DWORD_PTR addr1)
 {
-	for(DWORD_PTR addr = addr0; addr < addr1; addr++)
-		DbgSetCommentAt(addr, "");
+	DbgClearCommentRange(addr0, addr1);
 }
 
 // Module functions
