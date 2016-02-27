@@ -54,7 +54,7 @@ TCHAR *PluginInit(HINSTANCE hInst)
 	MyGetintfromini(hInst, _T("disasm_rva_reloconly"), &options.disasm_rva_reloconly, 0, 0, 1);
 	MyGetintfromini(hInst, _T("disasm_label"), &options.disasm_label, 0, 0, 1);
 	MyGetintfromini(hInst, _T("disasm_extjmp"), &options.disasm_extjmp, 0, 0, 1);
-	MyGetintfromini(hInst, _T("disasm_hex"), &options.disasm_hex, 0, 3, 0);
+	MyGetintfromini(hInst, _T("disasm_hex"), &options.disasm_hex, 0, 4, 0);
 	MyGetintfromini(hInst, _T("disasm_labelgen"), &options.disasm_labelgen, 0, 2, 0);
 	MyGetintfromini(hInst, _T("asm_comments"), &options.asm_comments, 0, 0, 1);
 	MyGetintfromini(hInst, _T("asm_labels"), &options.asm_labels, 0, 0, 1);

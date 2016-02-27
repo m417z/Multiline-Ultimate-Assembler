@@ -1019,6 +1019,7 @@ static TCHAR *MakeText(DWORD_PTR dwAddress, PLUGIN_MODULE module, DISASM_CMD_HEA
 static SIZE_T CopyCommand(TCHAR *pBuffer, TCHAR *pCommand, int hex_option)
 {
 	TCHAR *p, *p_dest;
+	TCHAR *pDetectionFirstChar;
 	TCHAR *pHexFirstChar;
 
 	p_dest = pBuffer;
@@ -1038,6 +1039,12 @@ static SIZE_T CopyCommand(TCHAR *pBuffer, TCHAR *pCommand, int hex_option)
 		{
 			if((*p >= _T('0') && *p <= _T('9')) || (*p >= _T('A') && *p <= _T('F')) || (*p >= _T('a') && *p <= _T('f')))
 			{
+				pDetectionFirstChar = p;
+
+				// Allow and ignore 0x prefix
+				if(p[0] == _T('0') && (p[1] == _T('X') || p[1] == _T('x')))
+					p += 2;
+
 				pHexFirstChar = p;
 
 				do {
@@ -1046,8 +1053,8 @@ static SIZE_T CopyCommand(TCHAR *pBuffer, TCHAR *pCommand, int hex_option)
 
 				if((*p >= _T('A') && *p <= _T('Z')) || (*p >= _T('a') && *p <= _T('z')) || (*p >= _T('0') && *p <= _T('9')))
 				{
-					while(pHexFirstChar < p)
-						*p_dest++ = *pHexFirstChar++;
+					while(pDetectionFirstChar < p)
+						*p_dest++ = *pDetectionFirstChar++;
 
 					do {
 						*p_dest++ = *p++;
@@ -1055,18 +1062,21 @@ static SIZE_T CopyCommand(TCHAR *pBuffer, TCHAR *pCommand, int hex_option)
 				}
 				else
 				{
-					if(hex_option == 2)
+					if(hex_option == 3)
 					{
 						*p_dest++ = _T('0');
 						*p_dest++ = _T('x');
 					}
-					else if(*pHexFirstChar < _T('0') || *pHexFirstChar > _T('9'))
-						*p_dest++ = _T('0');
+					else if(hex_option == 1)
+					{
+						if(*pHexFirstChar < _T('0') || *pHexFirstChar > _T('9'))
+							*p_dest++ = _T('0');
+					}
 
 					while(pHexFirstChar < p)
 						*p_dest++ = *pHexFirstChar++;
 
-					if(hex_option == 1)
+					if(hex_option == 2)
 						*p_dest++ = _T('h');
 				}
 			}
@@ -1184,8 +1194,17 @@ static BOOL ReplaceAddressWithText(TCHAR **ppCommand, DWORD_PTR dwAddress, TCHAR
 			if(p[0] == _T('0') && (p[1] == _T('X') || p[1] == _T('x')))
 				p += 2;
 
-			while(*p == _T('0'))
-				p++;
+			// Skip zeros
+			if(*p == _T('0'))
+			{
+				do {
+					p++;
+				} while(*p == _T('0'));
+
+				// If the number is zero, leave the last digit
+				if((*p < _T('0') || *p > _T('9')) && (*p < _T('A') || *p > _T('F')) && (*p < _T('a') || *p > _T('f')))
+					p--;
+			}
 
 			for(i=0; i<address_len; i++)
 			{
@@ -1370,7 +1389,7 @@ static SIZE_T DWORDPtrToString(TCHAR szString[2 + sizeof(DWORD_PTR) * 2 + 1], DW
 
 	nHexLen = wsprintf(szHex, bAddress ? HEXPTR_PADDED : _T("%IX"), dw);
 
-	if(hex_option == 3)
+	if(hex_option == 4)
 	{
 		*p++ = _T('0');
 		*p++ = _T('x');
@@ -1378,14 +1397,14 @@ static SIZE_T DWORDPtrToString(TCHAR szString[2 + sizeof(DWORD_PTR) * 2 + 1], DW
 
 	if(szHex[0] >= _T('A') && szHex[0] <= _T('F'))
 	{
-		if(hex_option == 1 || hex_option == 2 || nHexLen < sizeof(DWORD_PTR) * 2)
+		if(hex_option == 2 || hex_option == 3 || nHexLen < sizeof(DWORD_PTR) * 2)
 			*p++ = _T('0');
 	}
 
 	lstrcpy(p, szHex);
 	p += nHexLen;
 
-	if(hex_option == 2)
+	if(hex_option == 3)
 	{
 		*p++ = _T('h');
 		*p = _T('\0');
