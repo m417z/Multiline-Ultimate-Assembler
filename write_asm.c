@@ -2541,9 +2541,9 @@ static TCHAR *SetLabels(LABEL_HEAD *p_label_head, CMD_BLOCK_HEAD *p_cmd_block_he
 						break;
 				}
 			}
-			else if(nLabelLen == 10 && lpLabel[1] == _T('_'))
+			else if(nLabelLen == 2+sizeof(DWORD_PTR)*2 && lpLabel[1] == _T('_'))
 			{
-				for(i=nLabelLen-8; i<nLabelLen; i++)
+				for(i=nLabelLen-sizeof(DWORD_PTR)*2; i<nLabelLen; i++)
 				{
 					if((lpLabel[i] < _T('0') || lpLabel[i] > _T('9')) && 
 						(lpLabel[i] < _T('A') || lpLabel[i] > _T('F')))
