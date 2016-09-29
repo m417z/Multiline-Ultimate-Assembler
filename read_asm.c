@@ -1166,7 +1166,7 @@ static BOOL ReplaceAddressWithText(TCHAR **ppCommand, DWORD_PTR dwAddress, TCHAR
 {
 	TCHAR *p;
 	TCHAR c;
-	TCHAR szTextAddress[9];
+	TCHAR szTextAddress[sizeof(DWORD_PTR) * 2 + 1];
 	int address_len;
 	int address_count;
 	LONG_PTR address_start[3], address_end[3];

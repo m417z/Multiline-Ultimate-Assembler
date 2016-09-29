@@ -2573,7 +2573,7 @@ static BOOL ReplaceTextsWithAddresses(TCHAR *lpCommand, TCHAR **ppNewCommand,
 	int text_count, LONG_PTR text_start[4], LONG_PTR text_end[4], DWORD_PTR dwAddress[4], TCHAR *lpError)
 {
 	int address_len[4];
-	TCHAR szAddressText[4][10];
+	TCHAR szAddressText[4][2 + sizeof(DWORD_PTR) * 2 + 1];
 	LONG_PTR new_command_len;
 	TCHAR *lpNewCommand;
 	TCHAR *dest, *src;
@@ -2583,7 +2583,7 @@ static BOOL ReplaceTextsWithAddresses(TCHAR *lpCommand, TCHAR **ppNewCommand,
 
 	for(i=0; i<text_count; i++)
 	{
-		address_len[i] = wsprintf(szAddressText[i], _T("%IX"), dwAddress[i]);
+		address_len[i] = wsprintf(szAddressText[i], _T("0x%IX"), dwAddress[i]);
 		new_command_len += address_len[i]-(text_end[i]-text_start[i]);
 	}
 
