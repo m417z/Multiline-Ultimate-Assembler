@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014. The YARA Authors. All Rights Reserved.
+Copyright (c) 2016. The YARA Authors. All Rights Reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -27,64 +27,39 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-
-#ifndef YR_UTILS_H
-#define YR_UTILS_H
-
-#ifndef TRUE
-#define TRUE 1
-#endif
-
-#ifndef FALSE
-#define FALSE 0
-#endif
-
-#ifndef NULL
-#define NULL 0
-#endif
-
-#ifdef __cplusplus
-#define EXTERNC extern "C"
-#else
-#define EXTERNC
-#endif
-
-#if defined(__GNUC__)
-#define YR_API EXTERNC __attribute__((visibility("default")))
-#elif defined(_MSC_VER)
-#define YR_API EXTERNC __declspec(dllexport)
-#else
-#define YR_API EXTERNC
-#endif
-
-#if defined(__GNUC__)
-#define YR_ALIGN(n) __attribute__((aligned(n)))
-#elif defined(_MSC_VER)
-#define YR_ALIGN(n) __declspec(align(n))
-#else
-#define YR_ALIGN(n)
-#endif
-
-#define yr_min(x, y) ((x < y) ? (x) : (y))
-#define yr_max(x, y) ((x > y) ? (x) : (y))
-
-#define PTR_TO_INT64(x)  ((int64_t) (size_t) x)
+#ifndef YR_MUTEX_H
+#define YR_MUTEX_H
 
 
-#ifdef NDEBUG
 
-#define assertf(expr, msg, ...)  ((void)0)
+#if defined(_WIN32) || defined(__CYGWIN__)
+
+#include <windows.h>
+
+typedef DWORD YR_THREAD_ID;
+typedef DWORD YR_THREAD_STORAGE_KEY;
+typedef HANDLE YR_MUTEX;
 
 #else
 
-#include <stdlib.h>
+#include <pthread.h>
 
-#define assertf(expr, msg, ...) \
-    if(!(expr)) { \
-      fprintf(stderr, "%s:%d: " msg "\n", __FILE__, __LINE__, ##__VA_ARGS__); \
-      abort(); \
-    }
+typedef pthread_t YR_THREAD_ID;
+typedef pthread_key_t YR_THREAD_STORAGE_KEY;
+typedef pthread_mutex_t YR_MUTEX;
 
 #endif
+
+YR_THREAD_ID yr_current_thread_id(void);
+
+int yr_mutex_create(YR_MUTEX*);
+int yr_mutex_destroy(YR_MUTEX*);
+int yr_mutex_lock(YR_MUTEX*);
+int yr_mutex_unlock(YR_MUTEX*);
+
+int yr_thread_storage_create(YR_THREAD_STORAGE_KEY*);
+int yr_thread_storage_destroy(YR_THREAD_STORAGE_KEY*);
+int yr_thread_storage_set_value(YR_THREAD_STORAGE_KEY*, void*);
+void* yr_thread_storage_get_value(YR_THREAD_STORAGE_KEY*);
 
 #endif

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2014. The YARA Authors. All Rights Reserved.
+Copyright (c) 2007-2015. The YARA Authors. All Rights Reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -27,63 +27,39 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef YR_INTEGERS_H
+#define YR_INTEGERS_H
 
-#ifndef YR_UTILS_H
-#define YR_UTILS_H
-
-#ifndef TRUE
-#define TRUE 1
-#endif
-
-#ifndef FALSE
-#define FALSE 0
-#endif
-
-#ifndef NULL
-#define NULL 0
-#endif
+/* Integer type definitions
+ */
+#if ( defined( _MSC_VER ) && ( _MSC_VER < 1600 ) ) || ( defined( __BORLANDC__ ) && ( __BORLANDC__ <= 0x0560 ) )
 
 #ifdef __cplusplus
-#define EXTERNC extern "C"
-#else
-#define EXTERNC
+extern "C" {
 #endif
 
-#if defined(__GNUC__)
-#define YR_API EXTERNC __attribute__((visibility("default")))
-#elif defined(_MSC_VER)
-#define YR_API EXTERNC __declspec(dllexport)
-#else
-#define YR_API EXTERNC
+/* Microsoft Visual Studio C++ before Visual Studio 2010 or earlier versions of the Borland C++ Builder
+ * do not support the (u)int#_t type definitions but have __int# defintions instead
+ */
+typedef __int8 int8_t;
+typedef unsigned __int8 uint8_t;
+typedef __int16 int16_t;
+typedef unsigned __int16 uint16_t;
+typedef __int32 int32_t;
+typedef unsigned __int32 uint32_t;
+typedef __int64 int64_t;
+typedef unsigned __int64 uint64_t;
+
+#ifdef __cplusplus
+}
 #endif
 
-#if defined(__GNUC__)
-#define YR_ALIGN(n) __attribute__((aligned(n)))
-#elif defined(_MSC_VER)
-#define YR_ALIGN(n) __declspec(align(n))
-#else
-#define YR_ALIGN(n)
-#endif
-
-#define yr_min(x, y) ((x < y) ? (x) : (y))
-#define yr_max(x, y) ((x > y) ? (x) : (y))
-
-#define PTR_TO_INT64(x)  ((int64_t) (size_t) x)
-
-
-#ifdef NDEBUG
-
-#define assertf(expr, msg, ...)  ((void)0)
-
 #else
 
-#include <stdlib.h>
-
-#define assertf(expr, msg, ...) \
-    if(!(expr)) { \
-      fprintf(stderr, "%s:%d: " msg "\n", __FILE__, __LINE__, ##__VA_ARGS__); \
-      abort(); \
-    }
+/* Other "compilers" and later versions of Microsoft Visual Studio C++ and
+ * Borland C/C++ define the types in <stdint.h>
+ */
+#include <stdint.h>
 
 #endif
 
