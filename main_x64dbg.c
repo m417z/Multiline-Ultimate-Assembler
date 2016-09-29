@@ -51,15 +51,14 @@ DLL_EXPORT void plugsetup(PLUG_SETUPSTRUCT *setupStruct)
 		}
 	}
 
-	_plugin_menuaddentry(hMenu, MENU_MAIN, "&Multiline Ultimate Assembler");
-	_plugin_menuaddentry(hMenu, MENU_DISASM, "&Disassemble selection");
+	_plugin_menuaddentry(hMenu, MENU_MAIN, "&Multiline Ultimate Assembler\tCtrl+M");
 	_plugin_menuaddseparator(hMenu);
 	_plugin_menuaddentry(hMenu, MENU_OPTIONS, "&Options");
 	_plugin_menuaddseparator(hMenu);
 	_plugin_menuaddentry(hMenu, MENU_HELP, "&Help");
 	_plugin_menuaddentry(hMenu, MENU_ABOUT, "&About");
 
-	_plugin_menuaddentry(hMenuDisasm, MENU_CPU_DISASM, "&Disassemble selection");
+	_plugin_menuaddentry(hMenuDisasm, MENU_CPU_DISASM, "&Disassemble selection\tCtrl+Shift+M");
 }
 
 DLL_EXPORT bool pluginit(PLUG_INITSTRUCT* initStruct)
@@ -112,10 +111,37 @@ DLL_EXPORT bool plugstop()
 	return true;
 }
 
-DLL_EXPORT CDECL void CBWINEVENTGLOBAL(CBTYPE cbType, void *callbackInfo)
+DLL_EXPORT CDECL void CBWINEVENT(CBTYPE cbType, PLUG_CB_WINEVENT *info)
 {
-	PLUG_CB_WINEVENTGLOBAL *info = (PLUG_CB_WINEVENTGLOBAL *)callbackInfo;
+	MSG *pMsg = info->message;
+	if(info->result &&
+		pMsg->message == WM_KEYUP &&
+		pMsg->wParam == 'M')
+	{
+		bool ctrlDown = GetKeyState(VK_CONTROL) < 0;
+		bool altDown = GetKeyState(VK_MENU) < 0;
+		bool shiftDown = GetKeyState(VK_SHIFT) < 0;
 
+		if(!altDown && ctrlDown)
+		{
+			if(shiftDown)
+			{
+				if(DbgIsDebugging())
+					DisassembleSelection();
+			}
+			else
+			{
+				AssemblerShowDlg();
+			}
+
+			*info->result = 0;
+			info->retval = true;
+		}
+	}
+}
+
+DLL_EXPORT CDECL void CBWINEVENTGLOBAL(CBTYPE cbType, PLUG_CB_WINEVENTGLOBAL *info)
+{
 	info->retval = AssemblerPreTranslateMessage(info->message);
 }
 
