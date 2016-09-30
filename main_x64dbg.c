@@ -114,6 +114,13 @@ DLL_EXPORT bool plugstop()
 DLL_EXPORT CDECL void CBWINEVENT(CBTYPE cbType, PLUG_CB_WINEVENT *info)
 {
 	MSG *pMsg = info->message;
+
+	if(!info->result && AssemblerPreTranslateMessage(pMsg))
+	{
+		info->retval = true;
+		return;
+	}
+
 	if(info->result &&
 		pMsg->message == WM_KEYUP &&
 		pMsg->wParam == 'M')
@@ -136,13 +143,9 @@ DLL_EXPORT CDECL void CBWINEVENT(CBTYPE cbType, PLUG_CB_WINEVENT *info)
 
 			*info->result = 0;
 			info->retval = true;
+			return;
 		}
 	}
-}
-
-DLL_EXPORT CDECL void CBWINEVENTGLOBAL(CBTYPE cbType, PLUG_CB_WINEVENTGLOBAL *info)
-{
-	info->retval = AssemblerPreTranslateMessage(info->message);
 }
 
 DLL_EXPORT CDECL void CBMENUENTRY(CBTYPE cbType, void *callbackInfo)
