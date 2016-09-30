@@ -604,18 +604,12 @@ static BOOL ProcessExternalCode(DWORD_PTR dwAddress, SIZE_T nSize, PLUGIN_MODULE
 	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError)
 {
 #if defined(TARGET_ODBG) || defined(TARGET_IMMDBG) || defined(TARGET_ODBG2)
-	DISASM_CMD_NODE *dasm_cmd;
 	t_jmp *jmpdata;
 	int njmpdata;
 	DWORD_PTR dwCodeBase;
 	SIZE_T nCodeSize;
 	DWORD_PTR dwFromAddr, dwToAddr;
-	BYTE *bDecode;
-	int nCommandType;
-	BYTE bBuffer[MAXCMDSIZE];
-	DWORD dwCommandSize;
-	TCHAR szComment[TEXTLEN];
-	int comment_length;
+	BOOL bAdded;
 	int i;
 
 	if(!module)
@@ -653,57 +647,124 @@ static BOOL ProcessExternalCode(DWORD_PTR dwAddress, SIZE_T nSize, PLUGIN_MODULE
 			pCode[dwToAddr-dwAddress] != 0
 		)
 		{
-			bDecode = FindDecode(dwFromAddr, NULL);
-			if(bDecode)
-				nCommandType = DecodeGetType(*bDecode);
-			else
-				nCommandType = DECODE_UNKNOWN;
+			if(!AddExternalCode(dwFromAddr, dwCodeBase, nCodeSize, p_dasm_head, &bAdded, lpError))
+				return FALSE;
 
-			if(nCommandType == DECODE_UNKNOWN || nCommandType == DECODE_COMMAND)
-			{
-				// Try to read and process...
-				if(dwCodeBase + nCodeSize - dwFromAddr < MAXCMDSIZE)
-					dwCommandSize = dwCodeBase + nCodeSize - dwFromAddr;
-				else
-					dwCommandSize = MAXCMDSIZE;
-
-				if(!SimpleReadMemory(bBuffer, dwFromAddr, dwCommandSize))
-				{
-					wsprintf(lpError, _T("Could not read memory on address 0x" HEXPTR_PADDED), dwFromAddr);
-					return FALSE;
-				}
-
-				dwCommandSize = ProcessCommand(bBuffer, dwCommandSize, dwFromAddr, bDecode, p_dasm_head, lpError);
-				if(dwCommandSize == 0)
-					return FALSE;
-
-				// We did it!
-				dasm_cmd = p_dasm_head->last;
+			if(bAdded)
 				pCode[dwToAddr-dwAddress] = 2;
-
-				// Comments?
-				comment_length = GetComment(dwFromAddr, szComment);
-				if(comment_length > 0)
-				{
-					dasm_cmd->lpComment = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, (comment_length + 1)*sizeof(TCHAR));
-					if(!dasm_cmd->lpComment)
-					{
-						lstrcpy(lpError, _T("Allocation failed"));
-						return FALSE;
-					}
-
-					lstrcpy(dasm_cmd->lpComment, szComment);
-				}
-
-				dasm_cmd->dwAddress = dwFromAddr;
-			}
 		}
 	}
 #elif defined(TARGET_X64DBG)
-	// TODO: fix for x64dbg
+	DWORD_PTR dwFromAddr, dwToAddr;
+	XREF_INFO xrefInfo;
+	PLUGIN_MEMORY memory;
+	DWORD_PTR dwCodeBase;
+	SIZE_T nCodeSize;
+	BOOL bAdded;
+	SIZE_T i, j;
+
+	for(i = 0; i < nSize; i++)
+	{
+		if(pCode[i] == 0)
+			continue;
+
+		dwToAddr = dwAddress + i;
+
+		if(!DbgXrefGet(dwToAddr, &xrefInfo) || xrefInfo.refcount == 0)
+			continue;
+
+		for(j = 0; j < xrefInfo.refcount; j++)
+		{
+			dwFromAddr = xrefInfo.references[j].addr;
+			if(dwFromAddr >= dwAddress && dwFromAddr < dwAddress + nSize)
+				continue;
+
+			memory = FindMemory(dwFromAddr);
+			if(!memory)
+				continue;
+
+			dwCodeBase = GetMemoryBase(memory);
+			nCodeSize = GetMemorySize(memory);
+
+			if(!AddExternalCode(dwFromAddr, dwCodeBase, nCodeSize, p_dasm_head, &bAdded, lpError))
+			{
+				BridgeFree(xrefInfo.references);
+				return FALSE;
+			}
+
+			if(bAdded)
+				pCode[dwToAddr - dwAddress] = 2;
+		}
+
+		BridgeFree(xrefInfo.references);
+	}
 #else
 #error Unknonw target
 #endif
+
+	return TRUE;
+}
+
+static BOOL AddExternalCode(DWORD_PTR dwAddress, DWORD_PTR dwCodeBase, SIZE_T nCodeSize,
+	DISASM_CMD_HEAD *p_dasm_head, BOOL *pbAdded, TCHAR *lpError)
+{
+	DISASM_CMD_NODE *dasm_cmd;
+	BYTE *bDecode;
+	int nCommandType;
+	BYTE bBuffer[MAXCMDSIZE];
+	DWORD dwCommandSize;
+	TCHAR szComment[COMMENT_MAX_LEN];
+	int nCommentLength;
+
+	bDecode = FindDecode(dwAddress, NULL);
+	if(bDecode)
+		nCommandType = DecodeGetType(*bDecode);
+	else
+		nCommandType = DECODE_UNKNOWN;
+
+	if(nCommandType == DECODE_UNKNOWN || nCommandType == DECODE_COMMAND)
+	{
+		// Try to read and process...
+		if(dwCodeBase + nCodeSize - dwAddress < MAXCMDSIZE)
+			dwCommandSize = (DWORD)(dwCodeBase + nCodeSize - dwAddress);
+		else
+			dwCommandSize = MAXCMDSIZE;
+
+		if(!SimpleReadMemory(bBuffer, dwAddress, dwCommandSize))
+		{
+			wsprintf(lpError, _T("Could not read memory on address 0x" HEXPTR_PADDED), dwAddress);
+			return FALSE;
+		}
+
+		dwCommandSize = ProcessCommand(bBuffer, dwCommandSize, dwAddress, bDecode, p_dasm_head, lpError);
+		if(dwCommandSize == 0)
+			return FALSE;
+
+		// We did it!
+		dasm_cmd = p_dasm_head->last;
+
+		// Comments?
+		nCommentLength = GetComment(dwAddress, szComment);
+		if(nCommentLength > 0)
+		{
+			dasm_cmd->lpComment = (TCHAR *)HeapAlloc(GetProcessHeap(), 0, (nCommentLength + 1)*sizeof(TCHAR));
+			if(!dasm_cmd->lpComment)
+			{
+				lstrcpy(lpError, _T("Allocation failed"));
+				return FALSE;
+			}
+
+			lstrcpy(dasm_cmd->lpComment, szComment);
+		}
+
+		dasm_cmd->dwAddress = dwAddress;
+
+		*pbAdded = TRUE;
+	}
+	else
+	{
+		*pbAdded = FALSE;
+	}
 
 	return TRUE;
 }

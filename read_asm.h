@@ -38,6 +38,8 @@ static void ConvertAsciiToText(BYTE *p, DWORD dwSize, BOOL bAsBinary, TCHAR *pTe
 static void MarkLabels(DWORD_PTR dwAddress, SIZE_T nSize, BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head);
 static BOOL ProcessExternalCode(DWORD_PTR dwAddress, SIZE_T nSize, PLUGIN_MODULE module,
 	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError);
+static BOOL AddExternalCode(DWORD_PTR dwAddress, DWORD_PTR dwCodeBase, SIZE_T nCodeSize,
+	DISASM_CMD_HEAD *p_dasm_head, BOOL *pbAdded, TCHAR *lpError);
 static BOOL CreateAndSetLabels(DWORD_PTR dwAddress, SIZE_T nSize, 
 	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *pLabelPerfix, TCHAR *lpError);
 static BOOL IsValidLabel(TCHAR *lpLabel, DISASM_CMD_HEAD *p_dasm_head, DISASM_CMD_NODE *dasm_cmd_target);

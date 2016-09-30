@@ -14,11 +14,6 @@ static LRESULT CALLBACK DlgOptionsProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 	switch(uMsg)
 	{
 	case WM_INITDIALOG:
-#if defined(TARGET_X64DBG)
-		// IDC_DISASM_EXTJMP not supported for x64dbg
-		EnableWindow(GetDlgItem(hWnd, IDC_DISASM_EXTJMP), FALSE);
-#endif
-
 		SendDlgItemMessage(hWnd, IDC_DISASM_HEX, CB_ADDSTRING, 0, (LPARAM)_T("(disassembler default)"));
 		SendDlgItemMessage(hWnd, IDC_DISASM_HEX, CB_ADDSTRING, 0, (LPARAM)_T("FFFE"));
 		SendDlgItemMessage(hWnd, IDC_DISASM_HEX, CB_ADDSTRING, 0, (LPARAM)_T("0FFFE"));
@@ -48,11 +43,7 @@ static LRESULT CALLBACK DlgOptionsProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPAR
 			break;
 
 		case IDC_DISASM_LABEL:
-#if defined(TARGET_X64DBG)
-			// IDC_DISASM_EXTJMP not supported for x64dbg
-#else
 			EnableWindow(GetDlgItem(hWnd, IDC_DISASM_EXTJMP), IsDlgButtonChecked(hWnd, IDC_DISASM_LABEL));
-#endif
 			break;
 
 		case IDOK:
@@ -86,12 +77,8 @@ static void OptionsToDlg(HWND hWnd)
 	else
 		EnableWindow(GetDlgItem(hWnd, IDC_DISASM_EXTJMP), FALSE);
 
-#if defined(TARGET_X64DBG)
-// IDC_DISASM_EXTJMP not supported for x64dbg
-#else
 	if(options.disasm_extjmp)
 		CheckDlgButton(hWnd, IDC_DISASM_EXTJMP, BST_CHECKED);
-#endif
 
 	SendDlgItemMessage(hWnd, IDC_DISASM_HEX, CB_SETCURSEL, options.disasm_hex, 0);
 
