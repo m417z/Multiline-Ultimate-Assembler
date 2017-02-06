@@ -98,7 +98,7 @@ BOOL OpenHelp(HWND hWnd, HINSTANCE hInst)
 
 	lstrcat(szFilePath, _T("multiasm.chm"));
 
-	return !((int)ShellExecute(hWnd, NULL, szFilePath, NULL, NULL, SW_SHOWNORMAL) <= 32);
+	return !((int)(UINT_PTR)ShellExecute(hWnd, NULL, szFilePath, NULL, NULL, SW_SHOWNORMAL) <= 32);
 }
 
 int AboutMessageBox(HWND hWnd, HINSTANCE hInst)
