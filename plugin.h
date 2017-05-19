@@ -12,8 +12,8 @@
 #endif
 
 #define DEF_PLUGINNAME        _T("Multiline Ultimate Assembler")
-#define DEF_VERSION           _T("2.3.5")
-#define DEF_COPYRIGHT         _T("Copyright (C) 2009-2016 RaMMicHaeL")
+#define DEF_VERSION           _T("2.3.6")
+#define DEF_COPYRIGHT         _T("Copyright (C) 2009-2017 RaMMicHaeL")
 
 #define DECODE_UNKNOWN        0
 #define DECODE_COMMAND        1
