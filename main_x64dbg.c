@@ -24,6 +24,9 @@ static int hMenuDisasm;;
 
 static int GetPluginVersion();
 static void DisassembleSelection();
+static bool CmdShow(int argc, char** argv);
+static bool CmdDisasmSelection(int argc, char** argv);
+static bool CmdClose(int argc, char** argv);
 
 DLL_EXPORT void plugsetup(PLUG_SETUPSTRUCT *setupStruct)
 {
@@ -77,6 +80,10 @@ DLL_EXPORT bool pluginit(PLUG_INITSTRUCT* initStruct)
 
 	_plugin_logputs("Multiline Ultimate Assembler v" DEF_VERSION);
 	_plugin_logputs("  " DEF_COPYRIGHT);
+
+	_plugin_registercommand(pluginHandle, "multiasm_show", CmdShow, false);
+	_plugin_registercommand(pluginHandle, "multiasm_disasm_selection", CmdDisasmSelection, true);
+	_plugin_registercommand(pluginHandle, "multiasm_close", CmdClose, false);
 
 	return true;
 }
@@ -192,4 +199,40 @@ static void DisassembleSelection()
 
 	if(GuiSelectionGet(GUI_DISASSEMBLY, &selection))
 		AssemblerLoadCode(selection.start, selection.end - selection.start + 1);
+}
+
+static bool CmdShow(int argc, char** argv)
+{
+	if(argc > 1)
+	{
+		_plugin_logputs("Command does not accept arguments");
+		return false;
+	}
+
+	GuiExecuteOnGuiThread(AssemblerShowDlg);
+	return true;
+}
+
+static bool CmdDisasmSelection(int argc, char** argv)
+{
+	if(argc > 1)
+	{
+		_plugin_logputs("Command does not accept arguments");
+		return false;
+	}
+
+	GuiExecuteOnGuiThread(DisassembleSelection);
+	return true;
+}
+
+static bool CmdClose(int argc, char** argv)
+{
+	if(argc > 1)
+	{
+		_plugin_logputs("Command does not accept arguments");
+		return false;
+	}
+
+	GuiExecuteOnGuiThread(AssemblerCloseDlg);
+	return true;
 }
