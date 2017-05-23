@@ -113,6 +113,10 @@ DLL_EXPORT bool plugstop()
 	_plugin_menuclear(hMenu);
 	_plugin_menuclear(hMenuDisasm);
 
+	_plugin_unregistercommand(pluginHandle, "multiasm_show");
+	_plugin_unregistercommand(pluginHandle, "multiasm_disasm_selection");
+	_plugin_unregistercommand(pluginHandle, "multiasm_close");
+
 	AssemblerCloseDlg();
 	PluginExit();
 	return true;
