@@ -184,8 +184,8 @@ BEGIN
         MENUITEM "&Rename",                     ID_TABMENU_RENAME
         MENUITEM "&Close",                      ID_TABMENU_CLOSE
         MENUITEM SEPARATOR
-        MENUITEM "&Load from file...",          ID_TABMENU_LOADFROMFILE
-        MENUITEM "&Save to file...",            ID_TABMENU_SAVETOFILE
+        MENUITEM "&Import from file...",          ID_TABMENU_LOADFROMFILE
+        MENUITEM "&Export to file...",            ID_TABMENU_SAVETOFILE
     END
     POPUP "tabstripmenu"
     BEGIN
