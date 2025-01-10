@@ -8,7 +8,7 @@
 #elif defined(TARGET_X64DBG)
 #include "plugin_x64dbg.h"
 #else
-#error Unknonw target
+#error Unknown target
 #endif
 
 #define DEF_PLUGINNAME        _T("Multiline Ultimate Assembler")

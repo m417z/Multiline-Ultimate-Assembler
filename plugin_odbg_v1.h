@@ -5,7 +5,7 @@
 #elif defined(TARGET_IMMDBG)
 #include "plugin_immdbg.h"
 #else
-#error Unknonw target
+#error Unknown target
 #endif
 
 extern HWND hwollymain;

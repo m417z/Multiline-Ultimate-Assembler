@@ -22,7 +22,7 @@ typedef struct _disasm_cmd_head {
 
 // functions
 
-TCHAR *ReadAsm(DWORD_PTR dwAddress, SIZE_T nSize, TCHAR *pLabelPerfix, TCHAR *lpError);
+TCHAR *ReadAsm(DWORD_PTR dwAddress, SIZE_T nSize, TCHAR *pLabelPrefix, TCHAR *lpError);
 
 // 1
 static BOOL ProcessCode(DWORD_PTR dwAddress, SIZE_T nSize, BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError);
@@ -41,7 +41,7 @@ static BOOL ProcessExternalCode(DWORD_PTR dwAddress, SIZE_T nSize, PLUGIN_MODULE
 static BOOL AddExternalCode(DWORD_PTR dwAddress, DWORD_PTR dwCodeBase, SIZE_T nCodeSize,
 	DISASM_CMD_HEAD *p_dasm_head, BOOL *pbAdded, TCHAR *lpError);
 static BOOL CreateAndSetLabels(DWORD_PTR dwAddress, SIZE_T nSize, 
-	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *pLabelPerfix, TCHAR *lpError);
+	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *pLabelPrefix, TCHAR *lpError);
 static BOOL IsValidLabel(TCHAR *lpLabel, DISASM_CMD_HEAD *p_dasm_head, DISASM_CMD_NODE *dasm_cmd_target);
 static BOOL SetRVAAddresses(DWORD_PTR dwAddress, SIZE_T nSize, PLUGIN_MODULE module, DISASM_CMD_HEAD *p_dasm_head, TCHAR *lpError);
 

@@ -23,13 +23,13 @@
 	(HWND)SNDMSG((hwnd), TCM_EX_GETEDITCONTROL, 0L, 0L)
 
 #define TCM_EX_ENDEDITLABELNOW   (WM_APP+2)
-#define TabCtrl_Ex_EndEditLabelNow(hwnd, fCancle) \
-	(BOOL)SNDMSG((hwnd), TCM_EX_ENDEDITLABELNOW, (WPARAM)(BOOL)(fCancle), 0L)
+#define TabCtrl_Ex_EndEditLabelNow(hwnd, fCancel) \
+	(BOOL)SNDMSG((hwnd), TCM_EX_ENDEDITLABELNOW, (WPARAM)(BOOL)(fCancel), 0L)
 
 // Notifications
 #define TCN_EX_DRAGDROP          0 // wParam: (int)nDragFromId, lParam: (int)nDropToId
-#define TCN_EX_BEGINLABELEDIT    1 // wParam/lParam: 0, Return: TRUE to cancle, FALSE to proceed
-#define TCN_EX_ENDLABELEDIT      2 // wParam: 0, lParam: (TCHAR *)pszEditedText, Return: TRUE to proceed, FALSE to cancle
+#define TCN_EX_BEGINLABELEDIT    1 // wParam/lParam: 0, Return: TRUE to cancel, FALSE to proceed
+#define TCN_EX_ENDLABELEDIT      2 // wParam: 0, lParam: (TCHAR *)pszEditedText, Return: TRUE to proceed, FALSE to cancel
 #define TCN_EX_DBLCLK            3 // wParam/lParam: see WM_LBUTTONDBLCLK
 #define TCN_EX_MCLICK            4 // wParam/lParam: see WM_MBUTTONUP
 #define TCN_EX_CONTEXTMENU       5 // wParam/lParam: see WM_CONTEXTMENU

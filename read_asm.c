@@ -9,7 +9,7 @@ extern OPTIONS options;
 #define HEXPTR_PADDED         _T("%08X")
 #endif // _WIN64
 
-TCHAR *ReadAsm(DWORD_PTR dwAddress, SIZE_T nSize, TCHAR *pLabelPerfix, TCHAR *lpError)
+TCHAR *ReadAsm(DWORD_PTR dwAddress, SIZE_T nSize, TCHAR *pLabelPrefix, TCHAR *lpError)
 {
 	PLUGIN_MODULE module;
 	BYTE *pCode;
@@ -62,7 +62,7 @@ TCHAR *ReadAsm(DWORD_PTR dwAddress, SIZE_T nSize, TCHAR *pLabelPerfix, TCHAR *lp
 		}
 
 		// Give names to labels, and set them in commands
-		if(!CreateAndSetLabels(dwAddress, nSize, pCode, &dasm_head, pLabelPerfix, lpError))
+		if(!CreateAndSetLabels(dwAddress, nSize, pCode, &dasm_head, pLabelPrefix, lpError))
 		{
 			HeapFree(GetProcessHeap(), 0, pCode);
 			FreeDisasmCmdList(&dasm_head);
@@ -622,7 +622,7 @@ static BOOL ProcessExternalCode(DWORD_PTR dwAddress, SIZE_T nSize, PLUGIN_MODULE
 	jmpdata = module->jumps.jmpdata;
 	njmpdata = module->jumps.njmp;
 #else
-#error Unknonw target
+#error Unknown target
 #endif
 
 	dwCodeBase = module->codebase;
@@ -637,7 +637,7 @@ static BOOL ProcessExternalCode(DWORD_PTR dwAddress, SIZE_T nSize, PLUGIN_MODULE
 		dwFromAddr = jmpdata[i].from;
 		dwToAddr = jmpdata[i].dest;
 #else
-#error Unknonw target
+#error Unknown target
 #endif
 
 		if(
@@ -699,7 +699,7 @@ static BOOL ProcessExternalCode(DWORD_PTR dwAddress, SIZE_T nSize, PLUGIN_MODULE
 		BridgeFree(xrefInfo.references);
 	}
 #else
-#error Unknonw target
+#error Unknown target
 #endif
 
 	return TRUE;
@@ -770,7 +770,7 @@ static BOOL AddExternalCode(DWORD_PTR dwAddress, DWORD_PTR dwCodeBase, SIZE_T nC
 }
 
 static BOOL CreateAndSetLabels(DWORD_PTR dwAddress, SIZE_T nSize, 
-	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *pLabelPerfix, TCHAR *lpError)
+	BYTE *pCode, DISASM_CMD_HEAD *p_dasm_head, TCHAR *pLabelPrefix, TCHAR *lpError)
 {
 	DISASM_CMD_NODE *dasm_cmd, *dasm_cmd_2;
 	UINT nLabelCounter;
@@ -789,20 +789,20 @@ static BOOL CreateAndSetLabels(DWORD_PTR dwAddress, SIZE_T nSize,
 
 	if(options.disasm_labelgen == 2)
 	{
-		// Make pLabelPerfix valid
-		for(i=0; i<32 && pLabelPerfix[i] != _T('\0'); i++)
+		// Make pLabelPrefix valid
+		for(i=0; i<32 && pLabelPrefix[i] != _T('\0'); i++)
 		{
 			if(
-				(pLabelPerfix[i] < _T('0') || pLabelPerfix[i] > _T('9')) && 
-				(pLabelPerfix[i] < _T('A') || pLabelPerfix[i] > _T('Z')) && 
-				(pLabelPerfix[i] < _T('a') || pLabelPerfix[i] > _T('z')) && 
-				pLabelPerfix[i] != _T('_')
+				(pLabelPrefix[i] < _T('0') || pLabelPrefix[i] > _T('9')) && 
+				(pLabelPrefix[i] < _T('A') || pLabelPrefix[i] > _T('Z')) && 
+				(pLabelPrefix[i] < _T('a') || pLabelPrefix[i] > _T('z')) && 
+				pLabelPrefix[i] != _T('_')
 			)
-				pLabelPerfix[i] = _T('_');
+				pLabelPrefix[i] = _T('_');
 		}
 
 		if(i == 32)
-			pLabelPerfix[i] = _T('\0');
+			pLabelPrefix[i] = _T('\0');
 	}
 
 	for(i = 0; i < nSize; i++)
@@ -826,7 +826,7 @@ static BOOL CreateAndSetLabels(DWORD_PTR dwAddress, SIZE_T nSize,
 					break;
 
 				case 2:
-					nLabelLen = wsprintf(pLabel, _T("L_%s_%08u"), pLabelPerfix, nLabelCounter++);
+					nLabelLen = wsprintf(pLabel, _T("L_%s_%08u"), pLabelPrefix, nLabelCounter++);
 					break;
 				}
 			}

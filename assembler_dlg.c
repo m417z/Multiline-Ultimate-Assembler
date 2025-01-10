@@ -951,16 +951,16 @@ static void OptionsChanged(HWND hWnd)
 
 static BOOL LoadCode(HWND hWnd, DWORD_PTR dwAddress, DWORD_PTR dwSize)
 {
-	TCHAR szLabelPerfix[32];
+	TCHAR szLabelPrefix[32];
 	TCHAR szError[1024+1]; // safe to use for wsprintf
 	TCHAR *lpText;
 
-	if(!GetTabName(GetDlgItem(hWnd, IDC_TABS), szLabelPerfix, 32))
-		*szLabelPerfix = _T('\0');
+	if(!GetTabName(GetDlgItem(hWnd, IDC_TABS), szLabelPrefix, 32))
+		*szLabelPrefix = _T('\0');
 
 	SuspendAllThreads();
 
-	lpText = ReadAsm(dwAddress, dwSize, szLabelPerfix, szError);
+	lpText = ReadAsm(dwAddress, dwSize, szLabelPrefix, szError);
 
 	ResumeAllThreads();
 
