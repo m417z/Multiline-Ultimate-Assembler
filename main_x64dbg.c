@@ -8,7 +8,7 @@ extern HINSTANCE hDllInst;
 
 static int pluginHandle;
 static int hMenu;
-static int hMenuDisasm;;
+static int hMenuDisasm;
 
 #ifndef DLL_EXPORT
 #define DLL_EXPORT __declspec(dllexport)
