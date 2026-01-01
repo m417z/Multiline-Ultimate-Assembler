@@ -123,7 +123,7 @@ int AboutMessageBox(HWND hWnd, HINSTANCE hInst)
 {
 	// OllyDbg doesn't use visual styles, so TaskDialogIndirect isn't available.
 #if defined(TARGET_ODBG) || defined(TARGET_IMMDBG) || defined(TARGET_ODBG2)
-	PCWSTR content =
+	PCTSTR content =
 		DEF_PLUGINNAME _T(" v") DEF_VERSION _T("\n")
 		_T("By m417z (Ramen Software)\n")
 		_T("\n")
