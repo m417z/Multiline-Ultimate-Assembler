@@ -12,7 +12,7 @@
 #endif
 
 #define DEF_PLUGINNAME        _T("Multiline Ultimate Assembler")
-#define DEF_VERSION           _T("2.3.7")
+#define DEF_VERSION           _T("2.3.8")
 #define DEF_COPYRIGHT         _T("Copyright (C) Ramen Software")
 
 #define DECODE_UNKNOWN        0
