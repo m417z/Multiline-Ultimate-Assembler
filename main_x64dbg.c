@@ -54,14 +54,17 @@ DLL_EXPORT void plugsetup(PLUG_SETUPSTRUCT *setupStruct)
 		}
 	}
 
-	_plugin_menuaddentry(hMenu, MENU_MAIN, "&Multiline Ultimate Assembler\tCtrl+M");
+	_plugin_menuaddentry(hMenu, MENU_MAIN, "&Multiline Ultimate Assembler");
 	_plugin_menuaddseparator(hMenu);
 	_plugin_menuaddentry(hMenu, MENU_OPTIONS, "&Options");
 	_plugin_menuaddseparator(hMenu);
 	_plugin_menuaddentry(hMenu, MENU_HELP, "&Help");
 	_plugin_menuaddentry(hMenu, MENU_ABOUT, "&About");
 
-	_plugin_menuaddentry(hMenuDisasm, MENU_CPU_DISASM, "&Disassemble selection\tCtrl+Shift+M");
+	_plugin_menuaddentry(hMenuDisasm, MENU_CPU_DISASM, "&Disassemble selection");
+
+	_plugin_menuentrysethotkey(pluginHandle, MENU_MAIN, "Ctrl+M");
+	_plugin_menuentrysethotkey(pluginHandle, MENU_CPU_DISASM, "Ctrl+Shift+M");
 }
 
 DLL_EXPORT bool pluginit(PLUG_INITSTRUCT* initStruct)
@@ -124,38 +127,30 @@ DLL_EXPORT bool plugstop()
 
 DLL_EXPORT CDECL void CBWINEVENT(CBTYPE cbType, PLUG_CB_WINEVENT *info)
 {
-	MSG *pMsg = info->message;
-
-	if(!info->result && AssemblerPreTranslateMessage(pMsg))
+	// Only intercept the main event dispatcher, which is called with a NULL result.
+	//
+	// The main event dispatcher:
+	//
+	// if (!filterNativeEvent(QByteArrayLiteral("windows_generic_MSG"), &msg, 0)) {
+	//     TranslateMessage(&msg);
+	//     DispatchMessage(&msg);
+	// }
+	//
+	// Source:
+	// https://github.com/qt/qtbase/blob/81dc3035516c1ee504d321de3ecd8088971560b0/src/corelib/kernel/qeventdispatcher_win.cpp#L550
+	//
+	// The other place where result is non-NULL is in the window proc.
+	//
+	// The relevant code:
+	//
+	// if (!isInputMessage(msg.message) && filterNativeEvent(&msg, result))
+	//     return true;
+	//
+	// Source:
+	// https://github.com/qt/qtbase/blob/81dc3035516c1ee504d321de3ecd8088971560b0/src/plugins/platforms/windows/qwindowscontext.cpp#L854
+	if(!info->result && AssemblerPreTranslateMessage(info->message))
 	{
 		info->retval = true;
-		return;
-	}
-
-	if(info->result &&
-		pMsg->message == WM_KEYUP &&
-		pMsg->wParam == 'M')
-	{
-		bool ctrlDown = GetKeyState(VK_CONTROL) < 0;
-		bool altDown = GetKeyState(VK_MENU) < 0;
-		bool shiftDown = GetKeyState(VK_SHIFT) < 0;
-
-		if(!altDown && ctrlDown)
-		{
-			if(shiftDown)
-			{
-				if(DbgIsDebugging())
-					DisassembleSelection();
-			}
-			else
-			{
-				AssemblerShowDlg();
-			}
-
-			*info->result = 0;
-			info->retval = true;
-			return;
-		}
 	}
 }
 
