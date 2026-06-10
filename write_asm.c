@@ -1907,7 +1907,7 @@ static LONG_PTR ParseAlignSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, DW
 
 		result = ParseDWORDPtr(p, &dwPaddingByteValue, lpError);
 		if(result <= 0)
-			return -(p-lpText) + result;
+			return -(p-lpText)+result;
 
 		if(dwPaddingByteValue > 0xFF)
 		{
