@@ -1912,7 +1912,7 @@ static LONG_PTR ParseAlignSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, DW
 		if(dwPaddingByteValue > 0xFF)
 		{
 			lstrcpy(lpError, _T("Out of range error, byte value expected"));
-			return -(p - lpText);
+			return -(p-lpText);
 		}
 
 		*pbPaddingByteValue = (BYTE)dwPaddingByteValue;
