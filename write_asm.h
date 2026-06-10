@@ -88,7 +88,7 @@ static LONG_PTR ParseCommand(TCHAR *lpText, DWORD_PTR dwAddress, DWORD_PTR dwBas
 static LONG_PTR ResolveCommand(TCHAR *lpCommand, DWORD_PTR dwBaseAddress, TCHAR **ppNewCommand, TCHAR **ppComment, TCHAR *lpError);
 static LONG_PTR ReplaceLabelsWithFooAddress(TCHAR *lpCommand, DWORD_PTR dwCommandAddress, UINT nDeltaSize, TCHAR **ppNewCommand, TCHAR *lpError);
 static LONG_PTR ParseSpecialCommand(TCHAR *lpText, UINT *pnSpecialCmd, TCHAR *lpError);
-static LONG_PTR ParseAlignSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, DWORD_PTR dwAddress, DWORD_PTR *pdwPaddingSize, BYTE* pbPaddingByteValue, TCHAR *lpError);
+static LONG_PTR ParseAlignSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, DWORD_PTR dwAddress, DWORD_PTR *pdwPaddingSize, BYTE *pbPaddingByteValue, TCHAR *lpError);
 static LONG_PTR ParsePadSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, BYTE *pbPaddingByteValue, TCHAR *lpError);
 static BOOL GetAlignPaddingSize(DWORD_PTR dwAddress, DWORD_PTR dwAlignValue, DWORD_PTR *pdwPaddingSize, TCHAR *lpError);
 static BOOL InsertBytes(TCHAR *lpText, SIZE_T nBytesCount, BYTE bByteValue, CMD_HEAD *p_cmd_head, TCHAR *lpError);
