@@ -1876,11 +1876,10 @@ static LONG_PTR ParseAlignSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, DW
 	TCHAR *pAfterWhiteSpace;
 	DWORD_PTR dwAlignValue;
 	DWORD_PTR dwPaddingSize;
+	BYTE bPaddingByteValue;
 	LONG_PTR result;
 
 	p = lpText + nArgsOffset;
-
-	*pbPaddingByteValue = 0;
 
 	pAfterWhiteSpace = SkipSpaces(p);
 	if(pAfterWhiteSpace == p)
@@ -1915,7 +1914,7 @@ static LONG_PTR ParseAlignSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, DW
 			return -(p-lpText);
 		}
 
-		*pbPaddingByteValue = (BYTE)dwPaddingByteValue;
+		bPaddingByteValue = (BYTE)dwPaddingByteValue;
 
 		p += result;
 		p = SkipSpaces(p);
@@ -1926,8 +1925,11 @@ static LONG_PTR ParseAlignSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, DW
 			return -(p-lpText);
 		}
 	}
+	else
+		bPaddingByteValue = 0;
 
 	*pdwPaddingSize = dwPaddingSize;
+	*pbPaddingByteValue = bPaddingByteValue;
 
 	return p-lpText;
 }
