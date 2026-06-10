@@ -1870,10 +1870,10 @@ static LONG_PTR ParseSpecialCommand(TCHAR *lpText, UINT *pnSpecialCmd, TCHAR *lp
 	return p-lpText;
 }
 
-static LONG_PTR ParseAlignSpecialCommand(TCHAR* lpText, LONG_PTR nArgsOffset, DWORD_PTR dwAddress, DWORD_PTR* pdwPaddingSize, BYTE* pbPaddingByteValue, TCHAR* lpError)
+static LONG_PTR ParseAlignSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, DWORD_PTR dwAddress, DWORD_PTR *pdwPaddingSize, BYTE *pbPaddingByteValue, TCHAR *lpError)
 {
-	TCHAR* p;
-	TCHAR* pAfterWhiteSpace;
+	TCHAR *p;
+	TCHAR *pAfterWhiteSpace;
 	DWORD_PTR dwAlignValue;
 	DWORD_PTR dwPaddingSize;
 	LONG_PTR result;
@@ -1883,34 +1883,33 @@ static LONG_PTR ParseAlignSpecialCommand(TCHAR* lpText, LONG_PTR nArgsOffset, DW
 	*pbPaddingByteValue = 0;
 
 	pAfterWhiteSpace = SkipSpaces(p);
-	if (pAfterWhiteSpace == p)
+	if(pAfterWhiteSpace == p)
 	{
 		lstrcpy(lpError, _T("Could not parse command, whitespace expected"));
-		return -(p - lpText);
+		return -(p-lpText);
 	}
 
 	p = pAfterWhiteSpace;
 
 	result = ParseDWORDPtr(p, &dwAlignValue, lpError);
-	if (result <= 0)
-		return -(p - lpText) + result;
+	if(result <= 0)
+		return -(p-lpText)+result;
 
-	if (!GetAlignPaddingSize(dwAddress, dwAlignValue, &dwPaddingSize, lpError))
-		return -(p - lpText);
+	if(!GetAlignPaddingSize(dwAddress, dwAlignValue, &dwPaddingSize, lpError))
+		return -(p-lpText);
 
 	p += result;
 	p = SkipSpaces(p);
 
-	// Optional padding byte
-	if (*p != _T('\0') && *p != _T(';'))
+	if(*p != '\0' && *p != ';')
 	{
 		DWORD_PTR dwPaddingByteValue;
 
 		result = ParseDWORDPtr(p, &dwPaddingByteValue, lpError);
-		if (result <= 0)
+		if(result <= 0)
 			return -(p - lpText) + result;
 
-		if (dwPaddingByteValue > 0xFF)
+		if(dwPaddingByteValue > 0xFF)
 		{
 			lstrcpy(lpError, _T("Out of range error, byte value expected"));
 			return -(p - lpText);
@@ -1921,16 +1920,16 @@ static LONG_PTR ParseAlignSpecialCommand(TCHAR* lpText, LONG_PTR nArgsOffset, DW
 		p += result;
 		p = SkipSpaces(p);
 
-		if (*p != _T('\0') && *p != _T(';'))
+		if(*p != '\0' && *p != ';')
 		{
 			lstrcpy(lpError, _T("Unexpected input after end of command"));
-			return -(p - lpText);
+			return -(p-lpText);
 		}
 	}
 
 	*pdwPaddingSize = dwPaddingSize;
 
-	return p - lpText;
+	return p-lpText;
 }
 
 static LONG_PTR ParsePadSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, BYTE *pbPaddingByteValue, TCHAR *lpError)
