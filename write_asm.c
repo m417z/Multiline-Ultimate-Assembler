@@ -175,6 +175,7 @@ static LONG_PTR SpecialCommandToData(CMD_BLOCK_NODE *cmd_block_node, DWORD_PTR *
 	DWORD_PTR dwAddress = *pdwAddress;
 	DWORD_PTR dwPaddingSize;
 	BYTE bPaddingByteValue;
+	SIZE_T nSize;
 
 	switch(nSpecialCmd)
 	{
@@ -219,6 +220,18 @@ static LONG_PTR SpecialCommandToData(CMD_BLOCK_NODE *cmd_block_node, DWORD_PTR *
 			*pdwAddress = dwAddress;
 		}
 		break;
+
+    case SPECIAL_CMD_HEX:
+        result = ParseHexSpecialCommand(lpText, result, &cmd_block_node->cmd_head, &nSize, lpError);
+    
+        if(result <= 0)
+            return result;
+    
+        cmd_block_node->nSize += nSize;
+        dwAddress += nSize;
+    
+        *pdwAddress = dwAddress;
+        break;
 	}
 
 	return result;
@@ -1848,6 +1861,11 @@ static LONG_PTR ParseSpecialCommand(TCHAR *lpText, UINT *pnSpecialCmd, TCHAR *lp
 		p += sizeof("pad")-1;
 		nSpecialCmd = SPECIAL_CMD_PAD;
 	}
+    else if(_tcsncmp(p, _T("hex"), (sizeof("hex")-1)*sizeof(TCHAR)) == 0)
+    {
+        p += sizeof("hex")-1;
+        nSpecialCmd = SPECIAL_CMD_HEX;
+    }
 	else
 	{
 		lstrcpy(lpError, _T("Unknown special command"));
@@ -1973,6 +1991,182 @@ static LONG_PTR ParsePadSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, BYTE
 
 	*pbPaddingByteValue = (BYTE)dwPaddingByteValue;
 	
+	return p-lpText;
+}
+
+static BYTE HexDigitToValue(TCHAR ch)
+{
+	if(ch >= _T('0') && ch <= _T('9'))
+		return (BYTE)(ch - _T('0'));
+	else if(ch >= _T('A') && ch <= _T('F'))
+		return (BYTE)(ch - _T('A') + 10);
+	else
+		return (BYTE)(ch - _T('a') + 10);
+}
+
+static LONG_PTR ParseHexSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, CMD_HEAD *p_cmd_head, SIZE_T *pnSizeInBytes, TCHAR *lpError)
+{
+	TCHAR *p;
+	TCHAR *lpComment;
+	CMD_NODE *cmd_node;
+	BYTE *dest;
+
+	SIZE_T nHexDigits;
+	SIZE_T nBytesCount;
+
+	BOOL bOddDigits;
+	BOOL bHighNibble;
+
+	BYTE currentByte;
+
+	p = lpText + nArgsOffset;
+
+	p = SkipSpaces(p);
+
+	if(*p == _T('\0') || *p == _T(';'))
+	{
+		lstrcpy(lpError, _T("No hex data specified"));
+		return -(p-lpText);
+	}
+
+	// First pass
+	nHexDigits = 0;
+
+	while(*p != _T('\0') && *p != _T(';'))
+	{
+		if(
+			(*p >= _T('0') && *p <= _T('9')) ||
+			(*p >= _T('A') && *p <= _T('F')) ||
+			(*p >= _T('a') && *p <= _T('f'))
+		)
+		{
+			nHexDigits++;
+		}
+		else if(*p != _T(' ') && *p != _T('\t'))
+		{
+			lstrcpy(lpError, _T("Invalid hex digit"));
+			return -(p-lpText);
+		}
+
+		p++;
+	}
+
+	if(nHexDigits == 0)
+	{
+		lstrcpy(lpError, _T("No hex data specified"));
+		return -(p-lpText);
+	}
+
+	// Comment
+	if(p[0] == _T(';') && p[1] != _T(';'))
+	{
+		lpComment = SkipSpaces(p+1);
+
+		if(*lpComment == _T('\0'))
+			lpComment = NULL;
+	}
+	else
+	{
+		lpComment = NULL;
+	}
+
+	nBytesCount = (nHexDigits + 1) / 2;
+
+	// Allocate
+	cmd_node = (CMD_NODE *)HeapAlloc(GetProcessHeap(), 0, sizeof(CMD_NODE));
+	if(!cmd_node)
+	{
+		lstrcpy(lpError, _T("Allocation failed"));
+		return 0;
+	}
+
+	cmd_node->bCode = (BYTE *)HeapAlloc(GetProcessHeap(), 0, nBytesCount);
+	if(!cmd_node->bCode)
+	{
+		HeapFree(GetProcessHeap(), 0, cmd_node);
+
+		lstrcpy(lpError, _T("Allocation failed"));
+		return 0;
+	}
+
+	// Second pass
+	dest = cmd_node->bCode;
+
+	p = lpText + nArgsOffset;
+	p = SkipSpaces(p);
+
+	bOddDigits = (nHexDigits & 1) != 0;
+
+	if(bOddDigits)
+	{
+		while(*p == _T(' ') || *p == _T('\t'))
+			p++;
+
+		while(
+			*p != _T('\0') &&
+			*p != _T(';') &&
+			(
+				(*p < _T('0') || *p > _T('9')) &&
+				(*p < _T('A') || *p > _T('F')) &&
+				(*p < _T('a') || *p > _T('f'))
+			)
+		)
+		{
+			p++;
+		}
+
+		*dest = HexDigitToValue(*p);
+
+		dest++;
+		p++;
+
+		bHighNibble = TRUE;
+	}
+	else
+	{
+		bHighNibble = TRUE;
+	}
+
+	currentByte = 0;
+
+	while(*p != _T('\0') && *p != _T(';'))
+	{
+		if(*p == _T(' ') || *p == _T('\t'))
+		{
+			p++;
+			continue;
+		}
+
+		if(bHighNibble)
+		{
+			currentByte = HexDigitToValue(*p) << 4;
+			bHighNibble = FALSE;
+		}
+		else
+		{
+			currentByte |= HexDigitToValue(*p);
+			*dest = currentByte;
+
+			dest++;
+
+			bHighNibble = TRUE;
+		}
+
+		p++;
+	}
+
+	cmd_node->nCodeSize = nBytesCount;
+	cmd_node->lpCommand = lpText;
+	cmd_node->lpComment = lpComment;
+	cmd_node->lpResolvedCommandWithLabels = NULL;
+
+	cmd_node->next = NULL;
+
+	p_cmd_head->last->next = cmd_node;
+	p_cmd_head->last = cmd_node;
+
+	*pnSizeInBytes = nBytesCount;
+
 	return p-lpText;
 }
 
