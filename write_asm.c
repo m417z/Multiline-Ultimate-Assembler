@@ -1851,17 +1851,17 @@ static LONG_PTR ParseSpecialCommand(TCHAR *lpText, UINT *pnSpecialCmd, TCHAR *lp
 	p++;
 	pCommandStart = p;
 
-	if(memcmp(p, _T("align"), (sizeof("align")-1)*sizeof(TCHAR)) == 0)
+	if(_tcsncmp(p, _T("align"), (sizeof("align")-1)*sizeof(TCHAR)) == 0)
 	{
 		p += sizeof("align")-1;
 		nSpecialCmd = SPECIAL_CMD_ALIGN;
 	}
-	else if(memcmp(p, _T("pad"), (sizeof("pad")-1)*sizeof(TCHAR)) == 0)
+	else if(_tcsncmp(p, _T("pad"), (sizeof("pad")-1)*sizeof(TCHAR)) == 0)
 	{
 		p += sizeof("pad")-1;
 		nSpecialCmd = SPECIAL_CMD_PAD;
 	}
-    else if(memcmp(p, _T("hex"), (sizeof("hex")-1)*sizeof(TCHAR)) == 0)
+    else if(_tcsncmp(p, _T("hex"), (sizeof("hex")-1)*sizeof(TCHAR)) == 0)
     {
         p += sizeof("hex")-1;
         nSpecialCmd = SPECIAL_CMD_HEX;
@@ -1894,11 +1894,10 @@ static LONG_PTR ParseAlignSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, DW
 	TCHAR *pAfterWhiteSpace;
 	DWORD_PTR dwAlignValue;
 	DWORD_PTR dwPaddingSize;
+	BYTE bPaddingByteValue;
 	LONG_PTR result;
 
 	p = lpText + nArgsOffset;
-
-	*pbPaddingByteValue = 0;
 
 	pAfterWhiteSpace = SkipSpaces(p);
 	if(pAfterWhiteSpace == p)
@@ -1933,7 +1932,7 @@ static LONG_PTR ParseAlignSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, DW
 			return -(p-lpText);
 		}
 
-		*pbPaddingByteValue = (BYTE)dwPaddingByteValue;
+		bPaddingByteValue = (BYTE)dwPaddingByteValue;
 
 		p += result;
 		p = SkipSpaces(p);
@@ -1944,8 +1943,11 @@ static LONG_PTR ParseAlignSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, DW
 			return -(p-lpText);
 		}
 	}
+	else
+		bPaddingByteValue = 0;
 
 	*pdwPaddingSize = dwPaddingSize;
+	*pbPaddingByteValue = bPaddingByteValue;
 
 	return p-lpText;
 }
