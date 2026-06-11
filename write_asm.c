@@ -1838,14 +1838,14 @@ static LONG_PTR ParseSpecialCommand(TCHAR *lpText, UINT *pnSpecialCmd, TCHAR *lp
 	p++;
 	pCommandStart = p;
 
-	if(memcmp(p, _T("align"), (sizeof("align")-1)*sizeof(TCHAR)) == 0)
+	if(_tcsncmp(p, _T("align"), (sizeof("align")-1)*sizeof(TCHAR)) == 0)
 	{
 		p += sizeof("align")-1;
 		nSpecialCmd = SPECIAL_CMD_ALIGN;
 	}
-	else if(memcmp(p, _T("pad"), (sizeof("pad") - 1)*sizeof(TCHAR)) == 0)
+	else if(_tcsncmp(p, _T("pad"), (sizeof("pad")-1)*sizeof(TCHAR)) == 0)
 	{
-		p += sizeof("pad") - 1;
+		p += sizeof("pad")-1;
 		nSpecialCmd = SPECIAL_CMD_PAD;
 	}
 	else
