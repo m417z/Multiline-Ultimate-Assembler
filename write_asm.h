@@ -64,6 +64,7 @@ typedef struct _cmd_block_head {
 
 #define SPECIAL_CMD_ALIGN     1
 #define SPECIAL_CMD_PAD       2
+#define SPECIAL_CMD_HEX       3
 
 // functions
 
@@ -90,6 +91,7 @@ static LONG_PTR ReplaceLabelsWithFooAddress(TCHAR *lpCommand, DWORD_PTR dwComman
 static LONG_PTR ParseSpecialCommand(TCHAR *lpText, UINT *pnSpecialCmd, TCHAR *lpError);
 static LONG_PTR ParseAlignSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, DWORD_PTR dwAddress, DWORD_PTR *pdwPaddingSize, BYTE *pbPaddingByteValue, TCHAR *lpError);
 static LONG_PTR ParsePadSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, BYTE *pbPaddingByteValue, TCHAR *lpError);
+static LONG_PTR ParseHexSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, CMD_HEAD *p_cmd_head, SIZE_T *pnSizeInBytes, TCHAR *lpError);
 static BOOL GetAlignPaddingSize(DWORD_PTR dwAddress, DWORD_PTR dwAlignValue, DWORD_PTR *pdwPaddingSize, TCHAR *lpError);
 static BOOL InsertBytes(TCHAR *lpText, SIZE_T nBytesCount, BYTE bByteValue, CMD_HEAD *p_cmd_head, TCHAR *lpError);
 
