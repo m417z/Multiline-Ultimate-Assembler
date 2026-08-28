@@ -221,17 +221,17 @@ static LONG_PTR SpecialCommandToData(CMD_BLOCK_NODE *cmd_block_node, DWORD_PTR *
 		}
 		break;
 
-    case SPECIAL_CMD_HEX:
-        result = ParseHexSpecialCommand(lpText, result, &cmd_block_node->cmd_head, &nSize, lpError);
-    
-        if(result <= 0)
-            return result;
-    
-        cmd_block_node->nSize += nSize;
-        dwAddress += nSize;
-    
-        *pdwAddress = dwAddress;
-        break;
+	case SPECIAL_CMD_HEX:
+		result = ParseHexSpecialCommand(lpText, result, &cmd_block_node->cmd_head, &nSize, lpError);
+	
+		if(result <= 0)
+			return result;
+	
+		cmd_block_node->nSize += nSize;
+		dwAddress += nSize;
+	
+		*pdwAddress = dwAddress;
+		break;
 	}
 
 	return result;
@@ -1861,11 +1861,11 @@ static LONG_PTR ParseSpecialCommand(TCHAR *lpText, UINT *pnSpecialCmd, TCHAR *lp
 		p += sizeof("pad")-1;
 		nSpecialCmd = SPECIAL_CMD_PAD;
 	}
-    else if(_tcsncmp(p, _T("hex"), sizeof("hex")-1) == 0)
-    {
-        p += sizeof("hex")-1;
-        nSpecialCmd = SPECIAL_CMD_HEX;
-    }
+	else if(_tcsncmp(p, _T("hex"), sizeof("hex")-1) == 0)
+	{
+		p += sizeof("hex")-1;
+		nSpecialCmd = SPECIAL_CMD_HEX;
+	}
 	else
 	{
 		lstrcpy(lpError, _T("Unknown special command"));
