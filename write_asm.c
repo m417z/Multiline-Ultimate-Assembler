@@ -613,7 +613,7 @@ static LONG_PTR ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, SIZE_T *pn
 		{
 			if(p-psubstr > 0)
 			{
-				nStringLength += WideCharToMultiByte(CP_ACP, 0, psubstr, p-psubstr, NULL, 0, NULL, NULL);
+				nStringLength += WideCharToMultiByte(CP_ACP, 0, psubstr, (int)(p - psubstr), NULL, 0, NULL, NULL);
 				psubstr = p;
 			}
 
@@ -671,7 +671,7 @@ static LONG_PTR ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, SIZE_T *pn
 	}
 
 	if(p-psubstr > 0)
-		nStringLength += WideCharToMultiByte(CP_ACP, 0, psubstr, p-psubstr, NULL, 0, NULL, NULL);
+		nStringLength += WideCharToMultiByte(CP_ACP, 0, psubstr, (int)(p - psubstr), NULL, 0, NULL, NULL);
 
 	if(*p != L'\"')
 	{
@@ -734,7 +734,7 @@ static LONG_PTR ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, SIZE_T *pn
 		{
 			if(p2-psubstr > 0)
 			{
-				nBytesWritten = WideCharToMultiByte(CP_ACP, 0, psubstr, p2-psubstr, dest, nDestLen, NULL, NULL);
+				nBytesWritten = WideCharToMultiByte(CP_ACP, 0, psubstr, (int)(p2 - psubstr), dest, (int)nDestLen, NULL, NULL);
 				dest += nBytesWritten;
 				nDestLen -= nBytesWritten;
 
@@ -821,7 +821,7 @@ static LONG_PTR ParseAsciiString(TCHAR *lpText, CMD_HEAD *p_cmd_head, SIZE_T *pn
 	}
 
 	if(p2-psubstr > 0)
-		WideCharToMultiByte(CP_ACP, 0, psubstr, p2-psubstr, dest, nDestLen, NULL, NULL);
+		WideCharToMultiByte(CP_ACP, 0, psubstr, (int)(p2 - psubstr), dest, (int)nDestLen, NULL, NULL);
 
 #else // if !UNICODE
 	CMD_NODE *cmd_node;
