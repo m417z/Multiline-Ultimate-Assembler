@@ -259,7 +259,7 @@
       <GenerateMapFile>true</GenerateMapFile>
     </Link>
     <ResourceCompile>
-      <PreprocessorDefinitions>TARGET_ODBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>TARGET_X64DBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug_x64dbg|x64'">
@@ -286,7 +286,7 @@
       <GenerateMapFile>true</GenerateMapFile>
     </Link>
     <ResourceCompile>
-      <PreprocessorDefinitions>TARGET_ODBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>TARGET_X64DBG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_odbg|Win32'">
