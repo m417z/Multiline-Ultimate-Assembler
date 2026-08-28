@@ -1998,12 +1998,15 @@ static LONG_PTR ParseHexSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, CMD_
 {
 	TCHAR *p;
 	TCHAR *pAfterWhiteSpace;
+	TCHAR *pValue;
+	TCHAR *pLongValue;
+	TCHAR *pDataEnd;
 	TCHAR *lpComment;
 	CMD_NODE *cmd_node;
 	BYTE *dest;
 	SIZE_T nHexDigits;
+	SIZE_T nValues;
 	SIZE_T nBytesCount;
-	BOOL bHighNibble;
 	BYTE bCurrentByte;
 
 	p = lpText + nArgsOffset;
@@ -2025,30 +2028,51 @@ static LONG_PTR ParseHexSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, CMD_
 
 	// Check hex data, calc size
 	nHexDigits = 0;
+	nValues = 0;
+	pLongValue = NULL;
 
 	while(*p != _T('\0') && *p != _T(';'))
 	{
-		if(
-			(*p >= _T('0') && *p <= _T('9')) ||
-			(*p >= _T('A') && *p <= _T('F')) ||
-			(*p >= _T('a') && *p <= _T('f'))
-		)
-		{
-			nHexDigits++;
-		}
-		else if(*p != _T(' ') && *p != _T('\t'))
+		pValue = p;
+
+		while(IsHexDigit(*p))
+			p++;
+
+		if(p == pValue)
 		{
 			lstrcpy(lpError, _T("Could not parse hex data, invalid hex digit"));
 			return -(p-lpText);
 		}
 
-		p++;
+		if(p-pValue > 2 && !pLongValue)
+			pLongValue = pValue;
+
+		nHexDigits += p-pValue;
+		nValues++;
+
+		p = SkipSpaces(p);
 	}
 
-	// Check for comment
-	if(p[0] == _T(';') && p[1] != _T(';'))
+	pDataEnd = p;
+
+	// Whitespace delimits one byte per value, an undelimited run is a stream of bytes
+	if(nValues > 1)
 	{
-		lpComment = SkipSpaces(p+1);
+		if(pLongValue)
+		{
+			lstrcpy(lpError, _T("Could not parse hex data, expected one or two digits per value"));
+			return -(pLongValue-lpText);
+		}
+
+		nBytesCount = nValues;
+	}
+	else
+		nBytesCount = (nHexDigits + 1) / 2;
+
+	// Check for comment
+	if(pDataEnd[0] == _T(';') && pDataEnd[1] != _T(';'))
+	{
+		lpComment = SkipSpaces(pDataEnd+1);
 
 		if(*lpComment == _T('\0'))
 			lpComment = NULL;
@@ -2057,8 +2081,6 @@ static LONG_PTR ParseHexSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, CMD_
 	{
 		lpComment = NULL;
 	}
-
-	nBytesCount = (nHexDigits + 1) / 2;
 
 	// Allocate
 	cmd_node = (CMD_NODE *)HeapAlloc(GetProcessHeap(), 0, sizeof(CMD_NODE));
@@ -2083,41 +2105,47 @@ static LONG_PTR ParseHexSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, CMD_
 	p = lpText + nArgsOffset;
 	p = SkipSpaces(p);
 
-	// An odd digit count pads the first byte with a leading zero
-	if((nHexDigits & 1) != 0)
+	if(nValues > 1)
 	{
-		*dest = HexDigitToValue(*p);
-
-		dest++;
-		p++;
-	}
-
-	bHighNibble = TRUE;
-
-	while(*p != _T('\0') && *p != _T(';'))
-	{
-		if(*p == _T(' ') || *p == _T('\t'))
+		while(p != pDataEnd)
 		{
+			bCurrentByte = HexDigitToValue(*p);
 			p++;
-			continue;
-		}
 
-		if(bHighNibble)
-		{
-			bCurrentByte = HexDigitToValue(*p) << 4;
-			bHighNibble = FALSE;
-		}
-		else
-		{
-			bCurrentByte |= HexDigitToValue(*p);
+			if(IsHexDigit(*p))
+			{
+				bCurrentByte = (bCurrentByte << 4) | HexDigitToValue(*p);
+				p++;
+			}
+
 			*dest = bCurrentByte;
 
 			dest++;
 
-			bHighNibble = TRUE;
+			p = SkipSpaces(p);
+		}
+	}
+	else
+	{
+		// An odd digit count pads the first byte with a leading zero
+		if((nHexDigits & 1) != 0)
+		{
+			*dest = HexDigitToValue(*p);
+
+			dest++;
+			p++;
 		}
 
-		p++;
+		while(IsHexDigit(*p))
+		{
+			bCurrentByte = HexDigitToValue(p[0]) << 4;
+			bCurrentByte |= HexDigitToValue(p[1]);
+
+			*dest = bCurrentByte;
+
+			dest++;
+			p += 2;
+		}
 	}
 
 	cmd_node->nCodeSize = nBytesCount;
@@ -2132,7 +2160,7 @@ static LONG_PTR ParseHexSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, CMD_
 
 	*pnSizeInBytes = nBytesCount;
 
-	return p-lpText;
+	return pDataEnd-lpText;
 }
 
 static BOOL GetAlignPaddingSize(DWORD_PTR dwAddress, DWORD_PTR dwAlignValue, DWORD_PTR *pdwPaddingSize, TCHAR *lpError)
@@ -2962,6 +2990,14 @@ static TCHAR *SkipRVAAddress(TCHAR *p)
 static BOOL IsDWORDPtrPowerOfTwo(DWORD_PTR dw)
 {
 	return (dw != 0) && ((dw & (dw - 1)) == 0);
+}
+
+static BOOL IsHexDigit(TCHAR ch)
+{
+	return
+		(ch >= _T('0') && ch <= _T('9')) ||
+		(ch >= _T('A') && ch <= _T('F')) ||
+		(ch >= _T('a') && ch <= _T('f'));
 }
 
 static BYTE HexDigitToValue(TCHAR ch)

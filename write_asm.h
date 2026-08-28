@@ -118,6 +118,7 @@ static TCHAR *SkipDWORD(TCHAR *p);
 static TCHAR *SkipLabel(TCHAR *p);
 static TCHAR *SkipRVAAddress(TCHAR *p);
 static BOOL IsDWORDPtrPowerOfTwo(DWORD_PTR dw);
+static BOOL IsHexDigit(TCHAR ch);
 static BYTE HexDigitToValue(TCHAR ch);
 
 // Cleanup function
