@@ -122,7 +122,52 @@ HRESULT CALLBACK AboutMessageBoxCallback(HWND hwnd, UINT msg, WPARAM wParam, LPA
 int AboutMessageBox(HWND hWnd, HINSTANCE hInst)
 {
 	// OllyDbg doesn't use visual styles, so TaskDialogIndirect isn't available.
-#if defined(TARGET_ODBG) || defined(TARGET_IMMDBG) || defined(TARGET_ODBG2)
+#if !(defined(TARGET_ODBG) || defined(TARGET_IMMDBG) || defined(TARGET_ODBG2))
+	{
+		typedef HRESULT (WINAPI *TASKDIALOGINDIRECT)(const TASKDIALOGCONFIG *pTaskConfig,
+			int *pnButton, int *pnRadioButton, BOOL *pfVerificationFlagChecked);
+
+		HMODULE hComctl32;
+		TASKDIALOGINDIRECT pTaskDialogIndirect;
+
+		hComctl32 = LoadLibrary(_T("comctl32.dll"));
+		if(hComctl32)
+		{
+			pTaskDialogIndirect = (TASKDIALOGINDIRECT)GetProcAddress(hComctl32, "TaskDialogIndirect");
+			if(pTaskDialogIndirect)
+			{
+				PCWSTR content =
+					DEF_PLUGINNAME L" v" DEF_VERSION L"\n"
+					L"By m417z (<A HREF=\"https://ramensoftware.com/\">Ramen Software</A>)\n"
+					L"\n"
+					L"Source code:\n"
+					L"<A HREF=\"https://github.com/m417z/Multiline-Ultimate-Assembler\">https://github.com/m417z/Multiline-Ultimate-Assembler</a>";
+
+				TASKDIALOGCONFIG taskDialogConfig;
+				HRESULT hr;
+
+				ZeroMemory(&taskDialogConfig, sizeof(TASKDIALOGCONFIG));
+
+				taskDialogConfig.cbSize = sizeof(taskDialogConfig);
+				taskDialogConfig.hwndParent = hWnd;
+				taskDialogConfig.hInstance = hInst;
+				taskDialogConfig.dwFlags = TDF_ENABLE_HYPERLINKS | TDF_ALLOW_DIALOG_CANCELLATION;
+				taskDialogConfig.pszWindowTitle = L"About";
+				taskDialogConfig.pszMainIcon = MAKEINTRESOURCEW(IDI_MAIN);
+				taskDialogConfig.pszContent = content;
+				taskDialogConfig.pfCallback = AboutMessageBoxCallback;
+
+				hr = pTaskDialogIndirect(&taskDialogConfig, NULL, NULL, NULL);
+
+				FreeLibrary(hComctl32);
+				return hr;
+			}
+
+			FreeLibrary(hComctl32);
+		}
+	}
+#endif // !(defined(TARGET_ODBG) || defined(TARGET_IMMDBG) || defined(TARGET_ODBG2))
+
 	PCTSTR content =
 		DEF_PLUGINNAME _T(" v") DEF_VERSION _T("\n")
 		_T("By m417z (Ramen Software)\n")
@@ -143,27 +188,4 @@ int AboutMessageBox(HWND hWnd, HINSTANCE hInst)
 	mbpMsgBoxParams.lpszIcon = MAKEINTRESOURCE(IDI_MAIN);
 
 	return MessageBoxIndirect(&mbpMsgBoxParams);
-#else
-	PCWSTR content =
-		DEF_PLUGINNAME L" v" DEF_VERSION L"\n"
-		L"By m417z (<A HREF=\"https://ramensoftware.com/\">Ramen Software</A>)\n"
-		L"\n"
-		L"Source code:\n"
-		L"<A HREF=\"https://github.com/m417z/Multiline-Ultimate-Assembler\">https://github.com/m417z/Multiline-Ultimate-Assembler</a>";
-
-	TASKDIALOGCONFIG taskDialogConfig;
-
-	ZeroMemory(&taskDialogConfig, sizeof(TASKDIALOGCONFIG));
-
-	taskDialogConfig.cbSize = sizeof(taskDialogConfig);
-	taskDialogConfig.hwndParent = hWnd;
-	taskDialogConfig.hInstance = hInst;
-	taskDialogConfig.dwFlags = TDF_ENABLE_HYPERLINKS | TDF_ALLOW_DIALOG_CANCELLATION;
-	taskDialogConfig.pszWindowTitle = L"About";
-	taskDialogConfig.pszMainIcon = MAKEINTRESOURCEW(IDI_MAIN);
-	taskDialogConfig.pszContent = content;
-	taskDialogConfig.pfCallback = AboutMessageBoxCallback;
-
-	return TaskDialogIndirect(&taskDialogConfig, NULL, NULL, NULL);
-#endif
 }
