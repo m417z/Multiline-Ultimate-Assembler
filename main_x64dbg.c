@@ -34,7 +34,7 @@ DLL_EXPORT void plugsetup(PLUG_SETUPSTRUCT *setupStruct)
 	hMenu = setupStruct->hMenu;
 	hMenuDisasm = setupStruct->hMenuDisasm;
 
-	HRSRC hResource = FindResource(hDllInst, MAKEINTRESOURCE(IDB_X64DBG_ICON), "PNG");
+	HRSRC hResource = FindResource(hDllInst, MAKEINTRESOURCE(IDB_X64DBG_ICON), _T("PNG"));
 	if(hResource)
 	{
 		HGLOBAL hMemory = LoadResource(hDllInst, hResource);
@@ -71,18 +71,18 @@ DLL_EXPORT bool pluginit(PLUG_INITSTRUCT* initStruct)
 {
 	initStruct->pluginVersion = GetPluginVersion();
 	initStruct->sdkVersion = PLUG_SDKVERSION;
-	lstrcpy(initStruct->pluginName, DEF_PLUGINNAME);
+	lstrcpyA(initStruct->pluginName, DEF_PLUGINNAME_UTF8);
 	pluginHandle = initStruct->pluginHandle;
 
-	char *pError = PluginInit(hDllInst);
+	TCHAR *pError = PluginInit(hDllInst);
 	if(pError)
 	{
-		MessageBox(hwollymain, pError, "Multiline Ultimate Assembler error", MB_ICONHAND);
+		MessageBox(hwollymain, pError, _T("Multiline Ultimate Assembler error"), MB_ICONHAND);
 		return false;
 	}
 
-	_plugin_logputs("Multiline Ultimate Assembler v" DEF_VERSION);
-	_plugin_logputs("  " DEF_COPYRIGHT);
+	_plugin_logputs("Multiline Ultimate Assembler v" DEF_VERSION_UTF8);
+	_plugin_logputs("  " DEF_COPYRIGHT_UTF8);
 
 	_plugin_registercommand(pluginHandle, "multiasm_show", CmdShow, false);
 	_plugin_registercommand(pluginHandle, "multiasm_disasm_selection", CmdDisasmSelection, true);
@@ -93,16 +93,16 @@ DLL_EXPORT bool pluginit(PLUG_INITSTRUCT* initStruct)
 
 static int GetPluginVersion()
 {
-	char *p = DEF_VERSION;
+	TCHAR *p = DEF_VERSION;
 	int nVersion = 0;
 
-	while(*p != '\0')
+	while(*p != _T('\0'))
 	{
-		char c = *p;
-		if(c >= '0' && c <= '9')
+		TCHAR c = *p;
+		if(c >= _T('0') && c <= _T('9'))
 		{
 			nVersion *= 10;
-			nVersion += c - '0';
+			nVersion += c - _T('0');
 		}
 
 		p++;
@@ -170,7 +170,7 @@ DLL_EXPORT CDECL void CBMENUENTRY(CBTYPE cbType, void *callbackInfo)
 		if(DbgIsDebugging())
 			DisassembleSelection();
 		else
-			MessageBox(hwollymain, "No process is loaded", NULL, MB_ICONASTERISK);
+			MessageBox(hwollymain, _T("No process is loaded"), NULL, MB_ICONASTERISK);
 		break;
 
 	case MENU_OPTIONS:
@@ -182,7 +182,7 @@ DLL_EXPORT CDECL void CBMENUENTRY(CBTYPE cbType, void *callbackInfo)
 	case MENU_HELP:
 		// Menu item "Help"
 		if(!OpenHelp(hwollymain, hDllInst))
-			MessageBox(hwollymain, "Failed to open the \"multiasm.chm\" help file", NULL, MB_ICONHAND);
+			MessageBox(hwollymain, _T("Failed to open the \"multiasm.chm\" help file"), NULL, MB_ICONHAND);
 		break;
 
 	case MENU_ABOUT:

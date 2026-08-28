@@ -11,9 +11,13 @@
 #error Unknown target
 #endif
 
-#define DEF_PLUGINNAME        _T("Multiline Ultimate Assembler")
-#define DEF_VERSION           _T("2.3.8")
-#define DEF_COPYRIGHT         _T("Copyright (C) Ramen Software")
+#define DEF_PLUGINNAME_UTF8   "Multiline Ultimate Assembler"
+#define DEF_VERSION_UTF8      "2.3.8"
+#define DEF_COPYRIGHT_UTF8    "Copyright (C) Ramen Software"
+
+#define DEF_PLUGINNAME        _T(DEF_PLUGINNAME_UTF8)
+#define DEF_VERSION           _T(DEF_VERSION_UTF8)
+#define DEF_COPYRIGHT         _T(DEF_COPYRIGHT_UTF8)
 
 #define DECODE_UNKNOWN        0
 #define DECODE_COMMAND        1

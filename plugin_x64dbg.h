@@ -1,5 +1,10 @@
 #pragma once
 
+// Text from the debugger API is UTF-8, and is converted to and from UTF-16.
+#ifndef UNICODE
+#error The x64dbg target must be compiled as UNICODE
+#endif
+
 #include "x64dbg_pluginsdk/_plugins.h"
 
 extern HWND hwollymain;
