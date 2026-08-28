@@ -118,6 +118,7 @@ static TCHAR *SkipDWORD(TCHAR *p);
 static TCHAR *SkipLabel(TCHAR *p);
 static TCHAR *SkipRVAAddress(TCHAR *p);
 static BOOL IsDWORDPtrPowerOfTwo(DWORD_PTR dw);
+static BYTE HexDigitToValue(TCHAR ch);
 
 // Cleanup function
 static void FreeLabelList(LABEL_HEAD *p_label_head);
