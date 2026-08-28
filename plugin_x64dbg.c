@@ -511,7 +511,7 @@ DWORD_PTR GetCpuBaseAddr()
 
 	if(!GuiSelectionGet(GUI_DISASSEMBLY, &selection))
 		return 0;
-		
+
 	return DbgMemFindBaseAddr(selection.start, NULL);
 }
 

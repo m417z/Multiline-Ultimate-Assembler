@@ -80,7 +80,7 @@ int InitLoadTabs(HWND hTabCtrlWnd)
 	nTabCount = 0;
 	nTabInvalidCount = 0;
 
-	tci.header.mask = TCIF_TEXT|TCIF_PARAM; 
+	tci.header.mask = TCIF_TEXT|TCIF_PARAM;
 	tci.header.pszText = szTabLabel;
 	ZeroMemory(&tci.extra, sizeof(TCITEM_EXTRA));
 
@@ -980,7 +980,7 @@ static void MoveTab(HWND hTabCtrlWnd, int nFromIndex, int nToIndex)
 
 	nCurrentTabIndex = TabCtrl_GetCurSel(hTabCtrlWnd);
 
-	tci.header.mask = TCIF_TEXT|TCIF_PARAM; 
+	tci.header.mask = TCIF_TEXT|TCIF_PARAM;
 	tci.header.pszText = szTabLabel;
 	tci.header.cchTextMax = MAX_PATH;
 

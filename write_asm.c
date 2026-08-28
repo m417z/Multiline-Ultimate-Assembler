@@ -223,13 +223,13 @@ static LONG_PTR SpecialCommandToData(CMD_BLOCK_NODE *cmd_block_node, DWORD_PTR *
 
 	case SPECIAL_CMD_HEX:
 		result = ParseHexSpecialCommand(lpText, result, &cmd_block_node->cmd_head, &nSize, lpError);
-	
+
 		if(result <= 0)
 			return result;
-	
+
 		cmd_block_node->nSize += nSize;
 		dwAddress += nSize;
-	
+
 		*pdwAddress = dwAddress;
 		break;
 	}
@@ -1871,7 +1871,7 @@ static LONG_PTR ParseSpecialCommand(TCHAR *lpText, UINT *pnSpecialCmd, TCHAR *lp
 		lstrcpy(lpError, _T("Unknown special command"));
 		return -(pCommandStart-lpText);
 	}
-	
+
 	if(
 		*p != _T(' ') && 
 		*p != _T('\t') && 
@@ -1969,7 +1969,7 @@ static LONG_PTR ParsePadSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, BYTE
 	}
 
 	p = pAfterWhiteSpace;
-	
+
 	result = ParseDWORDPtr(p, &dwPaddingByteValue, lpError);
 	if(result <= 0)
 		return -(p-lpText)+result;
@@ -1990,7 +1990,7 @@ static LONG_PTR ParsePadSpecialCommand(TCHAR *lpText, LONG_PTR nArgsOffset, BYTE
 	}
 
 	*pbPaddingByteValue = (BYTE)dwPaddingByteValue;
-	
+
 	return p-lpText;
 }
 
